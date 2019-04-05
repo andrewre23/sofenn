@@ -30,7 +30,7 @@ from sklearn.metrics import confusion_matrix, classification_report, \
 from .layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
 
 
-class SOFNN(object):
+class SelfOrganizer(object):
     """
     Self-Organizing Fuzzy Neural Network
     ====================================
