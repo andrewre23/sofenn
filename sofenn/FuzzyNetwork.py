@@ -123,7 +123,7 @@ class FuzzyNetwork(object):
 
     def __init__(self, X_train, X_test, y_train, y_test,     # data attributes
                  neurons=1, s_init=4, max_neurons=100,       # initialization parameters
-                 epochs=250, batch_size=None,                  # training data
+                 epochs=250, batch_size=None,                # training data
                  eval_thresh=0.5, ifpart_thresh=0.1354,      # evaluation and ifpart threshold
                  ksig=1.12, max_widens=250, err_delta=0.12,  # adding neuron or widening centers
                  prune_tol=0.85, k_mae=0.1,                  # pruning parameters
