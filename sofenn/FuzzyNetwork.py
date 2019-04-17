@@ -35,6 +35,9 @@ class FuzzyNetwork(object):
     Self-Organizing Fuzzy Neural Network
     ====================================
 
+    Fuzzy Network
+    =============
+
     -Implemented per description in:
         "An on-line algorithm for creating self-organizing
         fuzzy neural networks" - Leng, Prasad, McGinnity (2004)
