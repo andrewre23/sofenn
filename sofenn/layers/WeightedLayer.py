@@ -84,7 +84,7 @@ class WeightedLayer(Layer):
                                  trainable=True)
         super(WeightedLayer, self).build(input_shape)
 
-    def call(self, x):
+    def call(self, x, *args, **kwargs):
         """
         Build processing logic for layer
 
