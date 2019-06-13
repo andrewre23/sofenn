@@ -76,9 +76,13 @@ class WeightedLayer(Layer):
         """
         # assert multi-input as list
         assert isinstance(input_shape, list)
+        assert len(input_shape) == 2
+
+        # extract variables
+        x_shape, psi_shape = input_shape
 
         self.a = self.add_weight(name='a',
-                                 shape=(1+input_shape[0][-1], self.output_dim),
+                                 shape=(1+x_shape[-1], self.output_dim),
                                  initializer=self.initializer_a if
                                  self.initializer_a is not None else 'uniform',
                                  trainable=True)
@@ -116,6 +120,7 @@ class WeightedLayer(Layer):
         """
         # assert multi-input as list and read in inputs
         assert isinstance(x, list)
+        assert len(x) == 2
         x, psi = x
 
         # align tensors by prepending bias value for input tensor in b
@@ -153,6 +158,7 @@ class WeightedLayer(Layer):
         """
         # assert multi-input as list
         assert isinstance(input_shape, list)
+        assert len(input_shape) == 2
         x_shape, psi_shape = input_shape
 
         return tuple(x_shape[:-1]) + (self.output_dim,)
