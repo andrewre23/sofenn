@@ -56,7 +56,7 @@ class FuzzyLayer(Layer):
         self.output_dim = output_dim
         self.initializer_centers = initializer_centers
         self.initializer_sigmas = initializer_sigmas
-        super(FuzzyLayer, self).__init__(name='FuzzyRules', **kwargs)
+        super().__init__(name='FuzzyRules', **kwargs)
 
     def build(self, input_shape):
         """

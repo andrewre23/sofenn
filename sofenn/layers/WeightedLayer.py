@@ -54,7 +54,7 @@ class WeightedLayer(Layer):
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
         self.output_dim = output_dim
         self.initializer_a = initializer_a
-        super(WeightedLayer, self).__init__(name='Weights', **kwargs)
+        super().__init__(name='Weights', **kwargs)
 
     def build(self, input_shape):
         """

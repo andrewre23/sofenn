@@ -43,7 +43,7 @@ class NormalizedLayer(Layer):
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
         self.output_dim = output_dim
-        super(NormalizedLayer, self).__init__(name='Normalization', **kwargs)
+        super().__init__(name='Normalization', **kwargs)
 
     def build(self, input_shape):
         """

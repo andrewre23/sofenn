@@ -37,7 +37,7 @@ class OutputLayer(Layer):
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
         self.output_dim = 1
-        super(OutputLayer, self).__init__(name='RawOutput', **kwargs)
+        super().__init__(name='RawOutput', **kwargs)
 
     def build(self, input_shape):
         """
