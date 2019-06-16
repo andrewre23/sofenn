@@ -48,7 +48,7 @@ class OutputLayer(Layer):
         input_shape : tuple
             - f shape : (samples, neurons)
         """
-        super(OutputLayer, self).build(input_shape)
+        super().build(input_shape)
 
     def call(self, x, *args, **kwargs):
         """

@@ -92,7 +92,7 @@ class FuzzyLayer(Layer):
                                  self.initializer_sigmas if self.initializer_sigmas is not None
                                  else 'ones',
                                  trainable=True)
-        super(FuzzyLayer, self).build(input_shape)
+        super().build(input_shape)
 
     def call(self, x, *args, **kwargs):
         """

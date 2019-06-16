@@ -56,7 +56,7 @@ class NormalizedLayer(Layer):
             - last index will be taken for sizing variables
 
         """
-        super(NormalizedLayer, self).build(input_shape)
+        super().build(input_shape)
 
     def call(self, x, *args, **kwargs):
         """

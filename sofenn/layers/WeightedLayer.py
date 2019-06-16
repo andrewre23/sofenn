@@ -86,7 +86,7 @@ class WeightedLayer(Layer):
                                  initializer=self.initializer_a if
                                  self.initializer_a is not None else 'uniform',
                                  trainable=True)
-        super(WeightedLayer, self).build(input_shape)
+        super().build(input_shape)
 
     def call(self, x, *args, **kwargs):
         """
