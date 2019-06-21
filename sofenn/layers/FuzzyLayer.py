@@ -94,7 +94,7 @@ class FuzzyLayer(Layer):
                                  trainable=True)
         super().build(input_shape)
 
-    def call(self, x, *args, **kwargs):
+    def call(self, x, **kwargs):
         """
         Build processing logic for layer
 
