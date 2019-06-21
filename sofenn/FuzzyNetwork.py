@@ -16,14 +16,12 @@
 #
 
 import numpy as np
-import pandas as pd
 
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Input, Activation
 
-from sklearn.metrics import confusion_matrix, classification_report, \
-    mean_absolute_error, roc_auc_score
+from sklearn.metrics import mean_absolute_error
 
 # custom Fuzzy Layers
 from .layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
@@ -56,56 +54,36 @@ class FuzzyNetwork(object):
     ==========
     - neurons : int
         - number of initial neurons
+    - max_neurons : int
+        - max number of neurons
     - s_init : int
         - initial sigma for first neuron
-    - epochs : int
-        - training epochs
-    - batch_size : int
-        - training batch size
-    - eval_thresh : float
-        - cutoff for 0/1 class
-    - ifpart_thresh : float
-        - threshold for if-part
-    - ksig : float
-        - factor to widen centers
-    - max_widens : int
-        - max iterations for widening centers
-    - delta : float
-        - threshold for error criterion whether new neuron to be added
     - eval_thresh : float
         - cutoff threshold for positive/negative classes
-    - prune_tol : float
-        - tolerance limit for RMSE (0 < lambda < 1)
+    - ifpart_thresh : float
+        - threshold for if-part
+    - err_delta : float
+        - threshold for error criterion whether new neuron to be added
     - debug : debug flag
 
     Methods
     =======
     - build_model :
         - build and compile model
-    - self_organize :
-        - run main logic to organize FNN
+    - loss_function :
+        - custom loss function per Leng, Prasad, McGinnity (2004)
+    - train_model :
+        - train on data
+    - model_predictions :
+        - yield model predictions without full evaluation
     - error_criterion :
         - considers generalized performance of overall network
         - add neuron if error above predefined error threshold (delta)
     - if_part_criterion :
         - checks if current fuzzy rules cover/cluster input vector suitably
-    - add_neuron :
-        - add one neuron to model
-    - prune_neuron :
-        - remove neuron from model
-    - combine_membership_functions :
-        - combine similar membership functions
 
     Secondary Methods
     =================
-    - initialize_model :
-        - initialize neuron weights if only 1 neuron
-    - train_model :
-        - train on data
-    - model_predictions :
-        - yield model predictions without full evaluation
-    - evaluate_model :
-        - full evaluation of model on test data
     - get_layer :
         - return layer object from model by name
     - get_layer_weights :
@@ -116,14 +94,14 @@ class FuzzyNetwork(object):
         - get min_dist_vector used when adding neurons
     - new_neuron_weights :
         - get weights for new neuron to be added
-    - loss_function :
-        - custom loss function per Leng, Prasad, McGinnity (2004)
+    - initialize_model :
+        - initialize neuron weights if only 1 neuron
     """
 
     def __init__(self, X_train, X_test, y_train, y_test,     # data attributes
                  neurons=1, max_neurons=100, s_init=4,       # neuron initialization parameters
                  eval_thresh=0.5, ifpart_thresh=0.1354,      # evaluation and ifpart threshold
-                 err_delta=0.12,
+                 err_delta=0.12,                             # delta tolerance for errors
                  debug=True):
         # set debug flag
         self.__debug = debug
@@ -136,7 +114,7 @@ class FuzzyNetwork(object):
 
         # set neuron attributes
         self.neurons = neurons
-        self._max_neurons = max_neurons
+        self.max_neurons = max_neurons
 
         # set remaining attributes
         self._eval_thresh = eval_thresh
@@ -148,7 +126,7 @@ class FuzzyNetwork(object):
         if self.neurons == 1:
             self.__initialize_model(s_init=s_init)
 
-    def build_model(self, debug=True):
+    def build_model(self, **kwargs):
         """
         Create and compile model
         - sets compiled model as self.model
@@ -187,8 +165,8 @@ class FuzzyNetwork(object):
             - output shape : (*,)
         """
 
-        if debug:
-            print('\nBUILDING SOFNN WITH {} NEURONS'.format(self.neurons))
+        if self.__debug:
+            print('BUILDING SOFNN WITH {} NEURONS'.format(self.neurons))
 
         # get shape of training data
         samples, feats = self.X_train.shape
@@ -205,15 +183,95 @@ class FuzzyNetwork(object):
         psi = norm(phi)
         f = weights([inputs, psi])
         raw_output = raw(f)
-        preds = Activation(name='OutputActivation', activation='sigmoid')(raw_output)
+        # extract activation from kwargs
+        if 'activation' not in kwargs:
+            activation = 'sigmoid'
+        else:
+            activation = kwargs['activation']
+        preds = Activation(name='OutputActivation', activation=activation)(raw_output)
 
-        # compile model and output summary
+        # define model
         model = Model(inputs=inputs, outputs=preds)
-        model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy', 'mape'])
-        if debug:
+        # extract loss function
+        if 'loss' not in kwargs:
+            loss = self._loss_function
+        else:
+            loss = kwargs['loss']
+        # extract optimizer
+        if 'optimizer' not in kwargs:
+            optimizer = 'rmsprop'
+        else:
+            optimizer = kwargs['optimizer']
+        # extract metrics
+        if 'metrics' not in kwargs:
+            metrics = ['accuracy']
+        else:
+            metrics = kwargs['metrics']
+        # compile model and show model summary
+        model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+        if self.__debug:
             print(model.summary())
 
         return model
+
+    @staticmethod
+    def _loss_function(y_true, y_pred):
+        """
+        Custom loss function
+
+        E = exp{-sum[i=1,j; 1/2 * [pred(j) - test(j)]^2]}
+
+        Parameters
+        ==========
+        y_true : np.array
+            - true values
+        y_pred : np.array
+            - predicted values
+        """
+        return K.sum(1 / 2 * K.square(y_pred - y_true))
+
+    def train_model(self, **kwargs):
+        """
+        Run currently saved model
+        """
+        if self.__debug:
+            print('Training model...')
+
+        # extract verbosity
+        if 'verbose' not in kwargs:
+            verbose = 1
+        else:
+            verbose = kwargs['verbose']
+        # extract training epochs
+        if 'epochs' not in kwargs:
+            epochs = 50
+        else:
+            epochs = kwargs['epochs']
+        # extract training batch size
+        if 'batch_size' not in kwargs:
+            batch_size = 64
+        else:
+            batch_size = kwargs['batch_size']
+
+        # fit model and evaluate
+        self.model.fit(self.X_train, self.y_train, verbose=verbose,
+                       epochs=epochs, batch_size=batch_size)
+
+    def model_predictions(self):
+        """
+        Evaluate currently trained model
+
+
+        Returns
+        =======
+        y_pred : np.array
+            - predicted values
+            - shape: (samples,)
+        """
+        # get prediction values
+        raw_pred = self.model.predict(self.X_test)
+        y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
+        return y_pred
 
     def error_criterion(self, y_pred):
         """
@@ -224,7 +282,7 @@ class FuzzyNetwork(object):
         Parameters
         ==========
         y_pred : np.array
-            - predictions
+            - model predictions
         """
         # mean of absolute test difference
         return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
@@ -241,97 +299,6 @@ class FuzzyNetwork(object):
         maxes = np.max(fuzz_out, axis=-1) >= self._ifpart_thresh
         # return True if at least half of samples agree
         return (maxes.sum() / len(maxes)) >= 0.5
-
-    def __initialize_model(self, s_init=4):
-        """
-        Initialize neuron weights
-
-        c_init = Average(X).T
-        s_init = s_init
-
-        """
-        # derive initial c and s
-        # set initial center as first training value
-        x_i = self.X_train.values[0]
-        c_init = np.expand_dims(x_i, axis=-1)
-        s_init = np.repeat(s_init, c_init.size).reshape(c_init.shape)
-        start_weights = [c_init, s_init]
-        self._get_layer('FuzzyRules').set_weights(start_weights)
-
-        # validate weights updated as expected
-        final_weights = self._get_layer_weights('FuzzyRules')
-        assert np.allclose(start_weights[0], final_weights[0])
-        assert np.allclose(start_weights[1], final_weights[1])
-
-    def _train_model(self):
-        """
-        Run currently saved model
-        """
-        # fit model and evaluate
-        self.model.fit(self.X_train, self.y_train, verbose=0,
-                       epochs=self._epochs, batch_size=self._batch_size)
-
-    def _model_predictions(self):
-        """
-        Evaluate currently trained model
-
-
-        Returns
-        =======
-        y_pred : np.array
-            - predicted values
-            - shape: (samples,)
-        """
-        # get prediction values
-        raw_pred = self.model.predict(self.X_test)
-        y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
-        return y_pred
-
-    def _evaluate_model(self, eval_thresh=0.5):
-        """
-        Evaluate currently trained model
-
-        Parameters
-        ==========
-        eval_thresh : float
-            - cutoff threshold for positive/negative classes
-
-        Returns
-        =======
-        y_pred : np.array
-            - predicted values
-            - shape: (samples,)
-        """
-        # calculate accuracy scores
-        scores = self.model.evaluate(self.X_test, self.y_test, verbose=1)
-        raw_pred = self.model.predict(self.X_test)
-        y_pred = np.squeeze(np.where(raw_pred >= eval_thresh, 1, 0), axis=-1)
-
-        # get prediction scores and prediction
-        accuracy = scores[1]
-        auc = roc_auc_score(self.y_test, raw_pred)
-        mae = mean_absolute_error(self.y_test, y_pred)
-
-        # print accuracy and AUC score
-        print('\nAccuracy Measures')
-        print('=' * 21)
-        print("Accuracy:  {:.2f}%".format(100 * accuracy))
-        print("MAPE:      {:.2f}%".format(100 * mae))
-        print("AUC Score: {:.2f}%".format(100 * auc))
-
-        # print confusion matrix
-        print('\nConfusion Matrix')
-        print('=' * 21)
-        print(pd.DataFrame(confusion_matrix(self.y_test, y_pred),
-                           index=['true:no', 'true:yes'], columns=['pred:no', 'pred:yes']))
-
-        # print classification report
-        print('\nClassification Report')
-        print('=' * 21)
-        print(classification_report(self.y_test, y_pred, labels=[0, 1]))
-
-        # return predicted values
-        return y_pred
 
     def _get_layer(self, layer=None):
         """
@@ -450,18 +417,23 @@ class FuzzyNetwork(object):
         sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
         return ck, sk
 
-    @staticmethod
-    def _loss_function(y_true, y_pred):
+    def __initialize_model(self, s_init=4):
         """
-        Custom loss function
+        Initialize neuron weights
 
-        E = exp{-sum[i=1,j; 1/2 * [pred(j) - test(j)]^2]}
+        c_init = X_i.T
+        s_init = s_init
 
-        Parameters
-        ==========
-        y_true : np.array
-            - true values
-        y_pred : np.array
-            - predicted values
         """
-        return K.sum(1 / 2 * K.square(y_pred - y_true))
+        # derive initial c and s
+        # set initial center as first training sample
+        x_i = self.X_train.values[0]
+        c_init = np.expand_dims(x_i, axis=-1)
+        s_init = np.repeat(s_init, c_init.size).reshape(c_init.shape)
+        start_weights = [c_init, s_init]
+        self._get_layer('FuzzyRules').set_weights(start_weights)
+
+        # validate weights updated as expected
+        final_weights = self._get_layer_weights('FuzzyRules')
+        assert np.allclose(start_weights[0], final_weights[0])
+        assert np.allclose(start_weights[1], final_weights[1])
