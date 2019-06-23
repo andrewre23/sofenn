@@ -183,6 +183,7 @@ class FuzzyNetwork(object):
         psi = norm(phi)
         f = weights([inputs, psi])
         raw_output = raw(f)
+
         # extract activation from kwargs
         if 'activation' not in kwargs:
             activation = 'sigmoid'
@@ -192,21 +193,25 @@ class FuzzyNetwork(object):
 
         # define model
         model = Model(inputs=inputs, outputs=preds)
+
         # extract loss function
         if 'loss' not in kwargs:
             loss = self._loss_function
         else:
             loss = kwargs['loss']
+
         # extract optimizer
         if 'optimizer' not in kwargs:
             optimizer = 'rmsprop'
         else:
             optimizer = kwargs['optimizer']
+
         # extract metrics
         if 'metrics' not in kwargs:
             metrics = ['accuracy']
         else:
             metrics = kwargs['metrics']
+
         # compile model and show model summary
         model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
         if self.__debug:
@@ -255,7 +260,7 @@ class FuzzyNetwork(object):
 
         # fit model and evaluate
         self.model.fit(self.X_train, self.y_train, verbose=verbose,
-                       epochs=epochs, batch_size=batch_size)
+                       epochs=epochs, batch_size=batch_size, **kwargs)
 
     def model_predictions(self):
         """
