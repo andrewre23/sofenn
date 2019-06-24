@@ -214,7 +214,7 @@ class FuzzyNetwork(object):
         f = weights([inputs, psi])
         raw_output = raw(f)
         final_out = raw_output
-        # add layer for binary multiclass problem
+        # add softmax layer for classification problem
         if self.prob_type is 'classification':
             clasify = Dense(self.y_test.shape[1], activation='softmax')
             classes = clasify(raw_output)
