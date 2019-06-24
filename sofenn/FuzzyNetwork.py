@@ -53,6 +53,10 @@ class FuzzyNetwork(object):
 
     Attributes
     ==========
+    - prob_type : str
+        - regression/classification problem
+    - classes : int
+        - number of output classes for classification problems
     - neurons : int
         - number of initial neurons
     - max_neurons : int
@@ -121,11 +125,16 @@ class FuzzyNetwork(object):
                 raise ValueError("Input data must be NumPy arrays")
 
         # validate one-hot-encoded y values if classification
-        if self.prob_type == 'classification' and y_test.ndim == 1:
-            print('Converting y data to one-hot-encodings')
-            X_train = to_categorical(X_train)
-            X_test = to_categorical(X_test)
+        if self.prob_type == 'classification':
+            # convert to one-hot-encoding if y is one dimensional
+            if y_test.ndim == 1:
+                print('Converting y data to one-hot-encodings')
+                y_train = to_categorical(y_train)
+                y_test = to_categorical(y_test)
+            # set number of classes based on
+            self.classes = y_test.shape[1]
 
+        # set data attributes
         self.X_train = X_train
         self.X_test = X_test
         self.y_train = y_train
@@ -133,13 +142,13 @@ class FuzzyNetwork(object):
 
         # set neuron attributes
         # initial number of neurons
-        if type(neurons) is not int or not neurons > 0:
+        if type(neurons) is not int or neurons <= 0:
             raise ValueError("Must enter positive integer")
         self.neurons = neurons
 
         # max number of neurons
-        if type(max_neurons) is not int or not max_neurons > neurons:
-            raise ValueError("Must enter positive integer greater than number of neurons")
+        if type(max_neurons) is not int or max_neurons < neurons:
+            raise ValueError("Must enter positive integer no less than number of neurons")
         self.max_neurons = max_neurons
 
         # verify non-negative parameters
@@ -216,7 +225,7 @@ class FuzzyNetwork(object):
         final_out = raw_output
         # add softmax layer for classification problem
         if self.prob_type is 'classification':
-            clasify = Dense(self.y_test.shape[1], activation='softmax')
+            clasify = Dense(self.classes, activation='softmax')
             classes = clasify(raw_output)
             final_out = classes
 
