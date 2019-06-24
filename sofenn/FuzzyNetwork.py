@@ -229,6 +229,7 @@ class FuzzyNetwork(object):
             classes = clasify(raw_output)
             final_out = classes
 
+        # TODO: determine logic for activation w/ regression
         # # extract activation from kwargs
         # if 'activation' not in kwargs:
         #     activation = 'sigmoid'
@@ -250,6 +251,7 @@ class FuzzyNetwork(object):
         else:
             loss = kwargs['loss']
 
+        # TODO: determine default optimizers
         # extract optimizer
         if 'optimizer' not in kwargs:
             optimizer = 'adam'
@@ -277,6 +279,7 @@ class FuzzyNetwork(object):
 
         return model
 
+    # TODO: determine if loss function necessary for multiclass and regression
     @staticmethod
     def loss_function(y_true, y_pred):
         """
@@ -320,6 +323,7 @@ class FuzzyNetwork(object):
         self.model.fit(self.X_train, self.y_train, verbose=verbose,
                        epochs=epochs, batch_size=batch_size, **kwargs)
 
+    # TODO: update yields for predictions
     def model_predictions(self):
         """
         Evaluate currently trained model
@@ -336,6 +340,7 @@ class FuzzyNetwork(object):
         y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
         return y_pred
 
+    # TODO: validate logic
     def error_criterion(self, y_pred):
         """
         Check error criterion for neuron-adding process
@@ -350,6 +355,7 @@ class FuzzyNetwork(object):
         # mean of absolute test difference
         return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
 
+    # TODO: validate logic
     def if_part_criterion(self):
         """
         Check if-part criterion for neuron adding process
@@ -413,6 +419,7 @@ class FuzzyNetwork(object):
                                    outputs=last_layer.output)
         return intermediate_model.predict(self.X_test)
 
+    # TODO: validate logic for numpy arrays
     def _min_dist_vector(self):
         """
         Get minimum distance vector
@@ -437,6 +444,7 @@ class FuzzyNetwork(object):
         # average the minimum distance across samples
         return np.abs(aligned_x - aligned_c).mean(axis=0)
 
+    # TODO: validate logic for numpy arrays
     def _new_neuron_weights(self, dist_thresh=1):
         """
         Return new c and s weights for k new fuzzy neuron
