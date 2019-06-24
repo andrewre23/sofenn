@@ -19,7 +19,8 @@ import numpy as np
 
 from keras import backend as K
 from keras.models import Model
-from keras.layers import Input, Activation
+from keras.layers import Input, Dense
+from keras.utils import to_categorical
 
 from sklearn.metrics import mean_absolute_error
 
@@ -98,33 +99,62 @@ class FuzzyNetwork(object):
         - initialize neuron weights if only 1 neuron
     """
 
-    def __init__(self, X_train, X_test, y_train, y_test,     # data attributes
-                 neurons=1, max_neurons=100, s_init=4,       # neuron initialization parameters
-                 eval_thresh=0.5, ifpart_thresh=0.1354,      # evaluation and ifpart threshold
-                 err_delta=0.12,                             # delta tolerance for errors
+    def __init__(self, X_train, X_test, y_train, y_test,    # data attributes
+                 neurons=1, max_neurons=100, s_init=4,      # neuron initialization parameters
+                 eval_thresh=0.5, ifpart_thresh=0.1354,     # evaluation and ifpart threshold
+                 err_delta=0.12,                            # delta tolerance for errors
+                 prob_type='classification',                # type of problem (classification/regression)
                  debug=True):
+
         # set debug flag
         self.__debug = debug
 
+        # set output problem type
+        if prob_type.lower() not in ['classification', 'regression']:
+            raise ValueError("Invalid problem type")
+        self.prob_type = prob_type
+
         # set data attributes
+        # validate numpy arrays
+        for data in [X_train, X_test, y_train, y_test]:
+            if type(data) is not np.ndarray:
+                raise ValueError("Input data must be NumPy arrays")
+
+        # validate one-hot-encoded y values if classification
+        if self.prob_type == 'classification' and y_test.ndim == 1:
+            print('Converting y data to one-hot-encodings')
+            X_train = to_categorical(X_train)
+            X_test = to_categorical(X_test)
+
         self.X_train = X_train
         self.X_test = X_test
         self.y_train = y_train
         self.y_test = y_test
 
         # set neuron attributes
+        # initial number of neurons
+        if type(neurons) is not int or not neurons > 0:
+            raise ValueError("Must enter positive integer")
         self.neurons = neurons
+
+        # max number of neurons
+        if type(max_neurons) is not int or not max_neurons > neurons:
+            raise ValueError("Must enter positive integer greater than number of neurons")
         self.max_neurons = max_neurons
 
-        # set remaining attributes
+        # verify non-negative parameters
+        for calc in [eval_thresh, ifpart_thresh, err_delta]:
+            if calc < 0:
+                raise ValueError("Entered negative parameter: {}".format(calc))
+
+        # set calculation attributes
         self._eval_thresh = eval_thresh
         self._ifpart_thresh = ifpart_thresh
         self._err_delta = err_delta
 
         # build model and initialize if needed
         self.model = self.build_model()
-        if self.neurons == 1:
-            self.__initialize_model(s_init=s_init)
+        self.__initialize_model(s_init=s_init)
 
     def build_model(self, **kwargs):
         """
@@ -183,32 +213,51 @@ class FuzzyNetwork(object):
         psi = norm(phi)
         f = weights([inputs, psi])
         raw_output = raw(f)
+        final_out = raw_output
+        # add layer for binary multiclass problem
+        if self.prob_type is 'classification':
+            clasify = Dense(self.y_test.shape[1], activation='softmax')
+            classes = clasify(raw_output)
+            final_out = classes
 
-        # extract activation from kwargs
-        if 'activation' not in kwargs:
-            activation = 'sigmoid'
-        else:
-            activation = kwargs['activation']
-        preds = Activation(name='OutputActivation', activation=activation)(raw_output)
+        # # extract activation from kwargs
+        # if 'activation' not in kwargs:
+        #     activation = 'sigmoid'
+        # else:
+        #     activation = kwargs['activation']
+        # preds = Activation(name='OutputActivation', activation=activation)(raw_output)
 
         # define model
-        model = Model(inputs=inputs, outputs=preds)
+        model = Model(inputs=inputs, outputs=final_out)
 
         # extract loss function
         if 'loss' not in kwargs:
-            loss = self._loss_function
+            # default loss for classification
+            if self.prob_type is 'classification':
+                loss = self.loss_function
+            # default loss for regression
+            else:
+                loss = 'logcosh'
         else:
             loss = kwargs['loss']
 
         # extract optimizer
         if 'optimizer' not in kwargs:
-            optimizer = 'rmsprop'
+            optimizer = 'adam'
         else:
             optimizer = kwargs['optimizer']
 
         # extract metrics
         if 'metrics' not in kwargs:
-            metrics = ['accuracy']
+            if self.prob_type is 'classification':
+                # default for binary classification
+                if self.y_test.ndim == 2:
+                    metrics = ['binary_accuracy']
+                # default for multi-class classification
+                else:
+                    metrics = ['categorical_accuracy']
+            else:
+                metrics = ['accuracy']
         else:
             metrics = kwargs['metrics']
 
@@ -220,7 +269,7 @@ class FuzzyNetwork(object):
         return model
 
     @staticmethod
-    def _loss_function(y_true, y_pred):
+    def loss_function(y_true, y_pred):
         """
         Custom loss function
 
@@ -249,12 +298,12 @@ class FuzzyNetwork(object):
             verbose = kwargs['verbose']
         # extract training epochs
         if 'epochs' not in kwargs:
-            epochs = 50
+            epochs = 100
         else:
             epochs = kwargs['epochs']
         # extract training batch size
         if 'batch_size' not in kwargs:
-            batch_size = 64
+            batch_size = 32
         else:
             batch_size = kwargs['batch_size']
 
@@ -424,20 +473,28 @@ class FuzzyNetwork(object):
 
     def __initialize_model(self, s_init=4):
         """
-        Initialize neuron weights
+        Randomly initialize neuron weights with random samples
+        from X_train dataset
 
-        c_init = X_i.T
-        s_init = s_init
-
+        Parameters
+        ==========
+        s_init : int
+            - initial sigma value for all neuron centers
         """
-        # derive initial c and s
-        # set initial center as first training sample
-        x_i = self.X_train.values[0]
-        c_init = np.expand_dims(x_i, axis=-1)
+        # c
+        # set centers as random sampled index values
+        samples = np.random.randint(0, len(self.X_train), self.neurons)
+        x_i = np.array([self.X_train[samp] for samp in samples])
+        # reshape to (features, neurons) from (neurons, features)
+        c_init = x_i.T
+
+        # s
+        # repeat s_init value to array shaped like c_init
         s_init = np.repeat(s_init, c_init.size).reshape(c_init.shape)
+
+        # set weights
         start_weights = [c_init, s_init]
         self._get_layer('FuzzyRules').set_weights(start_weights)
-
         # validate weights updated as expected
         final_weights = self._get_layer_weights('FuzzyRules')
         assert np.allclose(start_weights[0], final_weights[0])
