@@ -22,7 +22,7 @@ The model is implemented per the description in:
 
 ## Layers
 
-### Inputs
+### Inputs Layer (1) of SOFNN
 
 ### Fuzzy Layer (2) of SOFNN
 - Radial (Ellipsoidal) Basis Function Layer
@@ -31,18 +31,21 @@ The model is implemented per the description in:
 - output is product of Membership Functions
 - each MF is Gaussian function:
 
-    - mu(i,j) = exp{- [x(i) - c(i,j)]^2 / [2 * sigma(i,j)^2]}
+    - &mu;(i,j) = <a href="https://www.codecogs.com/eqnedit.php?latex=\exp([-\frac{(x_i&space;-&space;c_{ij})^2}{2\sigma^2_{ij}}])" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\exp([-\frac{(x_i&space;-&space;c_{ij})^2}{2\sigma^2_{ij}}])" title="\exp([-\frac{(x_i - c_{ij})^2}{2\sigma^2_{ij}}])" /></a>
+
+= exp{- [x(i) - c(i,j)]^2 / [2 * sigma(i,j)^2]}
+
 
     - for i features and  j neurons:
 
-    - mu(i,j)    = ith MF of jth neuron
+    - &mu;(i,j)    = ith MF of jth neuron
 
     - c(i,j)     = center of ith MF of jth neuron
 
-    - sigma(i,j) = width of ith MF of jth neuron
+    - &sigma;(i,j) = width of ith MF of jth neuron
 
 - output for Fuzzy Layer is:
-    phi(j) = exp{-sum[i=1,r;
+    &Phi;(j) = exp{-sum[i=1,r;
             [x(i) - c(i,j)]^2 / [2 * sigma(i,j)^2]]}
             
 ### Normalized Layer (3) of SOFNN
@@ -52,11 +55,11 @@ The model is implemented per the description in:
 - number of outputs equal to previous layer (# of neurons)
 - output for Normalized Layer is:
 
-    psi(j) = phi(j) / sum[k=1, u; phi(k)]
+    &Psi;(j) = &Phi;(j) / sum[k=1, u; &Phi;(k)]
                 for u neurons
         - with:
 
-    psi(j) = output of Fuzzy Layer neuron j
+    &Psi;(j) = output of Fuzzy Layer neuron j
     
 ### Weighted Layer (4) of SOFNN
 - Weighting of ith MF of each feature
@@ -74,11 +77,11 @@ The model is implemented per the description in:
     w2j    = Aj * B =
             aj0 + aj1x1 + aj2x2 + ... ajrxr
 
-    psi(j) = output of jth neuron from
+    &Psi;(j) = output of jth neuron from
             normalized layer
 
 -output for weighted layer is:
-    fj     = w2j psi(j)
+    fj     = w2j &Psi;(j)
     
 ###     Output Layer (5) of SOFNN
 - Unweighted sum of each output of previous layer (f)
