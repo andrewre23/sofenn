@@ -21,6 +21,7 @@ The model is implemented per the description in:
 <br /> Leng, Prasad, McGinnity (2004)
 
 ![alt text](https://raw.githubusercontent.com/andrewre23/sofenn/images/images/sofnn_structure.png)
+Fuzzy Neural Network Architecture
 
 Credit: Leng, Prasad, McGinnity (2004)
 
@@ -58,6 +59,11 @@ Input layer of network
     - shape: (*, features * neurons)
 - output : <a href="https://www.codecogs.com/eqnedit.php?latex=\Phi" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Phi" title="\Phi" /></a>
     - shape : (*, neurons)
+
+![alt text](https://raw.githubusercontent.com/andrewre23/sofenn/images/images/neuron.png)
+Information flow within neuron j
+
+Credit: Leng, Prasad, McGinnity (2004)
 
 ### Normalized Layer (3)
 - Normalization Layer
