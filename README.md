@@ -45,6 +45,7 @@ Input layer of network
     - <a href="https://www.codecogs.com/eqnedit.php?latex=\sigma_{ij}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\sigma_{ij}" title="\sigma_{ij}" /></a> = width of ith MF of jth neuron
 
 - output for Fuzzy Layer is:
+
     <a href="https://www.codecogs.com/eqnedit.php?latex=\Phi_j&space;=&space;\exp(\sum_{i=1}^{r}&space;\frac{(x_i&space;-&space;c_{ij})^2}{2\sigma^2_{ij}})" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Phi_j&space;=&space;\exp(\sum_{i=1}^{r}&space;\frac{(x_i&space;-&space;c_{ij})^2}{2\sigma^2_{ij}})" title="\Phi_j = \exp(\sum_{i=1}^{r} \frac{(x_i - c_{ij})^2}{2\sigma^2_{ij}})" /></a>
     
 - input : <a href="https://www.codecogs.com/eqnedit.php?latex=x" target="_blank"><img src="https://latex.codecogs.com/gif.latex?x" title="x" /></a>
