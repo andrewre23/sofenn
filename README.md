@@ -22,7 +22,7 @@ The model is implemented per the description in:
 
 ![alt text](https://raw.githubusercontent.com/andrewre23/sofenn/images/images/sofnn_structure.png)
 
-As shown in Leng, Prasad, McGinnity (2004)
+Credit: Leng, Prasad, McGinnity (2004)
 
 
 
