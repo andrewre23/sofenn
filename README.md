@@ -20,15 +20,21 @@ The model is implemented per the description in:
 'An on-line algorithm for creating self-organizing fuzzy neural networks\'
 <br /> Leng, Prasad, McGinnity (2004)
 
+![alt text](https://raw.githubusercontent.com/andrewre23/sofenn/images/images/sofnn_structure.png)
+
+As shown in Leng, Prasad, McGinnity (2004)
+
+
+
 ## Layers
 
-### Inputs Layer (1) of SOFNN
+### Inputs Layer (1)
 Input layer of network
 
 - input : <a href="https://www.codecogs.com/eqnedit.php?latex=input" target="_blank"><img src="https://latex.codecogs.com/gif.latex?input" title="input" /></a>
     - shape  : (*, features)
 
-### Fuzzy Layer (2) of SOFNN
+### Fuzzy Layer (2)
 - Radial (Ellipsoidal) Basis Function Layer
 - each neuron represents "if-part" or premise of a fuzzy rule
 - individual Membership Functions (MF) are applied to each feature for each neuron
@@ -53,7 +59,7 @@ Input layer of network
 - output : <a href="https://www.codecogs.com/eqnedit.php?latex=\Phi" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Phi" title="\Phi" /></a>
     - shape : (*, neurons)
 
-### Normalized Layer (3) of SOFNN
+### Normalized Layer (3)
 - Normalization Layer
 
 - output of each neuron is normalized by total output from previous layer
@@ -69,7 +75,7 @@ Input layer of network
 - output : <a href="https://www.codecogs.com/eqnedit.php?latex=\Psi" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Psi" title="\Psi" /></a>
     - shape : (*, neurons)
 
-### Weighted Layer (4) of SOFNN
+### Weighted Layer (4)
 - Weighting of ith MF of each feature
 
 - yields the "consequence" of the jth fuzzy rule of fuzzy model
@@ -97,7 +103,7 @@ Input layer of network
     - shape : (*, neurons)
 
 
-###     Output Layer (5) of SOFNN
+###     Output Layer (5)
 - Unweighted sum of each output of previous layer (<a href="https://www.codecogs.com/eqnedit.php?latex=f" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f" title="f" /></a>)
 
 - output for fuzzy layer is:
