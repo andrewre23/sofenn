@@ -38,7 +38,6 @@ nbformat==4.4.0
 notebook==5.7.8
 numpy==1.16.4
 pandocfilters==1.4.2
-parso==0.4.0
 pickleshare==0.7.5
 prometheus-client==0.6.0
 prompt-toolkit==2.0.9
