@@ -57,7 +57,7 @@ Credit: Leng, Prasad, McGinnity (2004)
     <a href="https://www.codecogs.com/eqnedit.php?latex=\Phi_j&space;=&space;\exp(\sum_{i=1}^{r}&space;\frac{(x_i&space;-&space;c_{ij})^2}{2\sigma^2_{ij}})" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Phi_j&space;=&space;\exp(\sum_{i=1}^{r}&space;\frac{(x_i&space;-&space;c_{ij})^2}{2\sigma^2_{ij}})" title="\Phi_j = \exp(\sum_{i=1}^{r} \frac{(x_i - c_{ij})^2}{2\sigma^2_{ij}})" /></a>
     
 - **input** : <a href="https://www.codecogs.com/eqnedit.php?latex=x" target="_blank"><img src="https://latex.codecogs.com/gif.latex?x" title="x" /></a>
-    - shape: (*, features * neurons)
+    - shape: (*, features)
 - **output** : <a href="https://www.codecogs.com/eqnedit.php?latex=\Phi" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Phi" title="\Phi" /></a>
     - shape : (*, neurons)
 

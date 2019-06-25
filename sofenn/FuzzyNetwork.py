@@ -178,7 +178,7 @@ class FuzzyNetwork(object):
         2 - Radial Basis Function Layer (Fuzzy Layer)
                 layer to hold fuzzy rules for complex system
             - input : x
-                shape: (*, features * neurons)
+                shape: (*, features)
             - output : phi
                 shape : (*, neurons)
         3 - Normalized Layer
