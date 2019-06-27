@@ -63,7 +63,7 @@ Credit: Leng, Prasad, McGinnity (2004)
 
 ![alt text](https://raw.githubusercontent.com/andrewre23/sofenn/images/images/neuron.png)
 
-*Information flow within neuron j*
+*Information flow of r features within neuron j*
 
 Credit: Leng, Prasad, McGinnity (2004)
 
