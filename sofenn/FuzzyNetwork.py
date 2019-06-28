@@ -157,9 +157,12 @@ class FuzzyNetwork(object):
         self.max_neurons = max_neurons
 
         # verify non-negative parameters
-        for calc in [eval_thresh, ifpart_thresh, err_delta]:
-            if calc < 0:
-                raise ValueError("Entered negative parameter: {}".format(calc))
+        non_neg_params = {'eval_thresh': eval_thresh,
+                  'ifpart_thresh': ifpart_thresh,
+                  'err_delta': err_delta}
+        for param, val in non_neg_params.items():
+            if val < 0:
+                raise ValueError("Entered negative parameter: {}".format(param))
 
         # set calculation attributes
         self._eval_thresh = eval_thresh
@@ -245,43 +248,34 @@ class FuzzyNetwork(object):
         # define model
         model = Model(inputs=inputs, outputs=final_out)
 
-        # extract loss function
-        if 'loss' in kwargs:
-            loss = kwargs['loss']
+        # default loss for classification
+        if self.prob_type is 'classification':
+            default_loss = self.loss_function
+        # default loss for regression
         else:
-            # default loss for classification
-            if self.prob_type is 'classification':
-                loss = self.loss_function
-            # default loss for regression
-            else:
-                loss = 'mean_squared_error'
+            default_loss = 'mean_squared_error'
+        loss = kwargs.get('loss', default_loss)
 
-        # extract optimizer
-        if 'optimizer' in kwargs:
-            optimizer = kwargs['optimizer']
+        # default optimizer for classification
+        if self.prob_type is 'classification':
+            default_optimizer = 'adam'
+        # default optimizer for regression
         else:
-            # default optimizer for classification
-            if self.prob_type is 'classification':
-                optimizer = 'adam'
-            # default optimizer for regression
-            else:
-                optimizer = 'rmsprop'
+            default_optimizer = 'rmsprop'
+        optimizer = kwargs.get('optimizer', default_optimizer)
 
-        # extract metrics
-        if 'metrics' in kwargs:
-            metrics = kwargs['metrics']
-        else:
-            # default for metrics classification
-            if self.prob_type is 'classification':
-                # default for binary classification
-                if self.y_test.ndim == 2:
-                    metrics = ['binary_accuracy']
-                # default for multi-class classification
-                else:
-                    metrics = ['categorical_accuracy']
-            # default metrics for regression
+        # default metrics for classification
+        if self.prob_type is 'classification':
+            # default for binary classification
+            if self.y_test.ndim == 2:
+                default_metrics = ['binary_accuracy']
+            # default for multi-class classification
             else:
-                metrics = ['accuracy']
+                default_metrics = ['categorical_accuracy']
+        # default metrics for regression
+        else:
+            default_metrics = ['accuracy']
+        metrics = kwargs.get('metrics', default_metrics)
 
         # compile model and show model summary
         model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
