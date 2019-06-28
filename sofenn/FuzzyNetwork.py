@@ -129,8 +129,13 @@ class FuzzyNetwork(object):
             # convert to one-hot-encoding if y is one dimensional
             if y_test.ndim == 1:
                 print('Converting y data to one-hot-encodings')
-                y_train = to_categorical(y_train)
-                y_test = to_categorical(y_test)
+                # get number of samples in training data
+                train_samples = y_train.shape[0]
+                # convert complete y vector at once then split again
+                y = np.concatenate([y_train, y_test])
+                y = to_categorical(y)
+                y_train = y[:train_samples]
+                y_test = y[train_samples:]
             # set number of classes based on
             self.classes = y_test.shape[1]
 
