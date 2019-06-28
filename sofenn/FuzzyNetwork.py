@@ -246,25 +246,32 @@ class FuzzyNetwork(object):
         model = Model(inputs=inputs, outputs=final_out)
 
         # extract loss function
-        if 'loss' not in kwargs:
+        if 'loss' in kwargs:
+            loss = kwargs['loss']
+        else:
             # default loss for classification
             if self.prob_type is 'classification':
                 loss = self.loss_function
             # default loss for regression
             else:
-                loss = 'logcosh'
-        else:
-            loss = kwargs['loss']
+                loss = 'mean_squared_error'
 
-        # TODO: determine default optimizers
         # extract optimizer
-        if 'optimizer' not in kwargs:
-            optimizer = 'adam'
-        else:
+        if 'optimizer' in kwargs:
             optimizer = kwargs['optimizer']
+        else:
+            # default optimizer for classification
+            if self.prob_type is 'classification':
+                optimizer = 'adam'
+            # default optimizer for regression
+            else:
+                optimizer = 'rmsprop'
 
         # extract metrics
-        if 'metrics' not in kwargs:
+        if 'metrics' in kwargs:
+            metrics = kwargs['metrics']
+        else:
+            # default for metrics classification
             if self.prob_type is 'classification':
                 # default for binary classification
                 if self.y_test.ndim == 2:
@@ -272,10 +279,9 @@ class FuzzyNetwork(object):
                 # default for multi-class classification
                 else:
                     metrics = ['categorical_accuracy']
+            # default metrics for regression
             else:
                 metrics = ['accuracy']
-        else:
-            metrics = kwargs['metrics']
 
         # compile model and show model summary
         model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
@@ -284,7 +290,6 @@ class FuzzyNetwork(object):
 
         return model
 
-    # TODO: determine if loss function necessary for multiclass and regression
     @staticmethod
     def loss_function(y_true, y_pred):
         """
