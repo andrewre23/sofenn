@@ -108,10 +108,10 @@ class FuzzyNetwork(object):
                  eval_thresh=0.5, ifpart_thresh=0.1354,     # evaluation and ifpart threshold
                  err_delta=0.12,                            # delta tolerance for errors
                  prob_type='classification',                # type of problem (classification/regression)
-                 debug=True):
+                 debug=True, **kwargs):
 
         # set debug flag
-        self.__debug = debug
+        self._debug = debug
 
         # set output problem type
         if prob_type.lower() not in ['classification', 'regression']:
@@ -129,6 +129,7 @@ class FuzzyNetwork(object):
             # convert to one-hot-encoding if y is one dimensional
             if y_test.ndim == 1:
                 print('Converting y data to one-hot-encodings')
+
                 # get number of samples in training data
                 train_samples = y_train.shape[0]
                 # convert complete y vector at once then split again
@@ -136,6 +137,7 @@ class FuzzyNetwork(object):
                 y = to_categorical(y)
                 y_train = y[:train_samples]
                 y_test = y[train_samples:]
+
             # set number of classes based on
             self.classes = y_test.shape[1]
 
@@ -158,8 +160,8 @@ class FuzzyNetwork(object):
 
         # verify non-negative parameters
         non_neg_params = {'eval_thresh': eval_thresh,
-                  'ifpart_thresh': ifpart_thresh,
-                  'err_delta': err_delta}
+                          'ifpart_thresh': ifpart_thresh,
+                          'err_delta': err_delta}
         for param, val in non_neg_params.items():
             if val < 0:
                 raise ValueError("Entered negative parameter: {}".format(param))
@@ -170,7 +172,7 @@ class FuzzyNetwork(object):
         self._err_delta = err_delta
 
         # build model and initialize if needed
-        self.model = self.build_model()
+        self.model = self.build_model(**kwargs)
         self.__initialize_model(s_init=s_init)
 
     def build_model(self, **kwargs):
@@ -212,7 +214,7 @@ class FuzzyNetwork(object):
             - output shape : (*,)
         """
 
-        if self.__debug:
+        if self._debug:
             print('BUILDING SOFNN WITH {} NEURONS'.format(self.neurons))
 
         # get shape of training data
@@ -246,7 +248,8 @@ class FuzzyNetwork(object):
         # preds = Activation(name='OutputActivation', activation=activation)(raw_output)
 
         # define model
-        model = Model(inputs=inputs, outputs=final_out)
+        model = Model(inputs=inputs, outputs=final_out,
+                      name='FuzzyNetwork', **kwargs)
 
         # default loss for classification
         if self.prob_type is 'classification':
@@ -278,8 +281,9 @@ class FuzzyNetwork(object):
         metrics = kwargs.get('metrics', default_metrics)
 
         # compile model and show model summary
-        model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
-        if self.__debug:
+        model.compile(loss=loss, optimizer=optimizer, metrics=metrics,
+                      **kwargs)
+        if self._debug:
             print(model.summary())
 
         return model
@@ -302,9 +306,10 @@ class FuzzyNetwork(object):
 
     def train_model(self, **kwargs):
         """
-        Run currently saved model
+        Fit model on current training data
         """
-        if self.__debug:
+
+        if self._debug:
             print('Training model...')
 
         # extract verbosity
@@ -339,6 +344,7 @@ class FuzzyNetwork(object):
             - predicted values
             - shape: (samples,)
         """
+
         # get prediction values
         raw_pred = self.model.predict(self.X_test)
         y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
@@ -356,6 +362,7 @@ class FuzzyNetwork(object):
         y_pred : np.array
             - model predictions
         """
+
         # mean of absolute test difference
         return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
 
@@ -366,6 +373,7 @@ class FuzzyNetwork(object):
             - for each sample, get max of all neuron outputs (pre-normalization)
             - test whether max val at or above threshold
         """
+
         # get max val
         fuzz_out = self._get_layer_output('FuzzyRules')
         # check if max neuron output is above threshold
@@ -384,6 +392,7 @@ class FuzzyNetwork(object):
             - layer to get weights from
             - input can be layer name or index
         """
+
         # if named parameter
         if layer in [mlayer.name for mlayer in self.model.layers[1:]]:
             layer_out = self.model.get_layer(layer)
@@ -405,6 +414,7 @@ class FuzzyNetwork(object):
             - layer to get weights from
             - input can be layer name or index
         """
+
         return self._get_layer(layer).get_weights()
 
     def _get_layer_output(self, layer=None):
@@ -418,6 +428,7 @@ class FuzzyNetwork(object):
             - layer to get test output from
             - input can be layer name or index
         """
+
         last_layer = self._get_layer(layer)
         intermediate_model = Model(inputs=self.model.input,
                                    outputs=last_layer.output)
@@ -434,6 +445,7 @@ class FuzzyNetwork(object):
             - average minimum distance vector across samples
             - shape: (features, neurons)
         """
+
         # get input values and fuzzy weights
         x = self.X_train.values
         samples = x.shape[0]
@@ -467,6 +479,7 @@ class FuzzyNetwork(object):
             - average minimum distance vector across samples
             - shape: (features,)
         """
+
         # get input values and fuzzy weights
         x = self.X_train.values
         c, s = self._get_layer_weights('FuzzyRules')
@@ -502,6 +515,7 @@ class FuzzyNetwork(object):
         s_init : int
             - initial sigma value for all neuron centers
         """
+
         # c
         # set centers as random sampled index values
         samples = np.random.randint(0, len(self.X_train), self.neurons)
