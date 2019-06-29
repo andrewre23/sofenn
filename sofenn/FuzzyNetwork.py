@@ -173,7 +173,7 @@ class FuzzyNetwork(object):
 
         # build model and initialize if needed
         self.model = self.build_model(**kwargs)
-        self.__initialize_model(s_init=s_init)
+        self._initialize_model(s_init=s_init)
 
     def build_model(self, **kwargs):
         """
@@ -505,7 +505,7 @@ class FuzzyNetwork(object):
         sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
         return ck, sk
 
-    def __initialize_model(self, s_init=4):
+    def _initialize_model(self, s_init=4):
         """
         Randomly initialize neuron weights with random samples
         from X_train dataset
