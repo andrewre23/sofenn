@@ -28,6 +28,7 @@ from sklearn.metrics import confusion_matrix, classification_report, \
 
 # custom Fuzzy Layers
 from .layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
+from .FuzzyNetwork import FuzzyNetwork
 
 
 class SelfOrganizer(object):
@@ -123,7 +124,7 @@ class SelfOrganizer(object):
     - loss_function :
         - custom loss function per Leng, Prasad, McGinnity (2004)
     """
-
+    # TODO: remove defaults set in Fuzzy Network
     def __init__(self, X_train, X_test, y_train, y_test,     # data attributes
                  neurons=1, s_init=4, max_neurons=100,       # initialization parameters
                  epochs=250, batch_size=None,                  # training data
@@ -155,11 +156,13 @@ class SelfOrganizer(object):
         self._prune_tol = prune_tol
         self._k_mae = k_mae
 
+        # TODO: add fuzzy network attribute initialization
         # build model and initialize if needed
         self.model = self.build_model()
         if self.__neurons == 1:
             self.__initialize_model(s_init=s_init)
 
+    # TODO: remove
     def build_model(self, debug=True):
         """
         Create and compile model
@@ -227,6 +230,7 @@ class SelfOrganizer(object):
 
         return model
 
+    # TODO: validate logic and update references
     def self_organize(self):
         """
         Main run function to handle organization logic
@@ -268,6 +272,7 @@ class SelfOrganizer(object):
             print('\nFinal Evaluation')
             self._evaluate_model(eval_thresh=self._eval_thresh)
 
+    # TODO: validate logic and update references
     def organize(self, y_pred):
         """
         Run one iteration of organizational logic
@@ -300,6 +305,7 @@ class SelfOrganizer(object):
         y_pred_new = self._model_predictions()
         self.prune_neurons(y_pred=y_pred_new)
 
+    # TODO: validate logic and update references
     def add_neuron(self):
         """
         Add extra neuron to model while
@@ -335,6 +341,7 @@ class SelfOrganizer(object):
         # retrain model since new neuron added
         self._train_model()
 
+    # TODO: validate logic and update references
     def prune_neurons(self, y_pred):
         """
         Prune any unimportant neurons per effect on RMSE
@@ -441,6 +448,7 @@ class SelfOrganizer(object):
         self.model = self.build_model(False)
         self.model.set_weights([c, s, a])
 
+    # TODO: validate logic and update references
     def widen_centers(self):
         """
         Widen center of neurons to better cover data
@@ -487,6 +495,7 @@ class SelfOrganizer(object):
         if self.__debug:
             print('Centers widened after {} iterations'.format(counter))
 
+    # TODO: remove - redundant
     def error_criterion(self, y_pred):
         """
         Check error criterion for neuron-adding process
@@ -501,6 +510,7 @@ class SelfOrganizer(object):
         # mean of absolute test difference
         return mean_absolute_error(self._y_test, y_pred) <= self._delta
 
+    # TODO: remove - redundant
     def if_part_criterion(self):
         """
         Check if-part criterion for neuron adding process
@@ -514,6 +524,7 @@ class SelfOrganizer(object):
         # return True if at least half of samples agree
         return (maxes.sum() / len(maxes)) >= 0.5
 
+    # TODO: remove - redundant
     def __initialize_model(self, s_init=4):
         """
         Initialize neuron weights
@@ -535,6 +546,7 @@ class SelfOrganizer(object):
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
+    # TODO: remove - redundant
     def _train_model(self):
         """
         Run currently saved model
@@ -543,6 +555,7 @@ class SelfOrganizer(object):
         self.model.fit(self._X_train, self._y_train, verbose=0,
                        epochs=self._epochs, batch_size=self._batch_size)
 
+    # TODO: remove - redundant
     def _model_predictions(self):
         """
         Evaluate currently trained model
@@ -559,6 +572,7 @@ class SelfOrganizer(object):
         y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
         return y_pred
 
+    # TODO: add logic to demo notebook
     # def _evaluate_model(self, eval_thresh=0.5):
     #     """
     #     Evaluate currently trained model
@@ -606,6 +620,7 @@ class SelfOrganizer(object):
     #     # return predicted values
     #     return y_pred
 
+    # TODO: remove - redundant
     def _get_layer(self, layer=None):
         """
         Get layer object based on input parameter
@@ -627,6 +642,7 @@ class SelfOrganizer(object):
             raise ValueError('Error: layer must be layer name or index')
         return layer_out
 
+    # TODO: remove - redundant
     def _get_layer_weights(self, layer=None):
         """
         Get weights of layer based on input parameter
@@ -640,6 +656,7 @@ class SelfOrganizer(object):
         """
         return self._get_layer(layer).get_weights()
 
+    # TODO: remove - redundant
     def _get_layer_output(self, layer=None):
         """
         Get output of layer based on input parameter
@@ -656,6 +673,7 @@ class SelfOrganizer(object):
                                    outputs=last_layer.output)
         return intermediate_model.predict(self._X_test)
 
+    # TODO: validate logic and update references
     def _min_dist_vector(self):
         """
         Get minimum distance vector
@@ -680,6 +698,7 @@ class SelfOrganizer(object):
         # average the minimum distance across samples
         return np.abs(aligned_x - aligned_c).mean(axis=0)
 
+    # TODO: validate logic and update references
     def _new_neuron_weights(self, dist_thresh=1):
         """
         Return new c and s weights for k new fuzzy neuron
@@ -723,6 +742,7 @@ class SelfOrganizer(object):
         sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
         return ck, sk
 
+    # TODO: add logic to demo notebook
     # def _plot_results(self, y_pred):
     #     """
     #     Plot predictions against time series
@@ -757,6 +777,7 @@ class SelfOrganizer(object):
     #                df_plot['price'].index[::4], rotation=70)
     #     plt.show()
 
+    # TODO: remove - redundant
     @staticmethod
     def _loss_function(y_true, y_pred):
         """
