@@ -348,23 +348,25 @@ class FuzzyNetwork(object):
 
         # get prediction values
         raw_pred = self.model.predict(self.X_test)
-        y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
-        return y_pred
+        # y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
+        # return y_pred
+        return raw_pred
 
     # TODO: validate logic
-    def error_criterion(self, y_pred):
+    def error_criterion(self):
         """
         Check error criterion for neuron-adding process
-            - return True if no need to grow neuron
-            - return False if above threshold and need to add neuron
 
-        Parameters
-        ==========
-        y_pred : np.array
-            - model predictions
+        Returns
+        =======
+        - True:
+            if criteron satisfied and no need to grow neuron
+        - False:
+            if criteron not met and need to add neuron
         """
 
         # mean of absolute test difference
+        y_pred = self.model_predictions()
         return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
 
     # TODO: validate logic
@@ -383,6 +385,7 @@ class FuzzyNetwork(object):
         return (maxes.sum() / len(maxes)) >= 0.5
 
     # TODO: validate logic for numpy arrays
+    # TODO: move to SelfOrganizer
     def min_dist_vector(self):
         """
         Get minimum distance vector
@@ -396,7 +399,7 @@ class FuzzyNetwork(object):
 
         # get input values and fuzzy weights
         x = self.X_train.values
-        samples = x.shape[0]
+        samples, features = x.shape
         c = self._get_layer_weights('FuzzyRules')[0]
 
         # align x and c and assert matching dims
@@ -409,6 +412,7 @@ class FuzzyNetwork(object):
         return np.abs(aligned_x - aligned_c).mean(axis=0)
 
     # TODO: validate logic for numpy arrays
+    # TODO: move to SelfOrganizer
     def new_neuron_weights(self, dist_thresh=1):
         """
         Return new c and s weights for k new fuzzy neuron
@@ -536,3 +540,7 @@ class FuzzyNetwork(object):
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
+    # TODO: add function to recompile model using current settings
+    # TODO: move to SelfOrganizer
+    # def rebuild_model(self):
+    #     pass
