@@ -381,7 +381,6 @@ class FuzzyNetwork(object):
         # run model evaluation
         self.model.evaluate(self.X_test, self.y_test)
 
-    # TODO: validate logic
     def error_criterion(self):
         """
         Check error criterion for neuron-adding process
