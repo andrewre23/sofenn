@@ -262,8 +262,8 @@ class FuzzyNetwork(object):
         if self._debug:
             print('...Model successfully built!')
 
-    def compile_model(self, c_init=True, random=True,
-                            s_init=True, s_0=4, **kwargs):
+    def compile_model(self, init_c=True, random=True,
+                            init_s=True, s_0=4, **kwargs):
         """
         Create and compile model
         - sets compiled model as self.model
@@ -307,11 +307,11 @@ class FuzzyNetwork(object):
                            metrics=metrics, **kwargs)
 
         # initialize fuzzy rule centers
-        if c_init:
+        if init_c:
             self._initialize_centers(random=random)
 
         # initialize fuzzy rule widths
-        if s_init:
+        if init_s:
             self._initialize_widths(s_0=s_0)
 
         # print model summary
@@ -357,7 +357,6 @@ class FuzzyNetwork(object):
         # fit model to dataset
         self.model.fit(self.X_train, self.y_train, **kwargs)
 
-    # TODO: update yields for predictions
     def model_predictions(self):
         """
         Evaluate currently trained model
@@ -367,14 +366,12 @@ class FuzzyNetwork(object):
         =======
         y_pred : np.array
             - predicted values
-            - shape: (samples,)
+            - shape: (samples,) or (samples, classes)
         """
 
         # get prediction values
-        raw_pred = self.model.predict(self.X_test)
-        # y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
-        # return y_pred
-        return raw_pred
+        preds = self.model.predict(self.X_test)
+        return preds
 
     # TODO: validate logic
     def error_criterion(self):
