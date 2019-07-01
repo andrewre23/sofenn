@@ -236,7 +236,8 @@ class FuzzyNetwork(object):
         final_out = raw_output
         # add softmax layer for classification problem
         if self.prob_type is 'classification':
-            clasify = Dense(self.classes, activation='softmax')
+            clasify = Dense(self.classes,
+                            name='Softmax', activation='softmax')
             classes = clasify(raw_output)
             final_out = classes
 
