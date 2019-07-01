@@ -348,7 +348,7 @@ class FuzzyNetwork(object):
 
         # default training epochs
         if 'epochs' not in kwargs:
-            kwargs['epochs'] = 100
+            kwargs['epochs'] = 250
 
         # default training batch size
         if 'batch_size' not in kwargs:
@@ -372,6 +372,14 @@ class FuzzyNetwork(object):
         # get prediction values
         preds = self.model.predict(self.X_test)
         return preds
+
+    def model_evaluation(self):
+        """
+        Evaluate current test dataset on model
+        """
+
+        # run model evaluation
+        self.model.evaluate(self.X_test, self.y_test)
 
     # TODO: validate logic
     def error_criterion(self):
