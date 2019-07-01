@@ -72,7 +72,9 @@ class FuzzyNetwork(object):
     Methods
     =======
     - build_model :
-        - build and compile model
+        - build Fuzzy Network and set as model attribute
+    - compile_model :
+        - compile Fuzzy Network
     - loss_function :
         - custom loss function per Leng, Prasad, McGinnity (2004)
     - train_model :
@@ -97,8 +99,10 @@ class FuzzyNetwork(object):
         - get current weights from any layer in model
     - get_layer_output :
         - get test output from any layer in model
-    - initialize_model :
-        - initialize neuron weights if only 1 neuron
+    - initialize_centers :
+        - initialize neuron centers
+    - initialize_widths :
+        - initialize neuron weights based on parameter
     """
 
     def __init__(self, X_train, X_test, y_train, y_test,    # data attributes
@@ -250,7 +254,7 @@ class FuzzyNetwork(object):
         if 'name' in kwargs:
             _ = kwargs.pop('name')
 
-        # define model
+        # define model and set as model attribute
         model = Model(inputs=inputs, outputs=final_out,
                       name='FuzzyNetwork', **kwargs)
         self.model = model
@@ -573,9 +577,8 @@ class FuzzyNetwork(object):
         # get current center and width weights
         c, s = self._get_layer_weights('FuzzyRules')
 
-        # s
-        # repeat s_init value to array shaped like c_init
-        s_init = np.repeat(s_0, c.size).reshape(c.shape)
+        # repeat s_0 value to array shaped like s
+        s_init = np.repeat(s_0, s.size).reshape(s.shape)
 
         # set weights
         start_weights = [c, s_init]
