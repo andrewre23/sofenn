@@ -5,6 +5,7 @@ attrs==19.1.0
 backcall==0.1.0
 bleach==3.1.0
 certifi==2019.6.16
+cycler==0.10.0
 decorator==4.4.0
 defusedxml==0.6.0
 entrypoints==0.3
@@ -26,8 +27,10 @@ jupyter-core==4.4.0
 Keras==2.2.4
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
+kiwisolver==1.1.0
 Markdown==3.1.1
 MarkupSafe==1.1.1
+matplotlib==3.1.0
 mistune==0.8.4
 mkl-fft==1.0.12
 mkl-random==1.0.2
@@ -47,6 +50,7 @@ prompt-toolkit==2.0.9
 protobuf==3.8.0
 ptyprocess==0.6.0
 Pygments==2.4.2
+pyparsing==2.4.0
 pyrsistent==0.14.11
 python-dateutil==2.8.0
 pytz==2019.1
