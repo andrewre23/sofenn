@@ -397,20 +397,21 @@ class FuzzyNetwork(object):
         y_pred = self.model_predictions()
         return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
 
-    # TODO: validate logic
-    def if_part_criterion(self):
+    def if_part_criterion(self, thresh=0.75):
         """
         Check if-part criterion for neuron adding process
             - for each sample, get max of all neuron outputs (pre-normalization)
             - test whether max val at or above threshold
         """
+        if not 0 < thresh <= 1.0:
+            raise ValueError('Threshold must be between 0 and 1')
 
         # get max val
         fuzz_out = self._get_layer_output('FuzzyRules')
         # check if max neuron output is above threshold
         maxes = np.max(fuzz_out, axis=-1) >= self._ifpart_thresh
         # return True if at least half of samples agree
-        return (maxes.sum() / len(maxes)) >= 0.5
+        return (maxes.sum() / len(maxes)) >= thresh
 
     # TODO: validate logic for numpy arrays
     # TODO: move to SelfOrganizer
