@@ -61,8 +61,6 @@ class FuzzyNetwork(object):
         - number of initial neurons
     - max_neurons : int
         - max number of neurons
-    - s_init : int
-        - initial sigma for first neuron
     - eval_thresh : float
         - cutoff threshold for positive/negative classes
     - ifpart_thresh : float
@@ -104,7 +102,7 @@ class FuzzyNetwork(object):
     """
 
     def __init__(self, X_train, X_test, y_train, y_test,    # data attributes
-                 neurons=1, max_neurons=100, s_init=4,      # neuron initialization parameters
+                 neurons=1, max_neurons=100,                # neuron initialization parameters
                  eval_thresh=0.5, ifpart_thresh=0.1354,     # evaluation and ifpart threshold
                  err_delta=0.12,                            # delta tolerance for errors
                  prob_type='classification',                # type of problem (classification/regression)
@@ -171,14 +169,13 @@ class FuzzyNetwork(object):
         self._ifpart_thresh = ifpart_thresh
         self._err_delta = err_delta
 
-        # build model and initialize if needed
-        self.model = self.build_model(**kwargs)
-        self._initialize_model(s_init=s_init)
+        # define model and set model attribute
+        self.model = None
+        self.build_model(**kwargs)
 
     def build_model(self, **kwargs):
         """
-        Create and compile model
-        - sets compiled model as self.model
+        Build and initialize Model if needed
 
         Layers
         ======
@@ -249,9 +246,28 @@ class FuzzyNetwork(object):
         #     activation = kwargs['activation']
         # preds = Activation(name='OutputActivation', activation=activation)(raw_output)
 
+        # remove name from kwargs
+        if 'name' in kwargs:
+            _ = kwargs.pop('name')
+
         # define model
         model = Model(inputs=inputs, outputs=final_out,
                       name='FuzzyNetwork', **kwargs)
+        self.model = model
+
+        if self._debug:
+            print('...Model successfully built!')
+
+    def compile_model(self, c_init=True, random=True,
+                            s_init=True, s_0=4, **kwargs):
+        """
+        Create and compile model
+        - sets compiled model as self.model
+
+        """
+
+        if self._debug:
+            print('Compiling model...')
 
         # default loss for classification
         if self.prob_type is 'classification':
@@ -283,12 +299,20 @@ class FuzzyNetwork(object):
         metrics = kwargs.get('metrics', default_metrics)
 
         # compile model and show model summary
-        model.compile(loss=loss, optimizer=optimizer, metrics=metrics,
-                      **kwargs)
-        if self._debug:
-            print(model.summary())
+        self.model.compile(loss=loss, optimizer=optimizer,
+                           metrics=metrics, **kwargs)
 
-        return model
+        # initialize fuzzy rule centers
+        if c_init:
+            self._initialize_centers(random=random)
+
+        # initialize fuzzy rule widths
+        if s_init:
+            self._initialize_widths(s_0=s_0)
+
+        # print model summary
+        if self._debug:
+            print(self.model.summary())
 
     @staticmethod
     def loss_function(y_true, y_pred):
@@ -314,25 +338,20 @@ class FuzzyNetwork(object):
         if self._debug:
             print('Training model...')
 
-        # extract verbosity
+        # default verbosity
         if 'verbose' not in kwargs:
-            verbose = 1
-        else:
-            verbose = kwargs['verbose']
-        # extract training epochs
-        if 'epochs' not in kwargs:
-            epochs = 100
-        else:
-            epochs = kwargs['epochs']
-        # extract training batch size
-        if 'batch_size' not in kwargs:
-            batch_size = 32
-        else:
-            batch_size = kwargs['batch_size']
+            kwargs['verbose'] = 1
 
-        # fit model and evaluate
-        self.model.fit(self.X_train, self.y_train, verbose=verbose,
-                       epochs=epochs, batch_size=batch_size, **kwargs)
+        # default training epochs
+        if 'epochs' not in kwargs:
+            kwargs['epochs'] = 100
+
+        # default training batch size
+        if 'batch_size' not in kwargs:
+            kwargs['batch_size'] = 32
+
+        # fit model to dataset
+        self.model.fit(self.X_train, self.y_train, **kwargs)
 
     # TODO: update yields for predictions
     def model_predictions(self):
@@ -511,30 +530,55 @@ class FuzzyNetwork(object):
                                    outputs=last_layer.output)
         return intermediate_model.predict(self.X_test)
 
-    def _initialize_model(self, s_init=4):
+    def _initialize_centers(self, random=True):
         """
-        Randomly initialize neuron weights with random samples
+        Initialize neuron center weights with samples
         from X_train dataset
 
         Parameters
         ==========
-        s_init : int
-            - initial sigma value for all neuron centers
+        random: bool
+            - take random samples from training data or
+            take first n instances (n=# of neurons)
         """
 
-        # c
-        # set centers as random sampled index values
-        samples = np.random.randint(0, len(self.X_train), self.neurons)
-        x_i = np.array([self.X_train[samp] for samp in samples])
+        if random:
+            # set centers as random sampled index values
+            samples = np.random.randint(0, len(self.X_train), self.neurons)
+            x_i = np.array([self.X_train[samp] for samp in samples])
+        else:
+            x_i = self.X_train[:self.neurons]
         # reshape to (features, neurons) from (neurons, features)
         c_init = x_i.T
 
+        # set weights
+        c, s = self._get_layer_weights('FuzzyRules')
+        start_weights = [c_init, s]
+        self._get_layer('FuzzyRules').set_weights(start_weights)
+        # validate weights updated as expected
+        final_weights = self._get_layer_weights('FuzzyRules')
+        assert np.allclose(start_weights[0], final_weights[0])
+        assert np.allclose(start_weights[1], final_weights[1])
+
+    def _initialize_widths(self, s_0=4):
+        """
+        Initialize neuron widths
+
+        Parameters
+        ==========
+        s_0 : int
+            - initial sigma value for all neuron centers
+        """
+
+        # get current center and width weights
+        c, s = self._get_layer_weights('FuzzyRules')
+
         # s
         # repeat s_init value to array shaped like c_init
-        s_init = np.repeat(s_init, c_init.size).reshape(c_init.shape)
+        s_init = np.repeat(s_0, c.size).reshape(c.shape)
 
         # set weights
-        start_weights = [c_init, s_init]
+        start_weights = [c, s_init]
         self._get_layer('FuzzyRules').set_weights(start_weights)
         # validate weights updated as expected
         final_weights = self._get_layer_weights('FuzzyRules')
