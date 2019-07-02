@@ -252,7 +252,7 @@ class FuzzyNetwork(object):
 
         # remove name from kwargs
         if 'name' in kwargs:
-            _ = kwargs.pop('name')
+            kwargs.pop('name')
 
         # define model and set as model attribute
         model = Model(inputs=inputs, outputs=final_out,
@@ -413,79 +413,6 @@ class FuzzyNetwork(object):
         # return True if at least half of samples agree
         return (maxes.sum() / len(maxes)) >= thresh
 
-    # TODO: validate logic for numpy arrays
-    # TODO: move to SelfOrganizer
-    def min_dist_vector(self):
-        """
-        Get minimum distance vector
-
-        Returns
-        =======
-        min_dist : np.array
-            - average minimum distance vector across samples
-            - shape: (features, neurons)
-        """
-
-        # get input values and fuzzy weights
-        x = self.X_train.values
-        samples, features = x.shape
-        c = self._get_layer_weights('FuzzyRules')[0]
-
-        # align x and c and assert matching dims
-        aligned_x = x.repeat(self.neurons). \
-            reshape(x.shape + (self.neurons,))
-        aligned_c = c.repeat(samples).reshape((samples,) + c.shape)
-        assert aligned_x.shape == aligned_c.shape
-
-        # average the minimum distance across samples
-        return np.abs(aligned_x - aligned_c).mean(axis=0)
-
-    # TODO: validate logic for numpy arrays
-    # TODO: move to SelfOrganizer
-    def new_neuron_weights(self, dist_thresh=1):
-        """
-        Return new c and s weights for k new fuzzy neuron
-
-        Parameters
-        ==========
-        dist_thresh : float
-            - multiplier of average features values to use as distance thresholds
-
-        Returns
-        =======
-        ck : np.array
-            - average minimum distance vector across samples
-            - shape: (features,)
-        sk : np.array
-            - average minimum distance vector across samples
-            - shape: (features,)
-        """
-
-        # get input values and fuzzy weights
-        x = self.X_train.values
-        c, s = self._get_layer_weights('FuzzyRules')
-
-        # get minimum distance vector
-        min_dist = self.min_dist_vector()
-        # get minimum distance across neurons
-        # and arg-min for neuron with lowest distance
-        dist_vec = min_dist.min(axis=-1)
-        min_neurs = min_dist.argmin(axis=-1)
-
-        # get min c and s weights
-        c_min = c[:, min_neurs].diagonal()
-        s_min = s[:, min_neurs].diagonal()
-        assert c_min.shape == s_min.shape
-
-        # set threshold distance as factor of mean
-        # value for each feature across samples
-        kd_i = x.mean(axis=0) * dist_thresh
-
-        # get final weight vectors
-        ck = np.where(dist_vec <= kd_i, c_min, x.mean(axis=0))
-        sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
-        return ck, sk
-
     def _get_layer(self, layer=None):
         """
         Get layer object based on input parameter
@@ -556,8 +483,9 @@ class FuzzyNetwork(object):
             samples = np.random.randint(0, len(self.X_train), self.neurons)
             x_i = np.array([self.X_train[samp] for samp in samples])
         else:
+            # take first few samples, one for each neuron
             x_i = self.X_train[:self.neurons]
-        # reshape to (features, neurons) from (neurons, features)
+        # reshape from (neurons, features) to (features, neurons)
         c_init = x_i.T
 
         # set weights
@@ -592,8 +520,3 @@ class FuzzyNetwork(object):
         final_weights = self._get_layer_weights('FuzzyRules')
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
-
-    # TODO: add function to recompile model using current settings
-    # TODO: move to SelfOrganizer
-    # def rebuild_model(self):
-    #     pass
