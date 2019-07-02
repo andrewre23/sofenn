@@ -124,49 +124,75 @@ class SelfOrganizer(object):
     - loss_function :
         - custom loss function per Leng, Prasad, McGinnity (2004)
     """
+
     # TODO: remove defaults set in Fuzzy Network
-    def __init__(self, X_train, X_test, y_train, y_test,     # data attributes
-                 neurons=1, s_init=4, max_neurons=100,       # initialization parameters
-                 epochs=250, batch_size=None,                  # training data
-                 eval_thresh=0.5, ifpart_thresh=0.1354,      # evaluation and ifpart threshold
+    def __init__(self,
                  ksig=1.12, max_widens=250, err_delta=0.12,  # adding neuron or widening centers
                  prune_tol=0.85, k_mae=0.1,                  # pruning parameters
                  debug=True):
+
         # set debug flag
         self.__debug = debug
 
-        # set data attributes
-        self._X_train = X_train
-        self._X_test = X_test
-        self._y_train = y_train
-        self._y_test = y_test
-
-        # set initial number of neurons
-        self.__neurons = neurons
+        # create empty network and model attributes
+        self.network = None
+        self.model = None
 
         # set remaining attributes
-        self._max_neurons = max_neurons
-        self._epochs = epochs
-        self._batch_size = batch_size
-        self._eval_thresh = eval_thresh
-        self._ifpart_thresh = ifpart_thresh
         self._ksig = ksig
         self._max_widens = max_widens
         self._delta = err_delta
         self._prune_tol = prune_tol
         self._k_mae = k_mae
 
-        # TODO: add fuzzy network attribute initialization
         # build model and initialize if needed
-        self.model = self.build_model()
-        if self.__neurons == 1:
-            self.__initialize_model(s_init=s_init)
+        # self.model = self.build_model()
+        # if self.__neurons == 1:
+        #     self.__initialize_model(s_init=s_init)
 
-    # TODO: remove
-    def build_model(self, debug=True):
+    def build_network(self, X_train, X_test, y_train, y_test,  # data attributes
+                     neurons=1, max_neurons=100,              # neuron initialization parameters
+                     eval_thresh=0.5, ifpart_thresh=0.1354,   # evaluation and ifpart threshold
+                     err_delta=0.12,                          # delta tolerance for errors
+                     prob_type='classification',              # type of problem (classification/regression)
+                     **kwargs):
         """
-        Create and compile model
-        - sets compiled model as self.model
+        Create FuzzyNetwork object and set network and model attributes
+
+        Parameters
+        ==========
+        - X_train : training input data
+            - shape :(train_*, features)
+        - X_test  : testing input data
+            - shape: (test_*, features)
+        - y_train : training output data
+            - shape: (train_*,)
+        - y_test  : testing output data
+            - shape: (test_*,)
+        - neurons : int
+            - number of initial neurons
+        - max_neurons : int
+            - max number of neurons
+        - eval_thresh : float
+            - cutoff threshold for positive/negative classes
+        - ifpart_thresh : float
+            - threshold for if-part
+        - err_delta : float
+            - threshold for error criterion whether new neuron to be added
+        """
+
+        # Fuzzy network as network attribute
+        self.network = FuzzyNetwork(X_train, X_test, y_train, y_test,
+                                    neurons=neurons, max_neurons=max_neurons,
+                                    eval_thresh=eval_thresh, ifpart_thresh=ifpart_thresh,
+                                    err_delta=err_delta, prob_type=prob_type,
+                                    debug=self.__debug, **kwargs)
+        # shortcut reference to network model
+        self.model = self.network.model
+
+    def build_model(self, **kwargs):
+        """
+        Build and initialize Model if needed
 
         Layers
         ======
@@ -176,7 +202,7 @@ class SelfOrganizer(object):
         2 - Radial Basis Function Layer (Fuzzy Layer)
                 layer to hold fuzzy rules for complex system
             - input : x
-                shape: (*, features * neurons)
+                shape: (*, features)
             - output : phi
                 shape : (*, neurons)
         3 - Normalized Layer
@@ -202,33 +228,37 @@ class SelfOrganizer(object):
             - output shape : (*,)
         """
 
-        if debug:
-            print('\nBUILDING SOFNN WITH {} NEURONS'.format(self.__neurons))
+        # pass parameters to network method for building model
+        self.network.build_model(**kwargs)
 
-        # get shape of training data
-        samples, feats = self._X_train.shape
+    def compile_model(self, init_c=True, random=True, init_s=True, s_0=4.0, **kwargs):
+        """
+        Create and compile model
+        - sets compiled model as self.model
 
-        # add layers
-        inputs = Input(name='Inputs', shape=(feats,))
-        fuzz = FuzzyLayer(self.__neurons)
-        norm = NormalizedLayer(self.__neurons)
-        weights = WeightedLayer(self.__neurons)
-        raw = OutputLayer()
+        Parameters
+        ==========
+        init_c : bool
+            - run method to initialize centers or take default initializations
+        random : bool
+            - take either random samples or first samples that appear in training data
+        init_s : bool
+            - run method to initialize widths or take default initializations
+        s_0 : float
+            - value for initial centers of neurons
+        """
 
-        # run through layers
-        phi = fuzz(inputs)
-        psi = norm(phi)
-        f = weights([inputs, psi])
-        raw_output = raw(f)
-        preds = Activation(name='OutputActivation', activation='sigmoid')(raw_output)
+        # pass parameters to network method
+        self.network.compile_model(init_c=init_c, random=random,
+                                   init_s=init_s, s_0=s_0, **kwargs)
 
-        # compile model and output summary
-        model = Model(inputs=inputs, outputs=preds)
-        model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy', 'mape'])
-        if debug:
-            print(model.summary())
+    def train_model(self, **kwargs):
+        """
+        Fit model on current training data
+        """
 
-        return model
+        # pass parameters to network method
+        self.network.train_model(**kwargs)
 
     # TODO: validate logic and update references
     def self_organize(self):
@@ -495,83 +525,6 @@ class SelfOrganizer(object):
         if self.__debug:
             print('Centers widened after {} iterations'.format(counter))
 
-    # TODO: remove - redundant
-    def error_criterion(self, y_pred):
-        """
-        Check error criterion for neuron-adding process
-            - return True if no need to grow neuron
-            - return False if above threshold and need to add neuron
-
-        Parameters
-        ==========
-        y_pred : np.array
-            - predictions
-        """
-        # mean of absolute test difference
-        return mean_absolute_error(self._y_test, y_pred) <= self._delta
-
-    # TODO: remove - redundant
-    def if_part_criterion(self):
-        """
-        Check if-part criterion for neuron adding process
-            - for each sample, get max of all neuron outputs (pre-normalization)
-            - test whether max val at or above threshold
-        """
-        # get max val
-        fuzz_out = self._get_layer_output('FuzzyRules')
-        # check if max neuron output is above threshold
-        maxes = np.max(fuzz_out, axis=-1) >= self._ifpart_thresh
-        # return True if at least half of samples agree
-        return (maxes.sum() / len(maxes)) >= 0.5
-
-    # TODO: remove - redundant
-    def __initialize_model(self, s_init=4):
-        """
-        Initialize neuron weights
-
-        c_init = Average(X).T
-        s_init = s_init
-
-        """
-        # derive initial c and s
-        # set initial center as first training value
-        x_i = self._X_train.values[0]
-        c_init = np.expand_dims(x_i, axis=-1)
-        s_init = np.repeat(s_init, c_init.size).reshape(c_init.shape)
-        start_weights = [c_init, s_init]
-        self._get_layer('FuzzyRules').set_weights(start_weights)
-
-        # validate weights updated as expected
-        final_weights = self._get_layer_weights('FuzzyRules')
-        assert np.allclose(start_weights[0], final_weights[0])
-        assert np.allclose(start_weights[1], final_weights[1])
-
-    # TODO: remove - redundant
-    def _train_model(self):
-        """
-        Run currently saved model
-        """
-        # fit model and evaluate
-        self.model.fit(self._X_train, self._y_train, verbose=0,
-                       epochs=self._epochs, batch_size=self._batch_size)
-
-    # TODO: remove - redundant
-    def _model_predictions(self):
-        """
-        Evaluate currently trained model
-
-
-        Returns
-        =======
-        y_pred : np.array
-            - predicted values
-            - shape: (samples,)
-        """
-        # get prediction values
-        raw_pred = self.model.predict(self._X_test)
-        y_pred = np.squeeze(np.where(raw_pred >= self._eval_thresh, 1, 0), axis=-1)
-        return y_pred
-
     # TODO: add logic to demo notebook
     # def _evaluate_model(self, eval_thresh=0.5):
     #     """
@@ -620,61 +573,8 @@ class SelfOrganizer(object):
     #     # return predicted values
     #     return y_pred
 
-    # TODO: remove - redundant
-    def _get_layer(self, layer=None):
-        """
-        Get layer object based on input parameter
-            - exception of Input layer
-
-        Parameters
-        ==========
-        layer : str or int
-            - layer to get weights from
-            - input can be layer name or index
-        """
-        # if named parameter
-        if layer in [mlayer.name for mlayer in self.model.layers[1:]]:
-            layer_out = self.model.get_layer(layer)
-        # if indexed parameter
-        elif layer in range(1, len(self.model.layers)):
-            layer_out = self.model.layers[layer]
-        else:
-            raise ValueError('Error: layer must be layer name or index')
-        return layer_out
-
-    # TODO: remove - redundant
-    def _get_layer_weights(self, layer=None):
-        """
-        Get weights of layer based on input parameter
-            - exception of Input layer
-
-        Parameters
-        ==========
-        layer : str or int
-            - layer to get weights from
-            - input can be layer name or index
-        """
-        return self._get_layer(layer).get_weights()
-
-    # TODO: remove - redundant
-    def _get_layer_output(self, layer=None):
-        """
-        Get output of layer based on input parameter
-            - exception of Input layer
-
-        Parameters
-        ==========
-        layer : str or int
-            - layer to get test output from
-            - input can be layer name or index
-        """
-        last_layer = self._get_layer(layer)
-        intermediate_model = Model(inputs=self.model.input,
-                                   outputs=last_layer.output)
-        return intermediate_model.predict(self._X_test)
-
     # TODO: validate logic and update references
-    def _min_dist_vector(self):
+    def min_dist_vector(self):
         """
         Get minimum distance vector
 
@@ -699,7 +599,7 @@ class SelfOrganizer(object):
         return np.abs(aligned_x - aligned_c).mean(axis=0)
 
     # TODO: validate logic and update references
-    def _new_neuron_weights(self, dist_thresh=1):
+    def new_neuron_weights(self, dist_thresh=1):
         """
         Return new c and s weights for k new fuzzy neuron
 
@@ -776,23 +676,6 @@ class SelfOrganizer(object):
     #     plt.xticks(df_plot['price'].index[::4],
     #                df_plot['price'].index[::4], rotation=70)
     #     plt.show()
-
-    # TODO: remove - redundant
-    @staticmethod
-    def _loss_function(y_true, y_pred):
-        """
-        Custom loss function
-
-        E = exp{-sum[i=1,j; 1/2 * [pred(j) - test(j)]^2]}
-
-        Parameters
-        ==========
-        y_true : np.array
-            - true values
-        y_pred : np.array
-            - predicted values
-        """
-        return K.sum(1 / 2 * K.square(y_pred - y_true))
 
     # TODO: add function to recompile model using current settings
     # def rebuild_model(self):
