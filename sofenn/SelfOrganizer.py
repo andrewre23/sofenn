@@ -793,3 +793,7 @@ class SelfOrganizer(object):
             - predicted values
         """
         return K.sum(1 / 2 * K.square(y_pred - y_true))
+
+    # TODO: add function to recompile model using current settings
+    # def rebuild_model(self):
+    #     pass
