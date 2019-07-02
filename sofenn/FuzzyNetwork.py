@@ -81,15 +81,13 @@ class FuzzyNetwork(object):
         - train on data
     - model_predictions :
         - yield model predictions without full evaluation
+    - model_evaluations :
+        - evaluate models and yield metrics
     - error_criterion :
         - considers generalized performance of overall network
         - add neuron if error above predefined error threshold (delta)
     - if_part_criterion :
         - checks if current fuzzy rules cover/cluster input vector suitably
-    - min_dist_vector :
-        - get min_dist_vector used when adding neurons
-    - new_neuron_weights :
-        - get weights for new neuron to be added
 
     Secondary Methods
     =================
@@ -262,12 +260,21 @@ class FuzzyNetwork(object):
         if self._debug:
             print('...Model successfully built!')
 
-    def compile_model(self, init_c=True, random=True,
-                            init_s=True, s_0=4, **kwargs):
+    def compile_model(self, init_c=True, random=True, init_s=True, s_0=4.0, **kwargs):
         """
         Create and compile model
         - sets compiled model as self.model
 
+        Parameters
+        ==========
+        init_c : bool
+            - run method to initialize centers or take default initializations
+        random : bool
+            - take either random samples or first samples that appear in training data
+        init_s : bool
+            - run method to initialize widths or take default initializations
+        s_0 : float
+            - value for initial centers of neurons
         """
 
         if self._debug:
@@ -359,12 +366,12 @@ class FuzzyNetwork(object):
 
     def model_predictions(self):
         """
-        Evaluate currently trained model
+        Evaluate currently trained model and return predictions
 
 
         Returns
         =======
-        y_pred : np.array
+        preds : np.array
             - predicted values
             - shape: (samples,) or (samples, classes)
         """
@@ -384,6 +391,7 @@ class FuzzyNetwork(object):
     def error_criterion(self):
         """
         Check error criterion for neuron-adding process
+            - considers generalization performance of model
 
         Returns
         =======
@@ -399,9 +407,19 @@ class FuzzyNetwork(object):
 
     def if_part_criterion(self, thresh=0.75):
         """
-        Check if-part criterion for neuron adding process
+        Check if-part criterion for neuron-adding process
+            - considers whether current fuzzy rules suitably cover inputs
+
             - for each sample, get max of all neuron outputs (pre-normalization)
             - test whether max val at or above threshold
+            - overall criterion met if criterion met for 'thresh'% of samples
+
+        Returns
+        =======
+        - True:
+            if criteron satisfied and no need to widen centers
+        - False:
+            if criteron not met and need to widen neuron centers
         """
         if not 0 < thresh <= 1.0:
             raise ValueError('Threshold must be between 0 and 1')
@@ -497,13 +515,13 @@ class FuzzyNetwork(object):
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
-    def _initialize_widths(self, s_0=4):
+    def _initialize_widths(self, s_0=4.0):
         """
         Initialize neuron widths
 
         Parameters
         ==========
-        s_0 : int
+        s_0 : float
             - initial sigma value for all neuron centers
         """
 
