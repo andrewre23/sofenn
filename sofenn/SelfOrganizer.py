@@ -125,7 +125,6 @@ class SelfOrganizer(object):
         - custom loss function per Leng, Prasad, McGinnity (2004)
     """
 
-    # TODO: remove defaults set in Fuzzy Network
     def __init__(self,
                  ksig=1.12, max_widens=250, err_delta=0.12,  # adding neuron or widening centers
                  prune_tol=0.85, k_mae=0.1,                  # pruning parameters
@@ -356,6 +355,7 @@ class SelfOrganizer(object):
         s_new = np.hstack((s_curr, sk))
 
         # increase neurons and rebuild model
+        # TODO: create method for building duplicate model
         self.__neurons += 1
         self.model = self.build_model()
 
@@ -395,6 +395,7 @@ class SelfOrganizer(object):
 
         # create duplicate model and get both sets of model weights
         prune_model = self.build_model(False)
+        # TODO: create method for building duplicate model
         act_weights = self.model.get_weights()
 
         # for each neuron, zero it out in prune model
@@ -525,54 +526,6 @@ class SelfOrganizer(object):
         if self.__debug:
             print('Centers widened after {} iterations'.format(counter))
 
-    # TODO: add logic to demo notebook
-    # def _evaluate_model(self, eval_thresh=0.5):
-    #     """
-    #     Evaluate currently trained model
-    #
-    #     Parameters
-    #     ==========
-    #     eval_thresh : float
-    #         - cutoff threshold for positive/negative classes
-    #
-    #     Returns
-    #     =======
-    #     y_pred : np.array
-    #         - predicted values
-    #         - shape: (samples,)
-    #     """
-    #     # calculate accuracy scores
-    #     scores = self.model.evaluate(self._X_test, self._y_test, verbose=1)
-    #     raw_pred = self.model.predict(self._X_test)
-    #     y_pred = np.squeeze(np.where(raw_pred >= eval_thresh, 1, 0), axis=-1)
-    #
-    #     # get prediction scores and prediction
-    #     accuracy = scores[1]
-    #     auc = roc_auc_score(self._y_test, raw_pred)
-    #     mae = mean_absolute_error(self._y_test, y_pred)
-    #
-    #     # print accuracy and AUC score
-    #     print('\nAccuracy Measures')
-    #     print('=' * 21)
-    #     print("Accuracy:  {:.2f}%".format(100 * accuracy))
-    #     print("MAPE:      {:.2f}%".format(100 * mae))
-    #     print("AUC Score: {:.2f}%".format(100 * auc))
-    #
-    #     # print confusion matrix
-    #     print('\nConfusion Matrix')
-    #     print('=' * 21)
-    #     print(pd.DataFrame(confusion_matrix(self._y_test, y_pred),
-    #                        index=['true:no', 'true:yes'], columns=['pred:no', 'pred:yes']))
-    #
-    #     # print classification report
-    #     print('\nClassification Report')
-    #     print('=' * 21)
-    #     print(classification_report(self._y_test, y_pred, labels=[0, 1]))
-    #
-    #     self._plot_results(y_pred=y_pred)
-    #     # return predicted values
-    #     return y_pred
-
     # TODO: validate logic and update references
     def min_dist_vector(self):
         """
@@ -642,6 +595,14 @@ class SelfOrganizer(object):
         sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
         return ck, sk
 
+    # TODO: add function to recompile model using current settings
+    # def rebuild_model(self):
+    #     pass
+
+    # TODO: create method for building duplicate model
+    # def duplicate_model(self):
+    #     pass
+
     # TODO: add logic to demo notebook
     # def _plot_results(self, y_pred):
     #     """
@@ -677,6 +638,50 @@ class SelfOrganizer(object):
     #                df_plot['price'].index[::4], rotation=70)
     #     plt.show()
 
-    # TODO: add function to recompile model using current settings
-    # def rebuild_model(self):
-    #     pass
+    # TODO: add logic to demo notebook
+    # def _evaluate_model(self, eval_thresh=0.5):
+    #     """
+    #     Evaluate currently trained model
+    #
+    #     Parameters
+    #     ==========
+    #     eval_thresh : float
+    #         - cutoff threshold for positive/negative classes
+    #
+    #     Returns
+    #     =======
+    #     y_pred : np.array
+    #         - predicted values
+    #         - shape: (samples,)
+    #     """
+    #     # calculate accuracy scores
+    #     scores = self.model.evaluate(self._X_test, self._y_test, verbose=1)
+    #     raw_pred = self.model.predict(self._X_test)
+    #     y_pred = np.squeeze(np.where(raw_pred >= eval_thresh, 1, 0), axis=-1)
+    #
+    #     # get prediction scores and prediction
+    #     accuracy = scores[1]
+    #     auc = roc_auc_score(self._y_test, raw_pred)
+    #     mae = mean_absolute_error(self._y_test, y_pred)
+    #
+    #     # print accuracy and AUC score
+    #     print('\nAccuracy Measures')
+    #     print('=' * 21)
+    #     print("Accuracy:  {:.2f}%".format(100 * accuracy))
+    #     print("MAPE:      {:.2f}%".format(100 * mae))
+    #     print("AUC Score: {:.2f}%".format(100 * auc))
+    #
+    #     # print confusion matrix
+    #     print('\nConfusion Matrix')
+    #     print('=' * 21)
+    #     print(pd.DataFrame(confusion_matrix(self._y_test, y_pred),
+    #                        index=['true:no', 'true:yes'], columns=['pred:no', 'pred:yes']))
+    #
+    #     # print classification report
+    #     print('\nClassification Report')
+    #     print('=' * 21)
+    #     print(classification_report(self._y_test, y_pred, labels=[0, 1]))
+    #
+    #     self._plot_results(y_pred=y_pred)
+    #     # return predicted values
+    #     return y_pred
