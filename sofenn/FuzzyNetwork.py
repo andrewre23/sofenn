@@ -102,7 +102,6 @@ class FuzzyNetwork(object):
     - initialize_widths :
         - initialize neuron weights based on parameter
     """
-
     def __init__(self, X_train, X_test, y_train, y_test,    # data attributes
                  neurons=1, max_neurons=100,                # neuron initialization parameters
                  eval_thresh=0.5, ifpart_thresh=0.1354,     # evaluation and ifpart threshold
@@ -212,7 +211,6 @@ class FuzzyNetwork(object):
             - input shape  : (*, neurons)
             - output shape : (*,)
         """
-
         if self._debug:
             print('Building Fuzzy Network with {} neurons...'
                   .format(self.neurons))
@@ -276,7 +274,6 @@ class FuzzyNetwork(object):
         s_0 : float
             - value for initial centers of neurons
         """
-
         if self._debug:
             print('Compiling model...')
 
@@ -345,7 +342,6 @@ class FuzzyNetwork(object):
         """
         Fit model on current training data
         """
-
         if self._debug:
             print('Training model...')
 
@@ -375,7 +371,6 @@ class FuzzyNetwork(object):
             - predicted values
             - shape: (samples,) or (samples, classes)
         """
-
         # get prediction values
         preds = self.model.predict(self.X_test)
         return preds
@@ -400,7 +395,6 @@ class FuzzyNetwork(object):
         - False:
             if criteron not met and need to add neuron
         """
-
         # mean of absolute test difference
         y_pred = self.model_predictions()
         return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
@@ -421,6 +415,7 @@ class FuzzyNetwork(object):
         - False:
             if criteron not met and need to widen neuron centers
         """
+        # validate value of threshold parameter
         if not 0 < thresh <= 1.0:
             raise ValueError('Threshold must be between 0 and 1')
 
@@ -442,15 +437,17 @@ class FuzzyNetwork(object):
             - layer to get weights from
             - input can be layer name or index
         """
-
         # if named parameter
         if layer in [mlayer.name for mlayer in self.model.layers[1:]]:
             layer_out = self.model.get_layer(layer)
+
         # if indexed parameter
         elif layer in range(1, len(self.model.layers)):
             layer_out = self.model.layers[layer]
+
         else:
             raise ValueError('Error: layer must be layer name or index')
+
         return layer_out
 
     def _get_layer_weights(self, layer=None):
@@ -464,7 +461,6 @@ class FuzzyNetwork(object):
             - layer to get weights from
             - input can be layer name or index
         """
-
         return self._get_layer(layer).get_weights()
 
     def _get_layer_output(self, layer=None):
@@ -478,7 +474,7 @@ class FuzzyNetwork(object):
             - layer to get test output from
             - input can be layer name or index
         """
-
+        # create prediction from intermediate model ending at desired layer
         last_layer = self._get_layer(layer)
         intermediate_model = Model(inputs=self.model.input,
                                    outputs=last_layer.output)
@@ -495,7 +491,6 @@ class FuzzyNetwork(object):
             - take random samples from training data or
             take first n instances (n=# of neurons)
         """
-
         if random:
             # set centers as random sampled index values
             samples = np.random.randint(0, len(self.X_train), self.neurons)
@@ -524,7 +519,6 @@ class FuzzyNetwork(object):
         s_0 : float
             - initial sigma value for all neuron centers
         """
-
         # get current center and width weights
         c, s = self._get_layer_weights('FuzzyRules')
 
