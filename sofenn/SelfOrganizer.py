@@ -48,13 +48,17 @@ class SelfOrganizer(object):
 
     Parameters
     ==========
-    - X_train : training input data
+    - X_train : np.array
+        - training input data
         - shape :(train_*, features)
-    - X_test  : testing input data
+    - X_test  : np.array
+        - testing input data
         - shape: (test_*, features)
-    - y_train : training output data
+    - y_train : np.array
+        - training output data
         - shape: (train_*,)
-    - y_test  : testing output data
+    - y_test  : np.array
+        - testing output data
         - shape: (test_*,)
 
     Attributes
@@ -67,8 +71,6 @@ class SelfOrganizer(object):
         - training epochs
     - batch_size : int
         - training batch size
-    - eval_thresh : float
-        - cutoff for 0/1 class
     - ifpart_thresh : float
         - threshold for if-part
     - ksig : float
@@ -77,8 +79,6 @@ class SelfOrganizer(object):
         - max iterations for widening centers
     - delta : float
         - threshold for error criterion whether new neuron to be added
-    - eval_thresh : float
-        - cutoff threshold for positive/negative classes
     - prune_tol : float
         - tolerance limit for RMSE (0 < lambda < 1)
     - debug : debug flag
@@ -137,7 +137,7 @@ class SelfOrganizer(object):
         self.network = None
         self.model = None
 
-        # set remaining attributes
+        # set self-organizing attributes
         self._ksig = ksig
         self._max_widens = max_widens
         self._delta = err_delta
@@ -151,8 +151,7 @@ class SelfOrganizer(object):
 
     def build_network(self, X_train, X_test, y_train, y_test,  # data attributes
                      neurons=1, max_neurons=100,               # neuron initialization parameters
-                     eval_thresh=0.5, ifpart_thresh=0.1354,    # evaluation and ifpart threshold
-                     err_delta=0.12,                           # delta tolerance for errors
+                     ifpart_thresh=0.1354, err_delta=0.12,     # ifpart and error thresholds
                      prob_type='classification',               # type of problem (classification/regression)
                      **kwargs):
         """
@@ -172,8 +171,6 @@ class SelfOrganizer(object):
             - number of initial neurons
         - max_neurons : int
             - max number of neurons
-        - eval_thresh : float
-            - cutoff threshold for positive/negative classes
         - ifpart_thresh : float
             - threshold for if-part
         - err_delta : float
@@ -183,9 +180,8 @@ class SelfOrganizer(object):
         # Fuzzy network as network attribute
         self.network = FuzzyNetwork(X_train, X_test, y_train, y_test,
                                     neurons=neurons, max_neurons=max_neurons,
-                                    eval_thresh=eval_thresh, ifpart_thresh=ifpart_thresh,
-                                    err_delta=err_delta, prob_type=prob_type,
-                                    debug=self.__debug, **kwargs)
+                                    ifpart_thresh=ifpart_thresh, err_delta=err_delta,
+                                    prob_type=prob_type, debug=self.__debug, **kwargs)
         # shortcut reference to network model
         self.model = self.network.model
 
