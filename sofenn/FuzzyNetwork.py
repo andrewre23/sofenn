@@ -61,8 +61,6 @@ class FuzzyNetwork(object):
         - number of initial neurons
     - max_neurons : int
         - max number of neurons
-    - eval_thresh : float
-        - cutoff threshold for positive/negative classes
     - ifpart_thresh : float
         - threshold for if-part
     - err_delta : float
@@ -104,8 +102,7 @@ class FuzzyNetwork(object):
     """
     def __init__(self, X_train, X_test, y_train, y_test,    # data attributes
                  neurons=1, max_neurons=100,                # neuron initialization parameters
-                 eval_thresh=0.5, ifpart_thresh=0.1354,     # evaluation and ifpart threshold
-                 err_delta=0.12,                            # delta tolerance for errors
+                 ifpart_thresh=0.1354, err_delta=0.12,      # ifpart and error thresholds
                  prob_type='classification',                # type of problem (classification/regression)
                  debug=True, **kwargs):
 
@@ -158,15 +155,13 @@ class FuzzyNetwork(object):
         self.max_neurons = max_neurons
 
         # verify non-negative parameters
-        non_neg_params = {'eval_thresh': eval_thresh,
-                          'ifpart_thresh': ifpart_thresh,
+        non_neg_params = {'ifpart_thresh': ifpart_thresh,
                           'err_delta': err_delta}
         for param, val in non_neg_params.items():
             if val < 0:
                 raise ValueError("Entered negative parameter: {}".format(param))
 
         # set calculation attributes
-        self._eval_thresh = eval_thresh
         self._ifpart_thresh = ifpart_thresh
         self._err_delta = err_delta
 
