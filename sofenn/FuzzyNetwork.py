@@ -95,7 +95,7 @@ class FuzzyNetwork(object):
         - get current weights from any layer in model
     - get_layer_output :
         - get test output from any layer in model
-        
+
     Protected Methods
     =================
     - initialize_centers :
