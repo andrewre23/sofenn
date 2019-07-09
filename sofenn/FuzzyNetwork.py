@@ -95,6 +95,9 @@ class FuzzyNetwork(object):
         - get current weights from any layer in model
     - get_layer_output :
         - get test output from any layer in model
+        
+    Protected Methods
+    =================
     - initialize_centers :
         - initialize neuron centers
     - initialize_widths :
@@ -415,13 +418,13 @@ class FuzzyNetwork(object):
             raise ValueError('Threshold must be between 0 and 1')
 
         # get max val
-        fuzz_out = self._get_layer_output('FuzzyRules')
+        fuzz_out = self.get_layer_output('FuzzyRules')
         # check if max neuron output is above threshold
         maxes = np.max(fuzz_out, axis=-1) >= self._ifpart_thresh
         # return True if at least half of samples agree
         return (maxes.sum() / len(maxes)) >= thresh
 
-    def _get_layer(self, layer=None):
+    def get_layer(self, layer=None):
         """
         Get layer object based on input parameter
             - exception of Input layer
@@ -445,7 +448,7 @@ class FuzzyNetwork(object):
 
         return layer_out
 
-    def _get_layer_weights(self, layer=None):
+    def get_layer_weights(self, layer=None):
         """
         Get weights of layer based on input parameter
             - exception of Input layer
@@ -456,9 +459,9 @@ class FuzzyNetwork(object):
             - layer to get weights from
             - input can be layer name or index
         """
-        return self._get_layer(layer).get_weights()
+        return self.get_layer(layer).get_weights()
 
-    def _get_layer_output(self, layer=None):
+    def get_layer_output(self, layer=None):
         """
         Get output of layer based on input parameter
             - exception of Input layer
@@ -470,7 +473,7 @@ class FuzzyNetwork(object):
             - input can be layer name or index
         """
         # create prediction from intermediate model ending at desired layer
-        last_layer = self._get_layer(layer)
+        last_layer = self.get_layer(layer)
         intermediate_model = Model(inputs=self.model.input,
                                    outputs=last_layer.output)
         return intermediate_model.predict(self.X_test)
@@ -497,11 +500,11 @@ class FuzzyNetwork(object):
         c_init = x_i.T
 
         # set weights
-        c, s = self._get_layer_weights('FuzzyRules')
+        c, s = self.get_layer_weights('FuzzyRules')
         start_weights = [c_init, s]
-        self._get_layer('FuzzyRules').set_weights(start_weights)
+        self.get_layer('FuzzyRules').set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self._get_layer_weights('FuzzyRules')
+        final_weights = self.get_layer_weights('FuzzyRules')
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
@@ -515,15 +518,15 @@ class FuzzyNetwork(object):
             - initial sigma value for all neuron centers
         """
         # get current center and width weights
-        c, s = self._get_layer_weights('FuzzyRules')
+        c, s = self.get_layer_weights('FuzzyRules')
 
         # repeat s_0 value to array shaped like s
         s_init = np.repeat(s_0, s.size).reshape(s.shape)
 
         # set weights
         start_weights = [c, s_init]
-        self._get_layer('FuzzyRules').set_weights(start_weights)
+        self.get_layer('FuzzyRules').set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self._get_layer_weights('FuzzyRules')
+        final_weights = self.get_layer_weights('FuzzyRules')
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
