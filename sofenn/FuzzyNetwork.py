@@ -281,7 +281,7 @@ class FuzzyNetwork(object):
         # default loss for regression
         else:
             default_loss = 'mean_squared_error'
-        loss = kwargs.get('loss', default_loss)
+        kwargs['loss'] = kwargs.get('loss', default_loss)
 
         # default optimizer for classification
         if self.prob_type is 'classification':
@@ -289,7 +289,7 @@ class FuzzyNetwork(object):
         # default optimizer for regression
         else:
             default_optimizer = 'rmsprop'
-        optimizer = kwargs.get('optimizer', default_optimizer)
+        kwargs['optimizer'] = kwargs.get('optimizer', default_optimizer)
 
         # default metrics for classification
         if self.prob_type is 'classification':
@@ -302,11 +302,10 @@ class FuzzyNetwork(object):
         # default metrics for regression
         else:
             default_metrics = ['accuracy']
-        metrics = kwargs.get('metrics', default_metrics)
+        kwargs['metrics'] = kwargs.get('metrics', default_metrics)
 
         # compile model and show model summary
-        self.model.compile(loss=loss, optimizer=optimizer,
-                           metrics=metrics, **kwargs)
+        self.model.compile(**kwargs)
 
         # initialize fuzzy rule centers
         if init_c:
@@ -343,17 +342,17 @@ class FuzzyNetwork(object):
         if self._debug:
             print('Training model...')
 
-        # default verbosity
-        if 'verbose' not in kwargs:
-            kwargs['verbose'] = 1
+        # set default verbose setting
+        default_verbose = 1
+        kwargs['verbose'] = kwargs.get('verbose', default_verbose)
 
-        # default training epochs
-        if 'epochs' not in kwargs:
-            kwargs['epochs'] = 250
+        # set default training epochs
+        default_epochs = 250
+        kwargs['epochs'] = kwargs.get('epochs', default_epochs)
 
-        # default training batch size
-        if 'batch_size' not in kwargs:
-            kwargs['batch_size'] = 32
+        # set default training epochs
+        default_batch_size = 32
+        kwargs['batch_size'] = kwargs.get('batch_size', default_batch_size)
 
         # fit model to dataset
         self.model.fit(self.X_train, self.y_train, **kwargs)
