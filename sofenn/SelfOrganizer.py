@@ -252,6 +252,14 @@ class SelfOrganizer(object):
         # pass parameters to network method
         self.network.train_model(**kwargs)
 
+    # TODO: add function to recompile model using current settings
+    # def rebuild_model(self):
+    #     pass
+
+    # TODO: create method for building duplicate model
+    # def duplicate_model(self):
+    #     pass
+
     # TODO: validate logic and update references
     def self_organize(self):
         """
@@ -390,11 +398,14 @@ class SelfOrganizer(object):
         if self.__debug:
             print('\nAdding neuron...')
 
+        # create simple alias for self.network
+        fuzzy_net = self.network
+
         # get current weights
-        c_curr, s_curr = self._get_layer_weights('FuzzyRules')
+        c_curr, s_curr = fuzzy_net.get_layer_weights('FuzzyRules')
 
         # get weights for new neuron
-        ck, sk = self._new_neuron_weights()
+        ck, sk = self.new_neuron_weights()
         # expand dim for stacking
         ck = np.expand_dims(ck, axis=-1)
         sk = np.expand_dims(sk, axis=-1)
@@ -403,20 +414,21 @@ class SelfOrganizer(object):
 
         # increase neurons and rebuild model
         # TODO: create method for building duplicate model
-        self.__neurons += 1
-        self.model = self.build_model()
+        fuzzy_net.neurons += 1
+        self.build_model()
 
         # update weights
         new_weights = [c_new, s_new]
-        self._get_layer('FuzzyRules').set_weights(new_weights)
+        fuzzy_net.get_layer('FuzzyRules').set_weights(new_weights)
 
         # validate weights updated as expected
-        final_weights = self._get_layer_weights('FuzzyRules')
+        final_weights = fuzzy_net.get_layer_weights('FuzzyRules')
         assert np.allclose(c_new, final_weights[0], 1e-3)
         assert np.allclose(s_new, final_weights[1], 1e-3)
 
         # retrain model since new neuron added
-        self._train_model()
+        # TODO: add retrain model vs train method
+        self.train_model()
 
     # TODO: validate logic and update references
     def new_neuron_weights(self, dist_thresh=1):
@@ -437,12 +449,16 @@ class SelfOrganizer(object):
             - average minimum distance vector across samples
             - shape: (features,)
         """
+
+        # create simple alias for self.network
+        fuzzy_net = self.network
+
         # get input values and fuzzy weights
-        x = self._X_train.values
-        c, s = self._get_layer_weights('FuzzyRules')
+        x = fuzzy_net.X_train.values
+        c, s =fuzzy_net.get_layer_weights('FuzzyRules')
 
         # get minimum distance vector
-        min_dist = self._min_dist_vector()
+        min_dist = self.min_dist_vector()
         # get minimum distance across neurons
         # and arg-min for neuron with lowest distance
         dist_vec = min_dist.min(axis=-1)
@@ -473,14 +489,18 @@ class SelfOrganizer(object):
             - average minimum distance vector across samples
             - shape: (features, neurons)
         """
+
+        # create simple alias for self.network
+        fuzzy_net = self.network
+
         # get input values and fuzzy weights
-        x = self._X_train.values
+        x = fuzzy_net.X_train.values
         samples = x.shape[0]
-        c = self._get_layer_weights('FuzzyRules')[0]
+        c, s = fuzzy_net.get_layer_weights('FuzzyRules')
 
         # align x and c and assert matching dims
-        aligned_x = x.repeat(self.__neurons). \
-            reshape(x.shape + (self.__neurons,))
+        aligned_x = x.repeat(fuzzy_net.neurons). \
+            reshape(x.shape + (fuzzy_net.neurons,))
         aligned_c = c.repeat(samples).reshape((samples,) + c.shape)
         assert aligned_x.shape == aligned_c.shape
 
@@ -500,14 +520,17 @@ class SelfOrganizer(object):
         if self.__debug:
             print('\nPruning neurons...')
 
+        # create simple alias for self.network
+        fuzzy_net = self.network
+
         # quit if only 1 neuron exists
-        if self.__neurons == 1:
+        if fuzzy_net.neurons == 1:
             if self.__debug:
                 print('Skipping pruning steps - only 1 neuron exists')
             return
 
         # calculate mean-absolute-error
-        E_rmae = mean_absolute_error(self._y_test.values, y_pred)
+        E_rmae = mean_absolute_error(fuzzy_net.y_test.values, y_pred)
 
         # create duplicate model and get both sets of model weights
         prune_model = self.build_model(False)
@@ -517,7 +540,7 @@ class SelfOrganizer(object):
         # for each neuron, zero it out in prune model
         # and get change in mae for dropping neuron
         delta_E = []
-        for neur in range(self.__neurons):
+        for neur in range(fuzzy_net.neurons):
             # reset prune model weights to actual weights
             prune_model.set_weights(act_weights)
 
@@ -528,9 +551,9 @@ class SelfOrganizer(object):
             prune_model.set_weights([c, s, a])
 
             # predict values with new zeroed out weights
-            neur_pred = prune_model.predict(self._X_test)
+            neur_pred = prune_model.predict(fuzzy_net.X_test)
             y_pred_neur = np.squeeze(np.where(neur_pred >= self._eval_thresh, 1, 0), axis=-1)
-            neur_rmae = mean_absolute_error(self._y_test.values, y_pred_neur)
+            neur_rmae = mean_absolute_error(fuzzy_net.y_test.values, y_pred_neur)
 
             # append difference in rmse and new prediction rmse
             delta_E.append(neur_rmae - E_rmae)
@@ -558,9 +581,9 @@ class SelfOrganizer(object):
             prune_model.set_weights([c, s, a])
 
             # predict values with new zeroed out weights
-            neur_pred = prune_model.predict(self._X_test)
+            neur_pred = prune_model.predict(fuzzy_net.X_test)
             y_pred_neur = np.squeeze(np.where(neur_pred >= self._eval_thresh, 1, 0), axis=-1)
-            E_rmae_del = mean_absolute_error(self._y_test.values, y_pred_neur)
+            E_rmae_del = mean_absolute_error(fuzzy_net.y_test.values, y_pred_neur)
 
             # if E_mae_del < E
             # delete neuron
@@ -591,19 +614,9 @@ class SelfOrganizer(object):
         a = np.delete(a, deleted, axis=-1)
 
         # update neuron count and create new model with updated weights
-        self.__neurons -= len(deleted)
+        fuzzy_net.neurons -= len(deleted)
         self.model = self.build_model(False)
         self.model.set_weights([c, s, a])
-
-    # TODO: add function to recompile model using current settings
-    # def rebuild_model(self):
-    #     pass
-
-    # TODO: create method for building duplicate model
-    # def duplicate_model(self):
-    #     pass
-
-    # TODO: check if needing shorter methods for getting network layers/weights
 
     # TODO: add logic to demo notebook
     # def _plot_results(self, y_pred):
