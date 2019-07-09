@@ -266,18 +266,22 @@ class SelfOrganizer(object):
         if self.__debug:
             print('Beginning model training...')
         self._train_model()
+
+        # TODO: check if needed
         if self.__debug:
             print('Initial Model Evaluation')
         y_pred = self._evaluate_model(eval_thresh=self._eval_thresh)
 
+        # create simple alias for self.network
+        fuzzy_net = self.network
+
         # run update logic until passes criterion checks
-        while not self.error_criterion(y_pred) and \
-                not self.if_part_criterion():
+        while not fuzzy_net.error_criterion() and not fuzzy_net.if_part_criterion():
             # run criterion checks and organize accordingly
-            self.organize(y_pred=y_pred)
+            self.organize()
 
             # quit if above max neurons allowed
-            if self.__neurons >= self._max_neurons:
+            if fuzzy_net.neurons >= fuzzy_net.max_neurons:
                 if self.__debug:
                     print('\nMaximum neurons reached')
                     print('Terminating self-organizing process')
@@ -303,21 +307,21 @@ class SelfOrganizer(object):
         """
 
         # create simple alias for self.network
-        fuzzynet = self.network
+        fuzzy_net = self.network
 
         # get copy of initial fuzzy weights
-        start_weights = fuzzynet.get_layer_weights('FuzzyRules')
+        start_weights = fuzzy_net.get_layer_weights('FuzzyRules')
 
         # widen centers if necessary
-        if not fuzzynet.if_part_criterion():
+        if not fuzzy_net.if_part_criterion():
             self.widen_centers()
 
         # add neuron if necessary
-        if not fuzzynet.error_criterion():
+        if not fuzzy_net.error_criterion():
             # reset fuzzy weights if previously widened before adding
-            curr_weights = fuzzynet.get_layer_weights('FuzzyRules')
+            curr_weights = fuzzy_net.get_layer_weights('FuzzyRules')
             if not np.array_equal(start_weights, curr_weights):
-                fuzzynet.get_layer('FuzzyRules').set_weights(start_weights)
+                fuzzy_net.get_layer('FuzzyRules').set_weights(start_weights)
 
             # add neuron and retrain model
             self.add_neuron()
@@ -336,16 +340,19 @@ class SelfOrganizer(object):
         if self.__debug:
             print('\nWidening centers...')
 
+        # create simple alias for self.network
+        fuzzy_net = self.network
+
         # get fuzzy layer and output to find max neuron output
-        fuzz = self.network.get_layer('FuzzyRules')
+        fuzz_layer = fuzzy_net.get_layer('FuzzyRules')
 
         # get old weights and create current weight vars
-        c, s = fuzz.get_weights()
+        c, s = fuzz_layer.get_weights()
 
         # repeat until if-part criterion satisfied
         # only perform for max iterations
         counter = 0
-        while not self.if_part_criterion():
+        while not fuzzy_net.if_part_criterion():
 
             counter += 1
             # check if max iterations exceeded
@@ -357,7 +364,7 @@ class SelfOrganizer(object):
 
             # get neuron with max-output for each sample
             # then select the most common one to update
-            fuzz_out = self._get_layer_output('FuzzyRules')
+            fuzz_out = fuzzy_net.get_layer_output('FuzzyRules')
             maxes = np.argmax(fuzz_out, axis=-1)
             max_neuron = np.argmax(np.bincount(maxes.flat))
 
@@ -368,7 +375,7 @@ class SelfOrganizer(object):
 
             # update weights
             new_weights = [c, s]
-            fuzz.set_weights(new_weights)
+            fuzz_layer.set_weights(new_weights)
 
         # print alert of successful widening
         if self.__debug:
