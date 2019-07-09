@@ -20,14 +20,11 @@ import numpy as np
 # import matplotlib.pyplot as plt
 
 from keras import backend as K
-from keras.models import Model
-from keras.layers import Input, Activation
 
 from sklearn.metrics import confusion_matrix, classification_report, \
     mean_absolute_error, roc_auc_score
 
 # custom Fuzzy Layers
-from .layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
 from .FuzzyNetwork import FuzzyNetwork
 
 
@@ -298,30 +295,30 @@ class SelfOrganizer(object):
             self._evaluate_model(eval_thresh=self._eval_thresh)
 
     # TODO: validate logic and update references
-    def organize(self, y_pred):
+    def organize(self):
         """
         Run one iteration of organizational logic
         - check on system error and if-part criteron
         - add neurons or prune if needed
-
-        Parameters
-        ==========
-        y_pred : np.array
-            - predictions
         """
 
+        # create simple alias for self.network
+        fuzzynet = self.network
+
         # get copy of initial fuzzy weights
-        start_weights = self._get_layer_weights('FuzzyRules')
+        start_weights = fuzzynet.get_layer_weights('FuzzyRules')
 
         # widen centers if necessary
-        if not self.if_part_criterion():
+        if not fuzzynet.if_part_criterion():
             self.widen_centers()
 
         # add neuron if necessary
-        if not self.error_criterion(y_pred=y_pred):
+        if not fuzzynet.error_criterion():
             # reset fuzzy weights if previously widened before adding
-            if not np.array_equal(start_weights, self._get_layer_weights('FuzzyRules')):
-                self._get_layer('FuzzyRules').set_weights(start_weights)
+            curr_weights = fuzzynet.get_layer_weights('FuzzyRules')
+            if not np.array_equal(start_weights, curr_weights):
+                fuzzynet.get_layer('FuzzyRules').set_weights(start_weights)
+
             # add neuron and retrain model
             self.add_neuron()
             self._train_model()
@@ -329,6 +326,53 @@ class SelfOrganizer(object):
         # updated prediction and prune neurons
         y_pred_new = self._model_predictions()
         self.prune_neurons(y_pred=y_pred_new)
+
+    # TODO: validate logic and update references
+    def widen_centers(self):
+        """
+        Widen center of neurons to better cover data
+        """
+        # print alert of successful widening
+        if self.__debug:
+            print('\nWidening centers...')
+
+        # get fuzzy layer and output to find max neuron output
+        fuzz = self.network.get_layer('FuzzyRules')
+
+        # get old weights and create current weight vars
+        c, s = fuzz.get_weights()
+
+        # repeat until if-part criterion satisfied
+        # only perform for max iterations
+        counter = 0
+        while not self.if_part_criterion():
+
+            counter += 1
+            # check if max iterations exceeded
+            if counter > self._max_widens:
+                if self.__debug:
+                    print('Max iterations reached ({})'
+                          .format(counter - 1))
+                return False
+
+            # get neuron with max-output for each sample
+            # then select the most common one to update
+            fuzz_out = self._get_layer_output('FuzzyRules')
+            maxes = np.argmax(fuzz_out, axis=-1)
+            max_neuron = np.argmax(np.bincount(maxes.flat))
+
+            # select minimum width to expand
+            # and multiply by factor
+            mf_min = s[:, max_neuron].argmin()
+            s[mf_min, max_neuron] = self._ksig * s[mf_min, max_neuron]
+
+            # update weights
+            new_weights = [c, s]
+            fuzz.set_weights(new_weights)
+
+        # print alert of successful widening
+        if self.__debug:
+            print('Centers widened after {} iterations'.format(counter))
 
     # TODO: validate logic and update references
     def add_neuron(self):
@@ -366,6 +410,75 @@ class SelfOrganizer(object):
 
         # retrain model since new neuron added
         self._train_model()
+
+    # TODO: validate logic and update references
+    def new_neuron_weights(self, dist_thresh=1):
+        """
+        Return new c and s weights for k new fuzzy neuron
+
+        Parameters
+        ==========
+        dist_thresh : float
+            - multiplier of average features values to use as distance thresholds
+
+        Returns
+        =======
+        ck : np.array
+            - average minimum distance vector across samples
+            - shape: (features,)
+        sk : np.array
+            - average minimum distance vector across samples
+            - shape: (features,)
+        """
+        # get input values and fuzzy weights
+        x = self._X_train.values
+        c, s = self._get_layer_weights('FuzzyRules')
+
+        # get minimum distance vector
+        min_dist = self._min_dist_vector()
+        # get minimum distance across neurons
+        # and arg-min for neuron with lowest distance
+        dist_vec = min_dist.min(axis=-1)
+        min_neurs = min_dist.argmin(axis=-1)
+
+        # get min c and s weights
+        c_min = c[:, min_neurs].diagonal()
+        s_min = s[:, min_neurs].diagonal()
+        assert c_min.shape == s_min.shape
+
+        # set threshold distance as factor of mean
+        # value for each feature across samples
+        kd_i = x.mean(axis=0) * dist_thresh
+
+        # get final weight vectors
+        ck = np.where(dist_vec <= kd_i, c_min, x.mean(axis=0))
+        sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
+        return ck, sk
+
+    # TODO: validate logic and update references
+    def min_dist_vector(self):
+        """
+        Get minimum distance vector
+
+        Returns
+        =======
+        min_dist : np.array
+            - average minimum distance vector across samples
+            - shape: (features, neurons)
+        """
+        # get input values and fuzzy weights
+        x = self._X_train.values
+        samples = x.shape[0]
+        c = self._get_layer_weights('FuzzyRules')[0]
+
+        # align x and c and assert matching dims
+        aligned_x = x.repeat(self.__neurons). \
+            reshape(x.shape + (self.__neurons,))
+        aligned_c = c.repeat(samples).reshape((samples,) + c.shape)
+        assert aligned_x.shape == aligned_c.shape
+
+        # average the minimum distance across samples
+        return np.abs(aligned_x - aligned_c).mean(axis=0)
 
     # TODO: validate logic and update references
     def prune_neurons(self, y_pred):
@@ -475,122 +588,6 @@ class SelfOrganizer(object):
         self.model = self.build_model(False)
         self.model.set_weights([c, s, a])
 
-    # TODO: validate logic and update references
-    def widen_centers(self):
-        """
-        Widen center of neurons to better cover data
-        """
-        # print alert of successful widening
-        if self.__debug:
-            print('\nWidening centers...')
-
-        # get fuzzy layer and output to find max neuron output
-        fuzz = self._get_layer('FuzzyRules')
-
-        # get old weights and create current weight vars
-        c, s = fuzz.get_weights()
-
-        # repeat until if-part criterion satisfied
-        # only perform for max iterations
-        counter = 0
-        while not self.if_part_criterion():
-
-            counter += 1
-            # check if max iterations exceeded
-            if counter > self._max_widens:
-                if self.__debug:
-                    print('Max iterations reached ({})'
-                          .format(counter - 1))
-                return False
-
-            # get neuron with max-output for each sample
-            # then select the most common one to update
-            fuzz_out = self._get_layer_output('FuzzyRules')
-            maxes = np.argmax(fuzz_out, axis=-1)
-            max_neuron = np.argmax(np.bincount(maxes.flat))
-
-            # select minimum width to expand
-            # and multiply by factor
-            mf_min = s[:, max_neuron].argmin()
-            s[mf_min, max_neuron] = self._ksig * s[mf_min, max_neuron]
-
-            # update weights
-            new_weights = [c, s]
-            fuzz.set_weights(new_weights)
-
-        # print alert of successful widening
-        if self.__debug:
-            print('Centers widened after {} iterations'.format(counter))
-
-    # TODO: validate logic and update references
-    def min_dist_vector(self):
-        """
-        Get minimum distance vector
-
-        Returns
-        =======
-        min_dist : np.array
-            - average minimum distance vector across samples
-            - shape: (features, neurons)
-        """
-        # get input values and fuzzy weights
-        x = self._X_train.values
-        samples = x.shape[0]
-        c = self._get_layer_weights('FuzzyRules')[0]
-
-        # align x and c and assert matching dims
-        aligned_x = x.repeat(self.__neurons). \
-            reshape(x.shape + (self.__neurons,))
-        aligned_c = c.repeat(samples).reshape((samples,) + c.shape)
-        assert aligned_x.shape == aligned_c.shape
-
-        # average the minimum distance across samples
-        return np.abs(aligned_x - aligned_c).mean(axis=0)
-
-    # TODO: validate logic and update references
-    def new_neuron_weights(self, dist_thresh=1):
-        """
-        Return new c and s weights for k new fuzzy neuron
-
-        Parameters
-        ==========
-        dist_thresh : float
-            - multiplier of average features values to use as distance thresholds
-
-        Returns
-        =======
-        ck : np.array
-            - average minimum distance vector across samples
-            - shape: (features,)
-        sk : np.array
-            - average minimum distance vector across samples
-            - shape: (features,)
-        """
-        # get input values and fuzzy weights
-        x = self._X_train.values
-        c, s = self._get_layer_weights('FuzzyRules')
-
-        # get minimum distance vector
-        min_dist = self._min_dist_vector()
-        # get minimum distance across neurons
-        # and arg-min for neuron with lowest distance
-        dist_vec = min_dist.min(axis=-1)
-        min_neurs = min_dist.argmin(axis=-1)
-
-        # get min c and s weights
-        c_min = c[:, min_neurs].diagonal()
-        s_min = s[:, min_neurs].diagonal()
-        assert c_min.shape == s_min.shape
-
-        # set threshold distance as factor of mean
-        # value for each feature across samples
-        kd_i = x.mean(axis=0) * dist_thresh
-
-        # get final weight vectors
-        ck = np.where(dist_vec <= kd_i, c_min, x.mean(axis=0))
-        sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
-        return ck, sk
-
     # TODO: add function to recompile model using current settings
     # def rebuild_model(self):
     #     pass
@@ -598,6 +595,8 @@ class SelfOrganizer(object):
     # TODO: create method for building duplicate model
     # def duplicate_model(self):
     #     pass
+
+    # TODO: check if needing shorter methods for getting network layers/weights
 
     # TODO: add logic to demo notebook
     # def _plot_results(self, y_pred):
