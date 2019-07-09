@@ -454,7 +454,7 @@ class SelfOrganizer(object):
         fuzzy_net = self.network
 
         # get input values and fuzzy weights
-        x = fuzzy_net.X_train.values
+        x = fuzzy_net.X_train
         c, s = fuzzy_net.get_layer_weights('FuzzyRules')
 
         # get minimum distance vector
@@ -494,7 +494,7 @@ class SelfOrganizer(object):
         fuzzy_net = self.network
 
         # get input values and fuzzy weights
-        x = fuzzy_net.X_train.values
+        x = fuzzy_net.X_train
         samples = x.shape[0]
         c, s = fuzzy_net.get_layer_weights('FuzzyRules')
 
@@ -530,7 +530,7 @@ class SelfOrganizer(object):
             return
 
         # calculate mean-absolute-error
-        E_rmae = mean_absolute_error(fuzzy_net.y_test.values, y_pred)
+        E_rmae = mean_absolute_error(fuzzy_net.y_test, y_pred)
 
         # create duplicate model and get both sets of model weights
         prune_model = self.build_model(False)
@@ -553,7 +553,7 @@ class SelfOrganizer(object):
             # predict values with new zeroed out weights
             neur_pred = prune_model.predict(fuzzy_net.X_test)
             y_pred_neur = np.squeeze(np.where(neur_pred >= self._eval_thresh, 1, 0), axis=-1)
-            neur_rmae = mean_absolute_error(fuzzy_net.y_test.values, y_pred_neur)
+            neur_rmae = mean_absolute_error(fuzzy_net.y_test, y_pred_neur)
 
             # append difference in rmse and new prediction rmse
             delta_E.append(neur_rmae - E_rmae)
@@ -583,7 +583,7 @@ class SelfOrganizer(object):
             # predict values with new zeroed out weights
             neur_pred = prune_model.predict(fuzzy_net.X_test)
             y_pred_neur = np.squeeze(np.where(neur_pred >= self._eval_thresh, 1, 0), axis=-1)
-            E_rmae_del = mean_absolute_error(fuzzy_net.y_test.values, y_pred_neur)
+            E_rmae_del = mean_absolute_error(fuzzy_net.y_test, y_pred_neur)
 
             # if E_mae_del < E
             # delete neuron
