@@ -147,10 +147,10 @@ class SelfOrganizer(object):
         #     self.__initialize_model(s_init=s_init)
 
     def build_network(self, X_train, X_test, y_train, y_test,  # data attributes
-                     neurons=1, max_neurons=100,               # neuron initialization parameters
-                     ifpart_thresh=0.1354, err_delta=0.12,     # ifpart and error thresholds
-                     prob_type='classification',               # type of problem (classification/regression)
-                     **kwargs):
+                      neurons=1, max_neurons=100,              # neuron initialization parameters
+                      ifpart_thresh=0.1354, err_delta=0.12,    # ifpart and error thresholds
+                      prob_type='classification',              # type of problem (classification/regression)
+                      **kwargs):
         """
         Create FuzzyNetwork object and set network and model attributes
 
