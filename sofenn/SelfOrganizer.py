@@ -455,7 +455,7 @@ class SelfOrganizer(object):
 
         # get input values and fuzzy weights
         x = fuzzy_net.X_train.values
-        c, s =fuzzy_net.get_layer_weights('FuzzyRules')
+        c, s = fuzzy_net.get_layer_weights('FuzzyRules')
 
         # get minimum distance vector
         min_dist = self.min_dist_vector()
