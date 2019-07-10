@@ -16,4 +16,4 @@
 #
 
 
-from .SelfOrganizer import SelfOrganizer as sofnn
+from .SelfOrganizer import SelfOrganizer
