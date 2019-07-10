@@ -103,10 +103,11 @@ class FuzzyNetwork(object):
     - initialize_widths :
         - initialize neuron weights based on parameter
     """
-    def __init__(self, X_train, X_test, y_train, y_test,    # data attributes
-                 neurons=1, max_neurons=100,                # neuron initialization parameters
-                 ifpart_thresh=0.1354, err_delta=0.12,      # ifpart and error thresholds
-                 prob_type='classification',                # type of problem (classification/regression)
+    def __init__(self, X_train, X_test, y_train, y_test,     # data attributes
+                 neurons=1, max_neurons=100,                 # neuron initialization parameters
+                 ifpart_thresh=0.1354, ifpart_samples=0.75,  # ifpart threshold and percentage of samples needed
+                 err_delta=0.12,                             # error criterion
+                 prob_type='classification',                 # type of problem (classification/regression)
                  debug=True, **kwargs):
 
         # set debug flag
@@ -159,6 +160,7 @@ class FuzzyNetwork(object):
 
         # verify non-negative parameters
         non_neg_params = {'ifpart_thresh': ifpart_thresh,
+                          'ifpart_samples': ifpart_samples,
                           'err_delta': err_delta}
         for param, val in non_neg_params.items():
             if val < 0:
@@ -166,6 +168,7 @@ class FuzzyNetwork(object):
 
         # set calculation attributes
         self._ifpart_thresh = ifpart_thresh
+        self._ifpart_samples = ifpart_samples
         self._err_delta = err_delta
 
         # define model and set model attribute
@@ -396,7 +399,7 @@ class FuzzyNetwork(object):
         y_pred = self.model_predictions()
         return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
 
-    def if_part_criterion(self, thresh=0.75):
+    def if_part_criterion(self):
         """
         Check if-part criterion for neuron-adding process
             - considers whether current fuzzy rules suitably cover inputs
@@ -413,15 +416,15 @@ class FuzzyNetwork(object):
             if criteron not met and need to widen neuron centers
         """
         # validate value of threshold parameter
-        if not 0 < thresh <= 1.0:
-            raise ValueError('Threshold must be between 0 and 1')
+        if not 0 < self._ifpart_samples <= 1.0:
+            raise ValueError('Percentage threshold must be between 0 and 1')
 
         # get max val
         fuzz_out = self.get_layer_output('FuzzyRules')
         # check if max neuron output is above threshold
         maxes = np.max(fuzz_out, axis=-1) >= self._ifpart_thresh
         # return True if at least half of samples agree
-        return (maxes.sum() / len(maxes)) >= thresh
+        return (maxes.sum() / len(maxes)) >= self._ifpart_samples
 
     def get_layer(self, layer=None):
         """
