@@ -146,10 +146,11 @@ class SelfOrganizer(object):
         # if self.__neurons == 1:
         #     self.__initialize_model(s_init=s_init)
 
-    def build_network(self, X_train, X_test, y_train, y_test,  # data attributes
-                      neurons=1, max_neurons=100,              # neuron initialization parameters
-                      ifpart_thresh=0.1354, err_delta=0.12,    # ifpart and error thresholds
-                      prob_type='classification',              # type of problem (classification/regression)
+    def build_network(self, X_train, X_test, y_train, y_test,     # data attributes
+                      neurons=1, max_neurons=100,                 # neuron initialization parameters
+                      ifpart_thresh=0.1354, ifpart_samples=0.75,  # ifpart threshold and percentage of samples needed
+                      err_delta=0.12,                             # error criterion
+                      prob_type='classification',                 # type of problem (classification/regression)
                       **kwargs):
         """
         Create FuzzyNetwork object and set network and model attributes
@@ -170,6 +171,8 @@ class SelfOrganizer(object):
             - max number of neurons
         - ifpart_thresh : float
             - threshold for if-part
+        - ifpart_samples : float
+            - percent of samples needed to meet ifpart criterion
         - err_delta : float
             - threshold for error criterion whether new neuron to be added
         """
@@ -177,8 +180,9 @@ class SelfOrganizer(object):
         # Fuzzy network as network attribute
         self.network = FuzzyNetwork(X_train, X_test, y_train, y_test,
                                     neurons=neurons, max_neurons=max_neurons,
-                                    ifpart_thresh=ifpart_thresh, err_delta=err_delta,
-                                    prob_type=prob_type, debug=self.__debug, **kwargs)
+                                    ifpart_thresh=ifpart_thresh, ifpart_samples=ifpart_samples,
+                                    err_delta=err_delta, prob_type=prob_type,
+                                    debug=self.__debug, **kwargs)
         # shortcut reference to network model
         self.model = self.network.model
 
