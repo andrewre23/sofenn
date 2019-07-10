@@ -63,6 +63,8 @@ class FuzzyNetwork(object):
         - max number of neurons
     - ifpart_thresh : float
         - threshold for if-part
+    - ifpart_samples : float
+        - percent of samples needed to meet ifpart criterion
     - err_delta : float
         - threshold for error criterion whether new neuron to be added
     - debug : debug flag
@@ -404,9 +406,9 @@ class FuzzyNetwork(object):
         Check if-part criterion for neuron-adding process
             - considers whether current fuzzy rules suitably cover inputs
 
-            - for each sample, get max of all neuron outputs (pre-normalization)
+            - get max of all neuron outputs (pre-normalization)
             - test whether max val at or above threshold
-            - overall criterion met if criterion met for 'thresh'% of samples
+            - overall criterion met if criterion met for "ifpart_samples" % of samples
 
         Returns
         =======
