@@ -41,85 +41,48 @@ class SelfOrganizer(object):
         fuzzy neural networks" - Leng, Prasad, McGinnity (2004)
     -Composed of 5 layers with varying "fuzzy rule" nodes
 
-    * = samples
-
-    Parameters
-    ==========
-    - X_train : np.array
-        - training input data
-        - shape :(train_*, features)
-    - X_test  : np.array
-        - testing input data
-        - shape: (test_*, features)
-    - y_train : np.array
-        - training output data
-        - shape: (train_*,)
-    - y_test  : np.array
-        - testing output data
-        - shape: (test_*,)
-
     Attributes
     ==========
-    - neurons : int
-        - number of initial neurons
-    - s_init : int
-        - initial sigma for first neuron
-    - epochs : int
-        - training epochs
-    - batch_size : int
-        - training batch size
-    - ifpart_thresh : float
-        - threshold for if-part
     - ksig : float
         - factor to widen centers
     - max_widens : int
         - max iterations for widening centers
-    - delta : float
-        - threshold for error criterion whether new neuron to be added
     - prune_tol : float
         - tolerance limit for RMSE (0 < lambda < 1)
+    - k_mae : float
+        - expected RMSE for error when pruning neurons
     - debug : debug flag
 
     Methods
     =======
+    - build_network :
+        - create and initialize FuzzyNetwork object
     - build_model :
-        - build and compile model
-    - self_organize :
-        - run main logic to organize FNN
-    - error_criterion :
-        - considers generalized performance of overall network
-        - add neuron if error above predefined error threshold (delta)
-    - if_part_criterion :
-        - checks if current fuzzy rules cover/cluster input vector suitably
-    - add_neuron :
-        - add one neuron to model
-    - prune_neuron :
-        - remove neuron from model
-    - combine_membership_functions :
-        - combine similar membership functions
-
-    Secondary Methods
-    =================
-    - initialize_model :
-        - initialize neuron weights if only 1 neuron
+        - build fuzzy network
+    - compile_model :
+        - compile fuzzy network
     - train_model :
-        - train on data
-    - model_predictions :
-        - yield model predictions without full evaluation
-    - evaluate_model :
-        - full evaluation of model on test data
-    - get_layer :
-        - return layer object from model by name
-    - get_layer_weights :
-        - get current weights from any layer in model
-    - get_layer_output :
-        - get test output from any layer in model
-    - min_dist_vector :
-        - get min_dist_vector used when adding neurons
+        - train fuzzy network on currently set training data
+    - recompile_model :
+        - recompile already existing model after modifications
+    - duplicate_model :
+        - create copy of model for safely modifying original model
+    - self_organize :
+        - main method for network to learn optimal network structure
+    - organize :
+        - one iteration of logic to test network structure
+    - widen_centers :
+        - widen centers of membership functions to better cluster the dataset
+    - add_neuron :
+        - add new neuron to network
     - new_neuron_weights :
-        - get weights for new neuron to be added
-    - loss_function :
-        - custom loss function per Leng, Prasad, McGinnity (2004)
+        - yield neuron weights to use when adding new neuron
+    - min_dist_vector :
+        - calculate minimum distance vector for calculating new neuron weights
+    - prune_neurons :
+        - remove unnecessary neurons from network architecture
+    - combine_membership_functions :
+        - combine similar membership functions to simplify network
     """
 
     def __init__(self,
