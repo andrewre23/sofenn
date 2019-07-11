@@ -257,15 +257,15 @@ class SelfOrganizer(object):
         self.network.train_model(**kwargs)
 
     # TODO: add function to recompile model using current settings
-    # def rebuild_model(self):
-    #     pass
+    # def recompile_model(self):
+    #     self.compile_model()
 
     # TODO: create method for building duplicate model
     # def duplicate_model(self):
     #     pass
 
     # TODO: validate logic and update references
-    def self_organize(self):
+    def self_organize(self, **kwargs):
         """
         Main run function to handle organization logic
 
@@ -274,18 +274,19 @@ class SelfOrganizer(object):
         - If still fails, reset to original widths
             then add neuron and retrain weights
         """
+
+        # create simple alias for self.network
+        fuzzy_net = self.network
+
         # initial training of model - yields predictions
         if self.__debug:
             print('Beginning model training...')
-        self._train_model()
+        self.train_model(**kwargs)
 
         # TODO: check if needed
         if self.__debug:
             print('Initial Model Evaluation')
-        y_pred = self._evaluate_model(eval_thresh=self._eval_thresh)
-
-        # create simple alias for self.network
-        fuzzy_net = self.network
+        y_pred = fuzzy_net.model_predictions()
 
         # run update logic until passes criterion checks
         while not fuzzy_net.error_criterion() and not fuzzy_net.if_part_criterion():
@@ -298,17 +299,17 @@ class SelfOrganizer(object):
                     print('\nMaximum neurons reached')
                     print('Terminating self-organizing process')
                     print('\nFinal Evaluation')
-                    self._evaluate_model(eval_thresh=self._eval_thresh)
+                    fuzzy_net.model_evaluation()
 
             # update predictions
-            y_pred = self._evaluate_model(eval_thresh=self._eval_thresh)
+            y_pred = fuzzy_net.model_predictions()
 
         # print terminal message if successfully organized
         if self.__debug:
             print('\nSelf-Organization complete!')
             print('If-Part and Error Criterion satisfied')
             print('\nFinal Evaluation')
-            self._evaluate_model(eval_thresh=self._eval_thresh)
+            fuzzy_net.model_evaluation()
 
     # TODO: validate logic and update references
     def organize(self):
@@ -419,7 +420,7 @@ class SelfOrganizer(object):
         # increase neurons and rebuild model
         # TODO: create method for building duplicate model
         fuzzy_net.neurons += 1
-        self.build_model()
+        #self.recompile_model()
 
         # update weights
         new_weights = [c_new, s_new]
@@ -429,10 +430,6 @@ class SelfOrganizer(object):
         final_weights = fuzzy_net.get_layer_weights('FuzzyRules')
         assert np.allclose(c_new, final_weights[0], 1e-3)
         assert np.allclose(s_new, final_weights[1], 1e-3)
-
-        # retrain model since new neuron added
-        # TODO: add retrain model vs train method
-        self.train_model()
 
     # TODO: validate logic and update references
     def new_neuron_weights(self, dist_thresh=1):
