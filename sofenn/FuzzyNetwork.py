@@ -67,7 +67,8 @@ class FuzzyNetwork(object):
         - percent of samples needed to meet ifpart criterion
     - err_delta : float
         - threshold for error criterion whether new neuron to be added
-    - debug : debug flag
+    - debug : boolean
+        - debug flag
 
     Methods
     =======
