@@ -105,7 +105,8 @@ class FuzzyNetwork(object):
     - initialize_widths :
         - initialize neuron weights based on parameter
     """
-    def __init__(self, X_train, X_test, y_train, y_test,     # data attributes
+    def __init__(self,
+                 X_train, X_test, y_train, y_test,           # data attributes
                  neurons=1, max_neurons=100,                 # neuron initialization parameters
                  ifpart_thresh=0.1354, ifpart_samples=0.95,  # ifpart threshold and percentage of samples needed
                  err_delta=0.12,                             # error criterion
