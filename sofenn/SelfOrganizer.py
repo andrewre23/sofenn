@@ -123,8 +123,8 @@ class SelfOrganizer(object):
     """
 
     def __init__(self,
-                 ksig=1.12, max_widens=250, err_delta=0.12,  # adding neuron or widening centers
-                 prune_tol=0.85, k_mae=0.1,                  # pruning parameters
+                 ksig=1.12, max_widens=250,            # adding neuron or widening centers
+                 prune_tol=0.8, k_mae=0.1,             # pruning parameters
                  debug=True):
 
         # set debug flag
@@ -134,10 +134,24 @@ class SelfOrganizer(object):
         self.network = None
         self.model = None
 
+        # value checks for input parameters
+
+        # center-widening factor
+        if ksig <= 1:
+            raise ValueError('Widening factor (ksig) must be larger than 1')
+        # max center widens
+        if max_widens < 0:
+            raise ValueError('Max center widens must be at least 0')
+        # prune tolerance
+        if not 0 < prune_tol < 1:
+            raise ValueError('Prune tolerance must be between 0 and 1')
+        # expected error
+        if k_mae <= 0:
+            raise ValueError('Expected RMSE must be greater than 0')
+
         # set self-organizing attributes
         self._ksig = ksig
         self._max_widens = max_widens
-        self._delta = err_delta
         self._prune_tol = prune_tol
         self._k_mae = k_mae
 
@@ -146,7 +160,8 @@ class SelfOrganizer(object):
         # if self.__neurons == 1:
         #     self.__initialize_model(s_init=s_init)
 
-    def build_network(self, X_train, X_test, y_train, y_test,     # data attributes
+    def build_network(self,
+                      X_train, X_test, y_train, y_test,           # data attributes
                       neurons=1, max_neurons=100,                 # neuron initialization parameters
                       ifpart_thresh=0.1354, ifpart_samples=0.75,  # ifpart threshold and percentage of samples needed
                       err_delta=0.12,                             # error criterion
@@ -618,6 +633,10 @@ class SelfOrganizer(object):
         fuzzy_net.neurons -= len(deleted)
         self.model = self.build_model(False)
         self.model.set_weights([c, s, a])
+
+    # TODO: add method combining membership functions
+    # def combine_membership_functions(self):
+    #     pass
 
     # TODO: add logic to demo notebook
     # def _plot_results(self, y_pred):
