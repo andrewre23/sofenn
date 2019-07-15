@@ -21,7 +21,7 @@ from keras.engine.topology import Layer
 
 class NormalizedLayer(Layer):
     """
-    Normalized Layer (3) of SOFNN
+    Normalized Layer (2) of SOFNN
     =============================
 
     - Normalization Layer
@@ -40,10 +40,14 @@ class NormalizedLayer(Layer):
     def __init__(self,
                  output_dim,
                  **kwargs):
+        # adjust argumnets
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
+        # default Name
+        if 'name' not in kwargs:
+            kwargs['name'] = 'Normalization'
         self.output_dim = output_dim
-        super().__init__(name='Normalization', **kwargs)
+        super().__init__(**kwargs)
 
     def build(self, input_shape):
         """
@@ -103,3 +107,12 @@ class NormalizedLayer(Layer):
             - shape: (samples, neurons)
         """
         return tuple(input_shape[:-1]) + (self.output_dim,)
+
+    def get_config(self):
+        """
+        Return config dictionary for custom layer
+
+        """
+        base_config = super(NormalizedLayer, self).get_config()
+        base_config['output_dim'] = self.output_dim
+        return base_config
