@@ -21,7 +21,7 @@ from keras.engine.topology import Layer
 
 class WeightedLayer(Layer):
     """
-    Weighted Layer (4) of SOFNN
+    Weighted Layer (3) of SOFNN
     ===========================
 
     - Weighting of ith MF of each feature
@@ -50,11 +50,15 @@ class WeightedLayer(Layer):
                  output_dim,
                  initializer_a=None,
                  **kwargs):
+        # adjust argumnets
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
+        # default Name
+        if 'name' not in kwargs:
+            kwargs['name'] = 'Weights'
         self.output_dim = output_dim
         self.initializer_a = initializer_a
-        super().__init__(name='Weights', **kwargs)
+        super().__init__(**kwargs)
 
     def build(self, input_shape):
         """
@@ -162,3 +166,12 @@ class WeightedLayer(Layer):
         x_shape, psi_shape = input_shape
 
         return tuple(x_shape[:-1]) + (self.output_dim,)
+
+    def get_config(self):
+        """
+        Return config dictionary for custom layer
+
+        """
+        base_config = super(WeightedLayer, self).get_config()
+        base_config['output_dim'] = self.output_dim
+        return base_config
