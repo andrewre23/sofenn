@@ -21,7 +21,7 @@ from keras.engine.topology import Layer
 
 class FuzzyLayer(Layer):
     """
-    Fuzzy Layer (2) of SOFNN
+    Fuzzy Layer (1) of SOFNN
     ========================
 
     - Radial (Ellipsoidal) Basis Function Layer
@@ -51,12 +51,16 @@ class FuzzyLayer(Layer):
                  initializer_centers=None,
                  initializer_sigmas=None,
                  **kwargs):
+        # adjust arguments
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
+        # default Name
+        if 'name' not in kwargs:
+            kwargs['name'] = 'FuzzyRules'
         self.output_dim = output_dim
         self.initializer_centers = initializer_centers
         self.initializer_sigmas = initializer_sigmas
-        super().__init__(name='FuzzyRules', **kwargs)
+        super().__init__(**kwargs)
 
     def build(self, input_shape):
         """
@@ -159,3 +163,14 @@ class FuzzyLayer(Layer):
             - shape: (samples, neurons)
         """
         return tuple(input_shape[:-1]) + (self.output_dim,)
+
+    def get_config(self):
+        """
+        Return config dictionary for custom layer
+
+        """
+        base_config = super(FuzzyLayer, self).get_config()
+        base_config['output_dim'] = self.output_dim
+        base_config['initializer_centers'] = self.initializer_centers
+        base_config['initializer_sigmas'] = self.initializer_sigmas
+        return base_config
