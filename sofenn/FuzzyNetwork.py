@@ -185,23 +185,23 @@ class FuzzyNetwork(object):
 
         Layers
         ======
-        1 - Input Layer
+        0 - Input Layer
                 input dataset
             - input shape  : (*, features)
-        2 - Radial Basis Function Layer (Fuzzy Layer)
+        1 - Radial Basis Function Layer (Fuzzy Layer)
                 layer to hold fuzzy rules for complex system
             - input : x
                 shape: (*, features)
             - output : phi
                 shape : (*, neurons)
-        3 - Normalized Layer
+        2 - Normalized Layer
                 normalize each output of previous layer as
                 relative amount from sum of all previous outputs
             - input : phi
                 shape  : (*, neurons)
             - output : psi
                 shape : (*, neurons)
-        4 - Weighted Layer
+        3 - Weighted Layer
                 multiply bias vector (1+n_features, neurons) by
                 parameter vector (1+n_features,) of parameters
                 from each fuzzy rule
@@ -211,10 +211,15 @@ class FuzzyNetwork(object):
                 shape  : [(*, 1+features), (*, neurons)]
             - output : f
                 shape : (*, neurons)
-        5 - Output Layer
+        4 - Output Layer
                 summation of incoming signals from weighted layer
             - input shape  : (*, neurons)
             - output shape : (*,)
+
+        5 - Softmax Layer (classification)
+            softmax layer for classification problems
+            - input shape : (*, 1)
+            - output shape : (*, classes)
         """
         if self._debug:
             print('Building Fuzzy Network with {} neurons...'
@@ -424,7 +429,7 @@ class FuzzyNetwork(object):
             raise ValueError('Percentage threshold must be between 0 and 1')
 
         # get max val
-        fuzz_out = self.get_layer_output('FuzzyRules')
+        fuzz_out = self.get_layer_output(1)
         # check if max neuron output is above threshold
         maxes = np.max(fuzz_out, axis=-1) >= self._ifpart_thresh
         # return True if at least half of samples agree
@@ -442,11 +447,11 @@ class FuzzyNetwork(object):
             - input can be layer name or index
         """
         # if named parameter
-        if layer in [mlayer.name for mlayer in self.model.layers[1:]]:
+        if layer in [mlayer.name for mlayer in self.model.layers]:
             layer_out = self.model.get_layer(layer)
 
         # if indexed parameter
-        elif layer in range(1, len(self.model.layers)):
+        elif layer in range(len(self.model.layers)):
             layer_out = self.model.layers[layer]
 
         else:
@@ -506,11 +511,11 @@ class FuzzyNetwork(object):
         c_init = x_i.T
 
         # set weights
-        c, s = self.get_layer_weights('FuzzyRules')
+        c, s = self.get_layer_weights(1)
         start_weights = [c_init, s]
-        self.get_layer('FuzzyRules').set_weights(start_weights)
+        self.get_layer(1).set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self.get_layer_weights('FuzzyRules')
+        final_weights = self.get_layer_weights(1)
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
@@ -524,15 +529,15 @@ class FuzzyNetwork(object):
             - initial sigma value for all neuron centers
         """
         # get current center and width weights
-        c, s = self.get_layer_weights('FuzzyRules')
+        c, s = self.get_layer_weights(1)
 
         # repeat s_0 value to array shaped like s
         s_init = np.repeat(s_0, s.size).reshape(s.shape)
 
         # set weights
         start_weights = [c, s_init]
-        self.get_layer('FuzzyRules').set_weights(start_weights)
+        self.get_layer(1).set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self.get_layer_weights('FuzzyRules')
+        final_weights = self.get_layer_weights(1)
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
