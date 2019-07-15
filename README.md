@@ -30,13 +30,13 @@ Credit: Leng, Prasad, McGinnity (2004)
 
 ## Layers
 
-### Inputs Layer (1)
+### Inputs Layer (0)
 **Input layer of network**
 
 - **input** : <a href="https://www.codecogs.com/eqnedit.php?latex=input" target="_blank"><img src="https://latex.codecogs.com/gif.latex?input" title="input" /></a>
     - shape  : (*, features)
 
-### Fuzzy Layer (2)
+### Fuzzy Layer (1)
 **Radial (Ellipsoidal) Basis Function Layer**
 - each neuron represents "if-part" or premise of a fuzzy rule
 - individual Membership Functions (MF) are applied to each feature for each neuron
@@ -67,7 +67,7 @@ Credit: Leng, Prasad, McGinnity (2004)
 
 Credit: Leng, Prasad, McGinnity (2004)
 
-### Normalized Layer (3)
+### Normalized Layer (2)
 **Normalization Layer**
 
 - output of each neuron is normalized by total output from previous layer
@@ -83,7 +83,7 @@ Credit: Leng, Prasad, McGinnity (2004)
 - **output** : <a href="https://www.codecogs.com/eqnedit.php?latex=\Psi" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Psi" title="\Psi" /></a>
     - shape : (*, neurons)
 
-### Weighted Layer (4)
+### Weighted Layer (3)
 **Weighting of ith MF of each feature**
 
 - yields the "consequence" of the jth fuzzy rule of fuzzy model
@@ -111,7 +111,7 @@ Credit: Leng, Prasad, McGinnity (2004)
     - shape : (*, neurons)
 
 
-###     Output Layer (5)
+### Output Layer (4)
 **Final Output**
 
 - Unweighted sum of each output of previous layer (<a href="https://www.codecogs.com/eqnedit.php?latex=f" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f" title="f" /></a>)
@@ -122,8 +122,19 @@ Credit: Leng, Prasad, McGinnity (2004)
             
     for u neurons
     
+- final layer for regression problems
+    
 - **input** : <a href="https://www.codecogs.com/eqnedit.php?latex=f" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f" title="f" /></a>
     - shape  : (*, neurons)
 - **output** : <a href="https://www.codecogs.com/eqnedit.php?latex=output" target="_blank"><img src="https://latex.codecogs.com/gif.latex?output" title="output" /></a>
-    - shape (regression) : (*,)
-    - shape (classification) : (*, classes)
+    - shape : (*,)
+
+### Softmax Layer (5)
+**Classification Output**
+
+- (Optional) Softmax layer for classification problems
+    
+- **input** : <a href="https://www.codecogs.com/eqnedit.php?latex=output" target="_blank"><img src="https://latex.codecogs.com/gif.latex?output" title="output" /></a>
+    - shape  : (*, )
+- **output** : <a href="https://www.codecogs.com/eqnedit.php?latex=softmax" target="_blank"><img src="https://latex.codecogs.com/gif.latex?softmax" title="softmax" /></a>
+    - shape : (*, classes)
