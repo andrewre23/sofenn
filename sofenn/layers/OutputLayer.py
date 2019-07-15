@@ -21,7 +21,7 @@ from keras.engine.topology import Layer
 
 class OutputLayer(Layer):
     """
-    Output Layer (5) of SOFNN
+    Output Layer (4) of SOFNN
     ==========================
 
     - Unweighted sum of each output of previous layer (f)
@@ -34,10 +34,14 @@ class OutputLayer(Layer):
 
     def __init__(self,
                  **kwargs):
+        # adjust argumnets
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
+        # default Name
+        if 'name' not in kwargs:
+            kwargs['name'] = 'RawOutput'
         self.output_dim = 1
-        super().__init__(name='RawOutput', **kwargs)
+        super().__init__(**kwargs)
 
     def build(self, input_shape):
         """
