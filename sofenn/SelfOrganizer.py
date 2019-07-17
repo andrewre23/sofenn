@@ -391,7 +391,6 @@ class SelfOrganizer(object):
         if self.__debug:
             print('Centers widened after {} iterations'.format(counter))
 
-    # TODO: validate logic and update references
     def add_neuron(self):
         """
         Add one additional neuron to the network
