@@ -16,10 +16,7 @@
 #
 
 import numpy as np
-# import pandas as pd
-# import matplotlib.pyplot as plt
 
-# from keras import backend as K
 from keras.models import clone_model, Model
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -614,86 +611,3 @@ class SelfOrganizer(object):
     # TODO: add method combining membership functions
     # def combine_membership_functions(self):
     #     pass
-
-    # TODO: add logic to demo notebook
-    # def _plot_results(self, y_pred):
-    #     """
-    #     Plot predictions against time series
-    #
-    #     Parameters
-    #     ==========
-    #     y_pred : np.array
-    #         - predicted values
-    #     """
-    #     # plotting results
-    #     df_plot = pd.DataFrame()
-    #
-    #     # create pred/true time series
-    #     df_plot['price'] = self._X_test['bitcoin_close']
-    #     df_plot['pred'] = y_pred * df_plot['price']
-    #     df_plot['true'] = self._y_test * df_plot['price']
-    #     df_plot['hits'] = df_plot['price'] * (df_plot['pred'] == df_plot['true'])
-    #     df_plot['miss'] = df_plot['price'] * (df_plot['pred'] != df_plot['true'])
-    #
-    #     fig, ax = plt.subplots(figsize=(12, 8))
-    #     plt.plot(df_plot['price'], color='b')
-    #     plt.bar(df_plot['price'].index, df_plot['hits'], color='g')
-    #     plt.bar(df_plot['price'].index, df_plot['miss'], color='r')
-    #     for label in ax.xaxis.get_ticklabels()[::400]:
-    #         label.set_visible(False)
-    #
-    #     plt.title('BTC Close Price Against Predictions')
-    #     plt.xlabel('Dates')
-    #     plt.ylabel('BTC Price ($)')
-    #     plt.grid(True)
-    #     plt.xticks(df_plot['price'].index[::4],
-    #                df_plot['price'].index[::4], rotation=70)
-    #     plt.show()
-
-    # TODO: add logic to demo notebook
-    # def _evaluate_model(self, eval_thresh=0.5):
-    #     """
-    #     Evaluate currently trained model
-    #
-    #     Parameters
-    #     ==========
-    #     eval_thresh : float
-    #         - cutoff threshold for positive/negative classes
-    #
-    #     Returns
-    #     =======
-    #     y_pred : np.array
-    #         - predicted values
-    #         - shape: (samples,)
-    #     """
-    #     # calculate accuracy scores
-    #     scores = self.model.evaluate(self._X_test, self._y_test, verbose=1)
-    #     raw_pred = self.model.predict(self._X_test)
-    #     y_pred = np.squeeze(np.where(raw_pred >= eval_thresh, 1, 0), axis=-1)
-    #
-    #     # get prediction scores and prediction
-    #     accuracy = scores[1]
-    #     auc = roc_auc_score(self._y_test, raw_pred)
-    #     mae = mean_absolute_error(self._y_test, y_pred)
-    #
-    #     # print accuracy and AUC score
-    #     print('\nAccuracy Measures')
-    #     print('=' * 21)
-    #     print("Accuracy:  {:.2f}%".format(100 * accuracy))
-    #     print("MAPE:      {:.2f}%".format(100 * mae))
-    #     print("AUC Score: {:.2f}%".format(100 * auc))
-    #
-    #     # print confusion matrix
-    #     print('\nConfusion Matrix')
-    #     print('=' * 21)
-    #     print(pd.DataFrame(confusion_matrix(self._y_test, y_pred),
-    #                        index=['true:no', 'true:yes'], columns=['pred:no', 'pred:yes']))
-    #
-    #     # print classification report
-    #     print('\nClassification Report')
-    #     print('=' * 21)
-    #     print(classification_report(self._y_test, y_pred, labels=[0, 1]))
-    #
-    #     self._plot_results(y_pred=y_pred)
-    #     # return predicted values
-    #     return y_pred
