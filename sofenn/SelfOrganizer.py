@@ -84,8 +84,8 @@ class SelfOrganizer(object):
     """
 
     def __init__(self,
-                 ksig=1.12, max_widens=250,            # adding neuron or widening centers
-                 prune_tol=0.8, k_mae=0.1,             # pruning parameters
+                 ksig=1.12, max_widens=250,  # adding neuron or widening centers
+                 prune_tol=0.8, k_rmse=0.1,  # pruning parameters
                  debug=True):
 
         # set debug flag
@@ -107,14 +107,14 @@ class SelfOrganizer(object):
         if not 0 < prune_tol < 1:
             raise ValueError('Prune tolerance must be between 0 and 1')
         # expected error
-        if k_mae <= 0:
+        if k_rmse <= 0:
             raise ValueError('Expected RMSE must be greater than 0')
 
         # set self-organizing attributes
         self._ksig = ksig
         self._max_widens = max_widens
         self._prune_tol = prune_tol
-        self._k_mae = k_mae
+        self._k_rmse = k_rmse
 
     # TODO: validate logic and update references
     def self_organize(self, **kwargs):
@@ -135,36 +135,34 @@ class SelfOrganizer(object):
             print('Beginning model training...')
         self.train_model(**kwargs)
 
-        # TODO: check if needed
-        if self.__debug:
-            print('Initial Model Evaluation')
-        y_pred = fuzzy_net.model_predictions()
+        # if self.__debug:
+        #     print('Initial Model Evaluation')
+        # y_pred = fuzzy_net.model_predictions()
 
         # run update logic until passes criterion checks
         while not fuzzy_net.error_criterion() and not fuzzy_net.if_part_criterion():
             # run criterion checks and organize accordingly
-            self.organize()
+            self.organize(**kwargs)
 
             # quit if above max neurons allowed
             if fuzzy_net.neurons >= fuzzy_net.max_neurons:
                 if self.__debug:
-                    print('\nMaximum neurons reached')
+                    print('Maximum neurons reached')
                     print('Terminating self-organizing process')
-                    print('\nFinal Evaluation')
-                    fuzzy_net.model_evaluation()
-
-            # update predictions
-            y_pred = fuzzy_net.model_predictions()
+            #         print('Final Evaluation')
+            #         fuzzy_net.model_evaluation()
+            #
+            # # update predictions
+            # y_pred = fuzzy_net.model_predictions()
 
         # print terminal message if successfully organized
         if self.__debug:
-            print('\nSelf-Organization complete!')
+            print('Self-Organization complete!')
             print('If-Part and Error Criterion satisfied')
-            print('\nFinal Evaluation')
-            fuzzy_net.model_evaluation()
+            # print('Final Evaluation')
+            # fuzzy_net.model_evaluation()
 
-    # TODO: validate logic and update references
-    def organize(self):
+    def organize(self, **kwargs):
         """
         Run one iteration of organizational logic
         - check on system error and if-part criteron
@@ -188,13 +186,15 @@ class SelfOrganizer(object):
             if not np.array_equal(start_weights, curr_weights):
                 fuzzy_net.get_layer(1).set_weights(start_weights)
 
-            # add neuron and retrain model
-            self.add_neuron()
-            self._train_model()
+            # add neuron and retrain model (if added)
+            added = self.add_neuron()
+            if added:
+                self.train_model(**kwargs)
 
-        # updated prediction and prune neurons
-        y_pred_new = self._model_predictions()
-        self.prune_neurons(y_pred=y_pred_new)
+        # prune neurons and retrain model (if pruned)
+        pruned = self.prune_neurons()
+        if pruned:
+            self.train_model(**kwargs)
 
     def build_network(self,
                       X_train, X_test, y_train, y_test,           # data attributes
@@ -334,6 +334,12 @@ class SelfOrganizer(object):
         new_model = Model.from_config(config, custom_objects=custom_objects)
         new_model.set_weights(new_weights)
 
+        # recompile model based on current model parameters
+        opt = self.model.optimizer
+        loss = self.model.loss
+        metrics = self.model.metrics
+        new_model.compile(optimizer=opt, loss=loss, metrics=metrics)
+
         # update neuron attribute
         self.network.neurons = new_neurons
         return new_model
@@ -345,7 +351,7 @@ class SelfOrganizer(object):
         """
         # print alert of successful widening
         if self.__debug:
-            print('\nWidening centers...')
+            print('Widening centers...')
 
         # create simple alias for self.network
         fuzzy_net = self.network
@@ -398,7 +404,7 @@ class SelfOrganizer(object):
             - new WeightedLayer weights are always a new column of 1
         """
         if self.__debug:
-            print('\nAdding neuron...')
+            print('Adding neuron...')
 
         # get current weights
         w = self.model.get_weights()
@@ -425,19 +431,15 @@ class SelfOrganizer(object):
 
         if self.__debug:
             print('Neuron successfully added! - {} current neurons...'.format(self.network.neurons))
+        return True
 
     # TODO: validate logic and update references
-    def prune_neurons(self, y_pred):
+    def prune_neurons(self):
         """
         Prune any unimportant neurons per effect on RMSE
-
-        Parameters
-        ==========
-        y_pred : np.array
-            - predicted values
         """
         if self.__debug:
-            print('\nPruning neurons...')
+            print('Pruning neurons...')
 
         # create simple alias for self.network
         fuzzy_net = self.network
@@ -448,8 +450,11 @@ class SelfOrganizer(object):
                 print('Skipping pruning steps - only 1 neuron exists')
             return
 
-        # calculate mean-absolute-error
-        E_rmae = mean_squared_error(fuzzy_net.y_test, y_pred)
+        # get current training predictions
+        preds = self.model.predict(fuzzy_net.X_train)
+
+        # calculate mean-absolute-error on training data
+        E_rmse = mean_squared_error(fuzzy_net.y_train, preds)
 
         # create duplicate model and get both sets of model weights
         prune_model = self.duplicate_model()
@@ -458,55 +463,53 @@ class SelfOrganizer(object):
         # for each neuron, zero it out in prune model
         # and get change in mae for dropping neuron
         delta_E = []
-        for neur in range(fuzzy_net.neurons):
+        for neuron in range(fuzzy_net.neurons):
             # reset prune model weights to actual weights
             prune_model.set_weights(act_weights)
 
             # get current prune weights
-            c, s, a = prune_model.get_weights()
-            # zero our i neuron column in weight vector
-            a[:, neur] = 0
-            prune_model.set_weights([c, s, a])
+            w = prune_model.get_weights()
+            # zero our i neuron column in weighted vector
+            a = w[2]
+            a[:, neuron] = 0
+            prune_model.set_weights(w)
 
             # predict values with new zeroed out weights
-            neur_pred = prune_model.predict(fuzzy_net.X_test)
-            y_pred_neur = np.squeeze(np.where(neur_pred >= self._eval_thresh, 1, 0), axis=-1)
-            neur_rmae = mean_absolute_error(fuzzy_net.y_test, y_pred_neur)
+            neur_pred = prune_model.predict(fuzzy_net.X_train)
+            neur_rmae = mean_absolute_error(fuzzy_net.y_train, neur_pred)
 
             # append difference in rmse and new prediction rmse
-            delta_E.append(neur_rmae - E_rmae)
+            delta_E.append(neur_rmae - E_rmse)
 
         # convert delta_E to numpy array
         delta_E = np.array(delta_E)
         # choose max of tolerance or threshold limit
-        E = max(self._prune_tol * E_rmae, self._k_mae)
+        E = max(self._prune_tol * E_rmse, self._k_rmse)
 
         # iterate over each neuron in ascending importance
         # and prune until hit "important" neuron
         deleted = []
         # for each neuron up to second most important
-        for neur in delta_E.argsort()[:-1]:
+        for neuron in delta_E.argsort()[:-1]:
             # reset prune model weights to actual weights
             prune_model.set_weights(act_weights)
 
             # get current prune weights
-            c, s, a = prune_model.get_weights()
+            w = prune_model.get_weights()
+            a = w[2]
             # zero out previous deleted neurons
             for delete in deleted:
                 a[:, delete] = 0
-            # zero our i neuron column in weight vector
-            a[:, neur] = 0
-            prune_model.set_weights([c, s, a])
+            prune_model.set_weights(w)
 
             # predict values with new zeroed out weights
-            neur_pred = prune_model.predict(fuzzy_net.X_test)
-            y_pred_neur = np.squeeze(np.where(neur_pred >= self._eval_thresh, 1, 0), axis=-1)
-            E_rmae_del = mean_absolute_error(fuzzy_net.y_test, y_pred_neur)
+            neur_pred = prune_model.predict(fuzzy_net.X_train)
+            E_rmae_del = mean_absolute_error(fuzzy_net.y_train, neur_pred)
 
             # if E_mae_del < E
             # delete neuron
             if E_rmae_del < E:
-                deleted.append(neur)
+                deleted.append(neuron)
                 continue
             # quit deleting if >= E
             else:
@@ -516,7 +519,7 @@ class SelfOrganizer(object):
         if not deleted:
             if self.__debug:
                 print('No neurons detected for pruning')
-            return
+            return False
         else:
             if self.__debug:
                 print('Neurons to be deleted: ')
@@ -524,17 +527,19 @@ class SelfOrganizer(object):
 
         # reset prune model weights to actual weights
         prune_model.set_weights(act_weights)
-        # get current prune weights
-        c, s, a = prune_model.get_weights()
-        # delete prescribed neurons
-        c = np.delete(c, deleted, axis=-1)
-        s = np.delete(s, deleted, axis=-1)
-        a = np.delete(a, deleted, axis=-1)
+        # get current prune weights and remove deleted neurons
+        w = prune_model.get_weights()
+        for i, weight in enumerate(w[:3]):
+            w[i] = np.delete(weight, deleted, axis=-1)
 
-        # update neuron count and create new model with updated weights
-        fuzzy_net.neurons -= len(deleted)
-        self.model = self.build_model(False)
-        self.model.set_weights([c, s, a])
+        # update model with updated weights
+        self.network.model = self.rebuild_model(new_weights=w, new_neurons=self.network.neurons - len(deleted))
+        self.model = self.network.model
+
+        if self.__debug:
+            print('{} neurons successfully pruned! - {} current neurons...'.
+                  format(len(deleted), self.network.neurons))
+        return True
 
     def new_neuron_weights(self, dist_thresh=1):
         """
