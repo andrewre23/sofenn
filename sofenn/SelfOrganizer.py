@@ -386,7 +386,10 @@ class SelfOrganizer(object):
 
         # print alert of successful widening
         if self.__debug:
-            print('Centers widened after {} iterations'.format(counter))
+            if counter == 0:
+                print('Centers not widened')
+            else:
+                print('Centers widened after {} iterations'.format(counter))
 
     def add_neuron(self):
         """
