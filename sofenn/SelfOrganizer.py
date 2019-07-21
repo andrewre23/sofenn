@@ -135,10 +135,6 @@ class SelfOrganizer(object):
             print('Beginning model training...')
         self.train_model(**kwargs)
 
-        # if self.__debug:
-        #     print('Initial Model Evaluation')
-        # y_pred = fuzzy_net.model_predictions()
-
         # set organization iterations counter
         org_ints = 1
 
@@ -159,18 +155,10 @@ class SelfOrganizer(object):
             # increase counter
             org_ints += 1
 
-            #         print('Final Evaluation')
-            #         fuzzy_net.model_evaluation()
-            #
-            # # update predictions
-            # y_pred = fuzzy_net.model_predictions()
-
         # print terminal message if successfully organized
         if self.__debug:
             print('Self-Organization complete!')
-            print('If-Part and Error Criterion satisfied')
-            # print('Final Evaluation')
-            # fuzzy_net.model_evaluation()
+            print('If-Part Criterion and Error Criterion both satisfied')
 
     def organize(self, **kwargs):
         """
@@ -205,6 +193,9 @@ class SelfOrganizer(object):
         pruned = self.prune_neurons(**kwargs)
         if pruned:
             self.train_model(**kwargs)
+
+        # check if needing to combine membership functions
+        self.combine_membership_functions(**kwargs)
 
     def build_network(self,
                       X_train, X_test, y_train, y_test,           # data attributes
@@ -627,5 +618,5 @@ class SelfOrganizer(object):
         return np.abs(aligned_x - aligned_c).mean(axis=0)
 
     # TODO: add method combining membership functions
-    # def combine_membership_functions(self):
-    #     pass
+    def combine_membership_functions(self, **kwargs):
+        pass
