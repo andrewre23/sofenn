@@ -116,7 +116,6 @@ class SelfOrganizer(object):
         self._prune_tol = prune_tol
         self._k_rmse = k_rmse
 
-    # TODO: validate logic and update references
     def self_organize(self, **kwargs):
         """
         Main run function to handle organization logic
@@ -345,7 +344,6 @@ class SelfOrganizer(object):
         self.network.neurons = new_neurons
         return new_model
 
-    # TODO: validate logic and update references
     def widen_centers(self):
         """
         Widen center of neurons to better cover data
