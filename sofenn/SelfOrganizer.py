@@ -619,4 +619,7 @@ class SelfOrganizer(object):
 
     # TODO: add method combining membership functions
     def combine_membership_functions(self, **kwargs):
+        """
+        Function to combine redundant membership functions to simplify training parameters
+        """
         pass
