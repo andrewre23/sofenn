@@ -359,7 +359,7 @@ class FuzzyNetwork(object):
         kwargs['verbose'] = kwargs.get('verbose', default_verbose)
 
         # set default training epochs
-        default_epochs = 250
+        default_epochs = 100
         kwargs['epochs'] = kwargs.get('epochs', default_epochs)
 
         # set default training epochs
