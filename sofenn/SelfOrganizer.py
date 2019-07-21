@@ -139,8 +139,14 @@ class SelfOrganizer(object):
         #     print('Initial Model Evaluation')
         # y_pred = fuzzy_net.model_predictions()
 
+        # set organization iterations counter
+        org_ints = 1
+
         # run update logic until passes criterion checks
         while not fuzzy_net.error_criterion() and not fuzzy_net.if_part_criterion():
+            if self.__debug:
+                print('Organization iteration {}...'.format(org_ints))
+
             # run criterion checks and organize accordingly
             self.organize(**kwargs)
 
@@ -149,6 +155,10 @@ class SelfOrganizer(object):
                 if self.__debug:
                     print('Maximum neurons reached')
                     print('Terminating self-organizing process')
+
+            # increase counter
+            org_ints += 1
+
             #         print('Final Evaluation')
             #         fuzzy_net.model_evaluation()
             #
@@ -187,12 +197,12 @@ class SelfOrganizer(object):
                 fuzzy_net.get_layer(1).set_weights(start_weights)
 
             # add neuron and retrain model (if added)
-            added = self.add_neuron()
+            added = self.add_neuron(**kwargs)
             if added:
                 self.train_model(**kwargs)
 
         # prune neurons and retrain model (if pruned)
-        pruned = self.prune_neurons()
+        pruned = self.prune_neurons(**kwargs)
         if pruned:
             self.train_model(**kwargs)
 
@@ -316,7 +326,7 @@ class SelfOrganizer(object):
         dupe_mod.set_weights(self.model.get_weights())
         return dupe_mod
 
-    def rebuild_model(self, new_weights, new_neurons):
+    def rebuild_model(self, new_weights, new_neurons, **kwargs):
         """
         Create updated FuzzyNetwork by adding or pruning neurons and updating to new weights
         """
@@ -335,10 +345,10 @@ class SelfOrganizer(object):
         new_model.set_weights(new_weights)
 
         # recompile model based on current model parameters
-        opt = self.model.optimizer
-        loss = self.model.loss
-        metrics = self.model.metrics
-        new_model.compile(optimizer=opt, loss=loss, metrics=metrics)
+        optimizer = kwargs.get('optimizer', self.model.optimizer)
+        loss = kwargs.get('loss', self.model.loss)
+        metrics = kwargs.get('metrics', self.model.metrics)
+        new_model.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
 
         # update neuron attribute
         self.network.neurons = new_neurons
@@ -397,7 +407,7 @@ class SelfOrganizer(object):
             else:
                 print('Centers widened after {} iterations'.format(counter))
 
-    def add_neuron(self):
+    def add_neuron(self, **kwargs):
         """
         Add one additional neuron to the network
             - new FuzzyLayer  weights will be added using minimum distance vector calculation
@@ -426,15 +436,14 @@ class SelfOrganizer(object):
         w[0], w[1], w[2] = c_new, s_new, a_new
 
         # update model and neurons
-        self.network.model = self.rebuild_model(new_weights=w, new_neurons=self.network.neurons + 1)
+        self.network.model = self.rebuild_model(new_weights=w, new_neurons=self.network.neurons + 1, **kwargs)
         self.model = self.network.model
 
         if self.__debug:
             print('Neuron successfully added! - {} current neurons...'.format(self.network.neurons))
         return True
 
-    # TODO: validate logic and update references
-    def prune_neurons(self):
+    def prune_neurons(self, **kwargs):
         """
         Prune any unimportant neurons per effect on RMSE
         """
@@ -533,7 +542,8 @@ class SelfOrganizer(object):
             w[i] = np.delete(weight, deleted, axis=-1)
 
         # update model with updated weights
-        self.network.model = self.rebuild_model(new_weights=w, new_neurons=self.network.neurons - len(deleted))
+        self.network.model = self.rebuild_model(new_weights=w, new_neurons=self.network.neurons - len(deleted),
+                                                **kwargs)
         self.model = self.network.model
 
         if self.__debug:
