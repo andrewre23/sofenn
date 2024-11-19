@@ -16,4 +16,4 @@
 #
 
 
-from .SelfOrganizer import SelfOrganizer
+from .SelfOrganizer import SelfOrganizingFuzzyNN

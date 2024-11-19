@@ -26,7 +26,7 @@ from .FuzzyNetwork import FuzzyNetwork
 from .layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
 
 
-class SelfOrganizer(object):
+class SelfOrganizingFuzzyNN(object):
     """
     Self-Organizing Fuzzy Neural Network
     ====================================
