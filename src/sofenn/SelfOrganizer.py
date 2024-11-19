@@ -1,29 +1,9 @@
-#
-# SOFENN
-# Self-Organizing Fuzzy Neural Network
-#
-# (sounds like soften)
-#
-#
-# Implemented per description in
-# An on-line algorithm for creating self-organizing
-# fuzzy neural networks
-# Leng, Prasad, McGinnity (2004)
-#
-#
-# Andrew Edmonds - 2019
-# github.com/andrewre23
-#
-
 import numpy as np
-
 from keras.models import clone_model, Model
-
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-# custom Fuzzy Layers
-from .FuzzyNetwork import FuzzyNetwork
-from .layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
+from sofenn.FuzzyNetwork import FuzzyNetwork
+from sofenn.layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
 
 
 class SelfOrganizingFuzzyNN(object):
