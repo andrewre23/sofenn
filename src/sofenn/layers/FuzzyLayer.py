@@ -1,3 +1,6 @@
+from typing import Callable, Optional
+
+import tensorflow as tf
 from keras import backend as K
 from keras.engine.topology import Layer
 
@@ -30,9 +33,9 @@ class FuzzyLayer(Layer):
     """
 
     def __init__(self,
-                 output_dim,
-                 initializer_centers=None,
-                 initializer_sigmas=None,
+                 output_dim: int,
+                 initializer_centers: Optional[Callable]=None,
+                 initializer_sigmas: Optional[Callable]=None,
                  **kwargs):
         # adjust arguments
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
@@ -45,7 +48,7 @@ class FuzzyLayer(Layer):
         self.initializer_sigmas = initializer_sigmas
         super().__init__(**kwargs)
 
-    def build(self, input_shape):
+    def build(self, input_shape: int) -> None:
         """
         Build objects for processing steps
 
@@ -81,7 +84,7 @@ class FuzzyLayer(Layer):
                                  trainable=True)
         super().build(input_shape)
 
-    def call(self, x, **kwargs):
+    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
         """
         Build processing logic for layer
 
@@ -129,7 +132,7 @@ class FuzzyLayer(Layer):
                            axis=-2, keepdims=False))
         return phi
 
-    def compute_output_shape(self, input_shape):
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
         Return output shape of input data
 
@@ -147,7 +150,7 @@ class FuzzyLayer(Layer):
         """
         return tuple(input_shape[:-1]) + (self.output_dim,)
 
-    def get_config(self):
+    def get_config(self) -> dict:
         """
         Return config dictionary for custom layer
 

@@ -1,3 +1,6 @@
+from typing import Callable, List, Optional
+
+import tensorflow as tf
 from keras import backend as K
 from keras.engine.topology import Layer
 
@@ -30,8 +33,8 @@ class WeightedLayer(Layer):
     """
 
     def __init__(self,
-                 output_dim,
-                 initializer_a=None,
+                 output_dim: int,
+                 initializer_a: Optional[Callable]=None,
                  **kwargs):
         # adjust argumnets
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
@@ -43,7 +46,7 @@ class WeightedLayer(Layer):
         self.initializer_a = initializer_a
         super().__init__(**kwargs)
 
-    def build(self, input_shape):
+    def build(self, input_shape: List[tuple]) -> None:
         """
         Build objects for processing steps
 
@@ -75,7 +78,7 @@ class WeightedLayer(Layer):
                                  trainable=True)
         super().build(input_shape)
 
-    def call(self, x, **kwargs):
+    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
         """
         Build processing logic for layer
 
@@ -126,7 +129,7 @@ class WeightedLayer(Layer):
 
         return psi * w2
 
-    def compute_output_shape(self, input_shape):
+    def compute_output_shape(self, input_shape: List[tuple]) -> tuple:
         """
         Return output shape of input data
 
@@ -150,7 +153,7 @@ class WeightedLayer(Layer):
 
         return tuple(x_shape[:-1]) + (self.output_dim,)
 
-    def get_config(self):
+    def get_config(self) -> dict:
         """
         Return config dictionary for custom layer
 
