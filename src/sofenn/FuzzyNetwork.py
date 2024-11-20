@@ -1,5 +1,8 @@
+from typing import Union
+
 import numpy as np
 from keras import backend as K
+from keras.engine.topology import Layer
 from keras.layers import Input, Dense
 from keras.models import Model
 from keras.utils import to_categorical
@@ -87,12 +90,18 @@ class FuzzyNetwork(object):
         - initialize neuron weights based on parameter
     """
     def __init__(self,
-                 X_train, X_test, y_train, y_test,           # data attributes
-                 neurons=1, max_neurons=100,                 # neuron initialization parameters
-                 ifpart_thresh=0.1354, ifpart_samples=0.95,  # ifpart threshold and percentage of samples needed
-                 err_delta=0.12,                             # error criterion
-                 prob_type='classification',                 # type of problem (classification/regression)
-                 debug=True, **kwargs):
+                 X_train: np.ndarray,
+                 X_test: np.ndarray,
+                 y_train: np.ndarray,
+                 y_test: np.ndarray,
+                 neurons: int = 1,
+                 max_neurons: int = 100,
+                 ifpart_thresh: float = 0.1354,         # if-part threshold
+                 ifpart_samples: float = 0.95,          # percent of samples needed above if-part threshold
+                 err_delta: float = 0.12,
+                 prob_type: str = 'classification',
+                 debug: bool = True,
+                 **kwargs):
 
         # set debug flag
         self._debug = debug
@@ -159,7 +168,7 @@ class FuzzyNetwork(object):
         self.model = None
         self.build_model(**kwargs)
 
-    def build_model(self, **kwargs):
+    def build_model(self, **kwargs) -> None:
         """
         Build and initialize Model if needed
 
@@ -248,7 +257,12 @@ class FuzzyNetwork(object):
         if self._debug:
             print('...Model successfully built!')
 
-    def compile_model(self, init_c=True, random=True, init_s=True, s_0=4.0, **kwargs):
+    def compile_model(self,
+                      init_c: bool = True,
+                      random: bool = True,
+                      init_s: bool = True,
+                      s_0: float = 4.0,
+                      **kwargs) -> None:
         """
         Create and compile model
         - sets compiled model as self.model
@@ -312,7 +326,7 @@ class FuzzyNetwork(object):
             print(self.model.summary())
 
     @staticmethod
-    def loss_function(y_true, y_pred):
+    def loss_function(y_true: np.ndarray, y_pred: np.ndarray) -> float:
         """
         Custom loss function
 
@@ -327,7 +341,7 @@ class FuzzyNetwork(object):
         """
         return K.sum(1 / 2 * K.square(y_pred - y_true))
 
-    def train_model(self, **kwargs):
+    def train_model(self, **kwargs) -> None:
         """
         Fit model on current training data
         """
@@ -349,10 +363,9 @@ class FuzzyNetwork(object):
         # fit model to dataset
         self.model.fit(self.X_train, self.y_train, **kwargs)
 
-    def model_predictions(self):
+    def model_predictions(self) -> np.ndarray:
         """
         Evaluate currently trained model and return predictions
-
 
         Returns
         =======
@@ -372,7 +385,7 @@ class FuzzyNetwork(object):
         # run model evaluation
         self.model.evaluate(self.X_test, self.y_test)
 
-    def error_criterion(self):
+    def error_criterion(self) -> bool:
         """
         Check error criterion for neuron-adding process
             - considers generalization performance of model
@@ -388,7 +401,7 @@ class FuzzyNetwork(object):
         y_pred = self.model_predictions()
         return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
 
-    def if_part_criterion(self):
+    def if_part_criterion(self) -> bool:
         """
         Check if-part criterion for neuron-adding process
             - considers whether current fuzzy rules suitably cover inputs
@@ -415,7 +428,7 @@ class FuzzyNetwork(object):
         # return True if at least half of samples agree
         return (maxes.sum() / len(maxes)) >= self._ifpart_samples
 
-    def get_layer(self, layer=None):
+    def get_layer(self, layer: Union[str, int]) -> Layer:
         """
         Get layer object based on input parameter
             - exception of Input layer
@@ -439,7 +452,7 @@ class FuzzyNetwork(object):
 
         return layer_out
 
-    def get_layer_weights(self, layer=None):
+    def get_layer_weights(self, layer: Union[str, int]) -> dict:
         """
         Get weights of layer based on input parameter
             - exception of Input layer
@@ -452,7 +465,7 @@ class FuzzyNetwork(object):
         """
         return self.get_layer(layer).get_weights()
 
-    def get_layer_output(self, layer=None):
+    def get_layer_output(self, layer: Union[str, int]) -> np.ndarray:
         """
         Get output of layer based on input parameter
             - exception of Input layer
@@ -469,7 +482,7 @@ class FuzzyNetwork(object):
                                    outputs=last_layer.output)
         return intermediate_model.predict(self.X_test)
 
-    def _initialize_centers(self, random=True):
+    def _initialize_centers(self, random: bool = True) -> None:
         """
         Initialize neuron center weights with samples
         from X_train dataset
@@ -499,7 +512,7 @@ class FuzzyNetwork(object):
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
-    def _initialize_widths(self, s_0=4.0):
+    def _initialize_widths(self, s_0: float = 4.0)  -> None:
         """
         Initialize neuron widths
 

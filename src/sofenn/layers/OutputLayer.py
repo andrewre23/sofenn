@@ -1,3 +1,4 @@
+import tensorflow as tf
 from keras import backend as K
 from keras.engine.topology import Layer
 
@@ -17,7 +18,7 @@ class OutputLayer(Layer):
 
     def __init__(self,
                  **kwargs):
-        # adjust argumnets
+        # adjust arguments
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
         # default Name
@@ -26,7 +27,7 @@ class OutputLayer(Layer):
         self.output_dim = 1
         super().__init__(**kwargs)
 
-    def build(self, input_shape):
+    def build(self, input_shape: tuple) -> None:
         """
         Build objects for processing steps
 
@@ -37,7 +38,7 @@ class OutputLayer(Layer):
         """
         super().build(input_shape)
 
-    def call(self, x, **kwargs):
+    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
         """
         Build processing logic for layer
 
@@ -59,7 +60,7 @@ class OutputLayer(Layer):
         sums = K.sum(x, axis=-1)
         return K.repeat_elements(K.expand_dims(sums, axis=-1), self.output_dim, -1)
 
-    def compute_output_shape(self, input_shape):
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
         Return output shape of input data
 

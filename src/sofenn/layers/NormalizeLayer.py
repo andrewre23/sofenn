@@ -1,3 +1,4 @@
+import tensorflow as tf
 from keras import backend as K
 from keras.engine.topology import Layer
 
@@ -21,7 +22,7 @@ class NormalizedLayer(Layer):
     """
 
     def __init__(self,
-                 output_dim,
+                 output_dim: int,
                  **kwargs):
         # adjust argumnets
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
@@ -32,7 +33,7 @@ class NormalizedLayer(Layer):
         self.output_dim = output_dim
         super().__init__(**kwargs)
 
-    def build(self, input_shape):
+    def build(self, input_shape: tuple) -> None:
         """
         Build objects for processing steps
 
@@ -45,7 +46,7 @@ class NormalizedLayer(Layer):
         """
         super().build(input_shape)
 
-    def call(self, x, **kwargs):
+    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
         """
         Build processing logic for layer
 
@@ -73,7 +74,7 @@ class NormalizedLayer(Layer):
 
         return x / sums
 
-    def compute_output_shape(self, input_shape):
+    def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
         Return output shape of input data
 
@@ -91,7 +92,7 @@ class NormalizedLayer(Layer):
         """
         return tuple(input_shape[:-1]) + (self.output_dim,)
 
-    def get_config(self):
+    def get_config(self) -> dict:
         """
         Return config dictionary for custom layer
 

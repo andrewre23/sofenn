@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 from keras.models import clone_model, Model
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -64,8 +66,10 @@ class SelfOrganizingFuzzyNN(object):
     """
 
     def __init__(self,
-                 ksig=1.12, max_widens=250,  # adding neuron or widening centers
-                 prune_tol=0.8, k_rmse=0.1,  # pruning parameters
+                 ksig: float = 1.12,
+                 max_widens: float = 250,   # adding neuron or widening centers
+                 prune_tol: float = 0.8,    # pruning parameters
+                 k_rmse:float = 0.1,
                  debug=True):
 
         # set debug flag
@@ -96,7 +100,7 @@ class SelfOrganizingFuzzyNN(object):
         self._prune_tol = prune_tol
         self._k_rmse = k_rmse
 
-    def self_organize(self, **kwargs):
+    def self_organize(self, **kwargs) -> None:
         """
         Main run function to handle organization logic
 
@@ -139,7 +143,7 @@ class SelfOrganizingFuzzyNN(object):
             print('Self-Organization complete!')
             print('If-Part Criterion and Error Criterion both satisfied')
 
-    def organize(self, **kwargs):
+    def organize(self, **kwargs) -> None:
         """
         Run one iteration of organizational logic
         - check on system error and if-part criteron
@@ -177,11 +181,16 @@ class SelfOrganizingFuzzyNN(object):
         self.combine_membership_functions(**kwargs)
 
     def build_network(self,
-                      X_train, X_test, y_train, y_test,           # data attributes
-                      neurons=1, max_neurons=100,                 # neuron initialization parameters
-                      ifpart_thresh=0.1354, ifpart_samples=0.75,  # ifpart threshold and percentage of samples needed
-                      err_delta=0.12,                             # error criterion
-                      prob_type='classification',                 # type of problem (classification/regression)
+                      X_train: np.ndarray,
+                      X_test: np.ndarray,
+                      y_train: np.ndarray,
+                      y_test: np.ndarray,
+                      neurons: int = 1,
+                      max_neurons: int = 100,
+                      ifpart_thresh: float = 0.1354,                # if-part threshold
+                      ifpart_samples: float = 0.75,                 # percent of samples needed above if-part threshold
+                      err_delta: float = 0.12,
+                      prob_type: str = 'classification',
                       **kwargs):
         """
         Create FuzzyNetwork object and set network and model attributes
@@ -217,7 +226,7 @@ class SelfOrganizingFuzzyNN(object):
         # shortcut reference to network model
         self.model = self.network.model
 
-    def build_model(self, **kwargs):
+    def build_model(self, **kwargs) -> None:
         """
         Build and initialize Model if needed
 
@@ -258,7 +267,12 @@ class SelfOrganizingFuzzyNN(object):
         # pass parameters to network method for building model
         self.network.build_model(**kwargs)
 
-    def compile_model(self, init_c=True, random=True, init_s=True, s_0=4.0, **kwargs):
+    def compile_model(self,
+                      init_c: bool = True,
+                      random: bool  = True,
+                      init_s: bool = True,
+                      s_0: float = 4.0,
+                      **kwargs) -> None:
         """
         Create and compile model
         - sets compiled model as self.model
@@ -279,7 +293,7 @@ class SelfOrganizingFuzzyNN(object):
         self.network.compile_model(init_c=init_c, random=random,
                                    init_s=init_s, s_0=s_0, **kwargs)
 
-    def train_model(self, **kwargs):
+    def train_model(self, **kwargs) -> None:
         """
         Fit model on current training data
         """
@@ -287,7 +301,7 @@ class SelfOrganizingFuzzyNN(object):
         # pass parameters to network method
         self.network.train_model(**kwargs)
 
-    def duplicate_model(self):
+    def duplicate_model(self) -> Model:
         """
         Create duplicate model as FuzzyNetwork with identical weights
         """
@@ -296,7 +310,10 @@ class SelfOrganizingFuzzyNN(object):
         dupe_mod.set_weights(self.model.get_weights())
         return dupe_mod
 
-    def rebuild_model(self, new_weights, new_neurons, **kwargs):
+    def rebuild_model(self,
+                      new_weights: np.ndarray,
+                      new_neurons: int,
+                      **kwargs) -> Model:
         """
         Create updated FuzzyNetwork by adding or pruning neurons and updating to new weights
         """
@@ -324,7 +341,7 @@ class SelfOrganizingFuzzyNN(object):
         self.network.neurons = new_neurons
         return new_model
 
-    def widen_centers(self):
+    def widen_centers(self) -> None:
         """
         Widen center of neurons to better cover data
         """
@@ -376,7 +393,7 @@ class SelfOrganizingFuzzyNN(object):
             else:
                 print('Centers widened after {} iterations'.format(counter))
 
-    def add_neuron(self, **kwargs):
+    def add_neuron(self, **kwargs) -> bool:
         """
         Add one additional neuron to the network
             - new FuzzyLayer  weights will be added using minimum distance vector calculation
@@ -412,7 +429,7 @@ class SelfOrganizingFuzzyNN(object):
             print('Neuron successfully added! - {} current neurons...'.format(self.network.neurons))
         return True
 
-    def prune_neurons(self, **kwargs):
+    def prune_neurons(self, **kwargs) -> bool:
         """
         Prune any unimportant neurons per effect on RMSE
         """
@@ -426,7 +443,7 @@ class SelfOrganizingFuzzyNN(object):
         if fuzzy_net.neurons == 1:
             if self.__debug:
                 print('Skipping pruning steps - only 1 neuron exists')
-            return
+            return False
 
         # get current training predictions
         preds = self.model.predict(fuzzy_net.X_train)
@@ -520,7 +537,7 @@ class SelfOrganizingFuzzyNN(object):
                   format(len(deleted), self.network.neurons))
         return True
 
-    def new_neuron_weights(self, dist_thresh=1):
+    def new_neuron_weights(self, dist_thresh: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
         """
         Return new c and s weights for k new fuzzy neuron
 
@@ -567,7 +584,7 @@ class SelfOrganizingFuzzyNN(object):
         sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
         return ck, sk
 
-    def min_dist_vector(self):
+    def min_dist_vector(self) -> np.ndarray:
         """
         Get minimum distance vector
 
@@ -596,7 +613,7 @@ class SelfOrganizingFuzzyNN(object):
         return np.abs(aligned_x - aligned_c).mean(axis=0)
 
     # TODO: add method combining membership functions
-    def combine_membership_functions(self, **kwargs):
+    def combine_membership_functions(self, **kwargs) -> None:
         """
         Function to combine redundant membership functions to simplify training parameters
         """
