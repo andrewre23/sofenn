@@ -2,10 +2,10 @@ from typing import Union
 
 import numpy as np
 from keras import backend as K
-from keras.engine.topology import Layer
-from keras.layers import Input, Dense
-from keras.models import Model
-from keras.utils import to_categorical
+from keras.api.layers import Layer
+from keras.api.layers import Input, Dense
+from keras.api.models import Model
+from keras.api.utils import to_categorical
 from sklearn.metrics import mean_absolute_error
 
 from sofenn.layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer

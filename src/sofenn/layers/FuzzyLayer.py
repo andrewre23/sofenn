@@ -2,7 +2,7 @@ from typing import Callable, Optional
 
 import tensorflow as tf
 from keras import backend as K
-from keras.engine.topology import Layer
+from keras.api.layers import Layer
 
 
 class FuzzyLayer(Layer):

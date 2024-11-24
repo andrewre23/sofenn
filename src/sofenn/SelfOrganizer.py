@@ -1,7 +1,7 @@
 from typing import Tuple
 
 import numpy as np
-from keras.models import clone_model, Model
+from keras.api.models import clone_model, Model
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
