@@ -5,7 +5,7 @@ from keras.api.models import clone_model, Model
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
-from sofenn.layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
+from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 
 
 class SelfOrganizingFuzzyNN(object):
@@ -241,7 +241,7 @@ class SelfOrganizingFuzzyNN(object):
                 shape: (*, features)
             - output : phi
                 shape : (*, neurons)
-        3 - Normalized Layer
+        3 - Normalize Layer
                 normalize each output of previous layer as
                 relative amount from sum of all previous outputs
             - input : phi
@@ -253,7 +253,7 @@ class SelfOrganizingFuzzyNN(object):
                 parameter vector (1+n_features,) of parameters
                 from each fuzzy rule
                 multiply each product by output of each rule's
-                layer from normalized layer
+                layer from normalize layer
             - inputs : [x, psi]
                 shape  : [(*, 1+features), (*, neurons)]
             - output : f
@@ -325,7 +325,7 @@ class SelfOrganizingFuzzyNN(object):
 
         # load new model from custom config data and load new weights
         custom_objects = {'FuzzyLayer': FuzzyLayer,
-                          'NormalizedLayer': NormalizedLayer,
+                          'NormalizeLayer': NormalizeLayer,
                           'WeightedLayer': WeightedLayer,
                           'OutputLayer': OutputLayer}
         new_model = Model.from_config(config, custom_objects=custom_objects)

@@ -67,12 +67,12 @@ Credit: Leng, Prasad, McGinnity (2004)
 
 Credit: Leng, Prasad, McGinnity (2004)
 
-### Normalized Layer (2)
+### Normalize Layer (2)
 **Normalization Layer**
 
 - output of each neuron is normalized by total output from previous layer
 - number of outputs equal to previous layer (# of neurons)
-- output for Normalized Layer is:
+- output for Normalize Layer is:
 
     <a href="https://www.codecogs.com/eqnedit.php?latex=\Psi_j&space;=&space;\frac{\Phi_j}{\sum_{k=1}^{u}&space;\Phi_k}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Psi_j&space;=&space;\frac{\Phi_j}{\sum_{k=1}^{u}&space;\Phi_k}" title="\Psi_j = \frac{\Phi_j}{\sum_{k=1}^{u} \Phi_k}" /></a>
 
@@ -100,7 +100,7 @@ Credit: Leng, Prasad, McGinnity (2004)
     <a href="https://www.codecogs.com/eqnedit.php?latex=w_2j&space;=&space;A_j&space;*&space;B&space;=&space;a_{j0}&space;&plus;&space;a_{j1x_1}&space;&plus;&space;a_{j2x_2}&space;&plus;&space;...&space;&plus;&space;a_{jr}x_r" target="_blank"><img src="https://latex.codecogs.com/gif.latex?w_2j&space;=&space;A_j&space;*&space;B&space;=&space;a_{j0}&space;&plus;&space;a_{j1x_1}&space;&plus;&space;a_{j2x_2}&space;&plus;&space;...&space;&plus;&space;a_{jr}x_r" title="w_2j = A_j * B = a_{j0} + a_{j1x_1} + a_{j2x_2} + ... + a_{jr}x_r" /></a>
 
     <a href="https://www.codecogs.com/eqnedit.php?latex=\Psi_j" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Psi_j" title="\Psi_j" /></a> = output of jth neuron from
-            normalized layer
+            normalize layer
 
 -output for weighted layer is:
     <a href="https://www.codecogs.com/eqnedit.php?latex=f_j&space;=&space;w_{2j}\Psi_j" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f_j&space;=&space;w_{2j}\Psi_j" title="f_j = w_{2j}\Psi_j" /></a>

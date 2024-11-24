@@ -1,18 +1,20 @@
+from typing import Optional
+
 import keras.api.ops as K
-import tensorflow as tf
+import keras.src.backend as k
 from keras.api.layers import Layer
 
 
-class NormalizedLayer(Layer):
+class NormalizeLayer(Layer):
     """
-    Normalized Layer (2) of SOFNN
+    Normalize Layer (2) of SOFNN
     =============================
 
     - Normalization Layer
 
     - output of each neuron is normalized by total output from previous layer
     - number of outputs equal to previous layer (# of neurons)
-    - output for Normalized Layer is:
+    - output for Normalize Layer is:
 
         psi(j) = phi(j) / sum[k=1, u; phi(k)]
                 for u neurons
@@ -21,19 +23,14 @@ class NormalizedLayer(Layer):
         psi(j) = output of Fuzzy Layer neuron j
     """
 
-    def __init__(self,
-                 output_dim: int,
-                 **kwargs):
-        # adjust argumnets
-        if 'input_shape' not in kwargs and 'input_dim' in kwargs:
-            kwargs['input_shape'] = (kwargs.pop('input_dim'),)
-        # default Name
-        if 'name' not in kwargs:
-            kwargs['name'] = 'Normalization'
-        self.output_dim = output_dim
-        super().__init__(**kwargs)
+    def __init__(self, shape: tuple, name: Optional[str] = "Normalize", **kwargs):
+        super().__init__(name=name, **kwargs)
+        shape = k.standardize_shape(shape)
+        self.shape = shape
+        self.output_dim = self.shape[-1]
+        self.built = True
 
-    def build(self, input_shape: tuple) -> None:
+    def build(self, input_shape: tuple, **kwargs) -> None:
         """
         Build objects for processing steps
 
@@ -42,17 +39,16 @@ class NormalizedLayer(Layer):
         input_shape : tuple
             - input shape of training data
             - last index will be taken for sizing variables
-
         """
-        super().build(input_shape)
+        super().build(input_shape=input_shape, **kwargs)
 
-    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, inputs: k.KerasTensor) -> k.KerasTensor:
         """
         Build processing logic for layer
 
         Parameters
         ==========
-        x : tensor
+        inputs : tensor
             - input tensor
             - tensor with phi output of each neuron
             - phi(j) for j neurons
@@ -66,17 +62,14 @@ class NormalizedLayer(Layer):
             - psi(j) for jth neuron
             - shape: (samples, neurons)
         """
-        sums = K.sum(x, axis=-1)
+        sums = K.sum(inputs, axis=-1)
         sums = K.repeat(K.expand_dims(sums, axis=-1), self.output_dim, -1)
 
-        # assert tensor shapes
-        assert(x.shape[-1] == sums.shape[-1])
-
-        return x / sums
+        return inputs / sums
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
-        Return output shape of input data
+        Return output shape of input data.
 
         Parameters
         ==========
@@ -90,13 +83,12 @@ class NormalizedLayer(Layer):
             - output shape of normalization layer
             - shape: (samples, neurons)
         """
-        return tuple(input_shape[:-1]) + (self.output_dim,)
+        return input_shape
 
     def get_config(self) -> dict:
         """
         Return config dictionary for custom layer
-
         """
-        base_config = super(NormalizedLayer, self).get_config()
-        base_config['output_dim'] = self.output_dim
+        base_config = super(NormalizeLayer, self).get_config()
+        base_config['shape'] = self.shape
         return base_config

@@ -1,5 +1,7 @@
+from typing import Optional
+
 import keras.api.ops as K
-import tensorflow as tf
+import keras.src.backend as k
 from keras.api.layers import Layer
 
 
@@ -16,35 +18,31 @@ class OutputLayer(Layer):
         - shape: (samples,)
     """
 
-    def __init__(self,
-                 **kwargs):
-        # adjust arguments
+    def __init__(self, name: Optional[str] = "Outputs", **kwargs):        # adjust arguments
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
-        # default Name
-        if 'name' not in kwargs:
-            kwargs['name'] = 'RawOutput'
+        super().__init__(name=name, **kwargs)
         self.output_dim = 1
-        super().__init__(**kwargs)
+        self.built = True
 
-    def build(self, input_shape: tuple) -> None:
+    def build(self, input_shape: tuple, **kwargs) -> None:
         """
-        Build objects for processing steps
+        Build objects for processing steps.
 
         Parameters
         ==========
         input_shape : tuple
             - f shape : (samples, neurons)
         """
-        super().build(input_shape)
+        super().build(input_shape=input_shape, **kwargs)
 
-    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, inputs: k.KerasTensor) -> k.KerasTensor:
         """
-        Build processing logic for layer
+        Build processing logic for layer.
 
         Parameters
         ==========
-        x : tensor
+        inputs : tensor
             - tensor with f as output of previous layer
             - f shape: (samples, neurons)
 
@@ -57,12 +55,12 @@ class OutputLayer(Layer):
             - shape: (samples,)
         """
         # get raw sum of all neurons for each sample
-        sums = K.sum(x, axis=-1)
+        sums = K.sum(inputs, axis=-1)
         return K.repeat(K.expand_dims(sums, axis=-1), self.output_dim, -1)
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
-        Return output shape of input data
+        Return output shape of input data.
 
         Parameters
         ==========
@@ -76,3 +74,10 @@ class OutputLayer(Layer):
             - shape: (samples,)
         """
         return tuple(input_shape[:-1]) + (self.output_dim,)
+
+    def get_config(self) -> dict:
+        """
+        Return config dictionary for custom layer.
+        """
+        base_config = super(OutputLayer, self).get_config()
+        return base_config

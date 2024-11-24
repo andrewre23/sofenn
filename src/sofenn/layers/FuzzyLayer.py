@@ -1,8 +1,10 @@
-from typing import Callable, Optional
+from typing import Optional
 
 import keras.api.ops as K
-import tensorflow as tf
+import keras.src.backend as k
 from keras.api.layers import Layer
+
+from sofenn.layers.utils import get_fuzzy_output_shape
 
 
 class FuzzyLayer(Layer):
@@ -31,26 +33,28 @@ class FuzzyLayer(Layer):
         phi(j) = exp{-sum[i=1,r;
                     [x(i) - c(i,j)]^2 / [2 * sigma(i,j)^2]]}
     """
-
     def __init__(self,
-                 output_dim: int,
-                 initializer_centers: Optional[Callable]=None,
-                 initializer_sigmas: Optional[Callable]=None,
+                 shape: tuple,
+                 neurons: Optional[int] = 1,
+                 initializer_centers: Optional[str] = 'uniform',
+                 initializer_sigmas: Optional[str] = 'ones',
+                 name: Optional[str] = "FuzzyRules",
                  **kwargs):
-        # adjust arguments
-        if 'input_shape' not in kwargs and 'input_dim' in kwargs:
-            kwargs['input_shape'] = (kwargs.pop('input_dim'),)
-        # default Name
-        if 'name' not in kwargs:
-            kwargs['name'] = 'FuzzyRules'
-        self.output_dim = output_dim
+        super().__init__(name=name, **kwargs)
+        if neurons <= 0:
+            raise ValueError("Neurons must be a positive integer.")
+        self.neurons = neurons
+        self.features = shape[-1]
+        self.shape = get_fuzzy_output_shape(shape, neurons)
         self.initializer_centers = initializer_centers
         self.initializer_sigmas = initializer_sigmas
-        super().__init__(**kwargs)
+        self.c = None
+        self.s = None
+        self.built = False
 
-    def build(self, input_shape: int) -> None:
+    def build(self, input_shape: tuple, **kwargs) -> None:
         """
-        Build objects for processing steps
+        Build objects for processing steps.
 
         Parameters
         ==========
@@ -71,26 +75,24 @@ class FuzzyLayer(Layer):
             - shape: (features, neurons)
         """
         self.c = self.add_weight(name='c',
-                                 shape=(input_shape[-1], self.output_dim),
-                                 initializer=
-                                 self.initializer_centers if self.initializer_centers is not None
-                                 else 'uniform',
-                                 trainable=True)
+                                 shape=(self.features, self.neurons),
+                                 initializer=self.initializer_centers,
+                                 trainable=True,
+                                 **kwargs)
         self.s = self.add_weight(name='s',
-                                 shape=(input_shape[-1], self.output_dim),
-                                 initializer=
-                                 self.initializer_sigmas if self.initializer_sigmas is not None
-                                 else 'ones',
-                                 trainable=True)
-        super().build(input_shape)
+                                 shape=(self.features, self.neurons),
+                                 initializer=self.initializer_sigmas,
+                                 trainable=True,
+                                 **kwargs)
+        super().build(input_shape, **kwargs)
 
-    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
         """
-        Build processing logic for layer
+        Build processing logic for layer.
 
         Parameters
         ==========
-        x : tensor
+        inputs : tensor
             - input tensor
             - shape: (samples,features)
 
@@ -118,23 +120,23 @@ class FuzzyLayer(Layer):
             - output of jth neuron in fuzzy layer
             - shape: (samples, neurons)
         """
-        # create variables for processing
-        aligned_x = K.repeat(K.expand_dims(x, axis=-1), self.output_dim, -1)
+        if not self.built:
+            self.build(input_shape=inputs.shape, **kwargs)
+
+        aligned_x = K.repeat(K.expand_dims(inputs, axis=-1), self.neurons, -1)
         aligned_c = self.c
         aligned_s = self.s
 
-        # validate shapes
-        assert (aligned_x.shape[-2:] == aligned_c.shape)
-        assert (aligned_x.shape[-2:] == aligned_s.shape)
-
         # calculate output of each neuron (fuzzy rule)
-        phi = K.exp(-K.sum(K.square(aligned_x - aligned_c) / (2 * K.square(aligned_s)),
+        x_minus_c_squared = K.square(aligned_x - aligned_c)
+        two_sigma = 2 * K.square(aligned_s)
+        phi = K.exp(-K.sum(K.true_divide(x_minus_c_squared, two_sigma),
                            axis=-2, keepdims=False))
         return phi
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
-        Return output shape of input data
+        Return output shape of input data.
 
         Parameters
         ==========
@@ -148,15 +150,15 @@ class FuzzyLayer(Layer):
             - output shape of fuzzy layer
             - shape: (samples, neurons)
         """
-        return tuple(input_shape[:-1]) + (self.output_dim,)
+        return tuple(input_shape[:-1]) + (self.neurons,)
 
     def get_config(self) -> dict:
         """
-        Return config dictionary for custom layer
-
+        Return config dictionary for custom layer.
         """
         base_config = super(FuzzyLayer, self).get_config()
-        base_config['output_dim'] = self.output_dim
+        base_config['neurons'] = self.neurons
+        base_config['shape'] = self.shape
         base_config['initializer_centers'] = self.initializer_centers
         base_config['initializer_sigmas'] = self.initializer_sigmas
         return base_config

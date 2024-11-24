@@ -1,8 +1,11 @@
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 import keras.api.ops as K
-import tensorflow as tf
+import keras.src.backend as k
+import numpy as np
 from keras.api.layers import Layer
+
+from sofenn.layers.utils import fixed_shape
 
 
 class WeightedLayer(Layer):
@@ -26,29 +29,28 @@ class WeightedLayer(Layer):
                  aj0 + aj1x1 + aj2x2 + ... ajrxr
 
         psi(j) = output of jth neuron from
-                normalized layer
+                normalize layer
 
     -output for weighted layer is:
         fj     = w2j psi(j)
     """
-
     def __init__(self,
-                 output_dim: int,
-                 initializer_a: Optional[Callable]=None,
+                 shape: List[tuple],
+                 initializer_a: Optional[str] = 'uniform',
+                 name: Optional[str] = 'Weights',
                  **kwargs):
-        # adjust arguments
-        if 'input_shape' not in kwargs and 'input_dim' in kwargs:
-            kwargs['input_shape'] = (kwargs.pop('input_dim'),)
-        # default Name
-        if 'name' not in kwargs:
-            kwargs['name'] = 'Weights'
-        self.output_dim = output_dim
+        super().__init__(name=name, **kwargs)
+        x_shape, psi_shape = shape
+        self.x_shape = k.standardize_shape(x_shape)
+        self.psi_shape = k.standardize_shape(psi_shape)
+        self.output_dim = psi_shape[-1]
         self.initializer_a = initializer_a
-        super().__init__(**kwargs)
+        self.a = None
+        self.built = False
 
-    def build(self, input_shape: List[tuple]) -> None:
+    def build(self, input_shape: List[tuple], **kwargs) -> None:
         """
-        Build objects for processing steps
+        Build objects for processing steps.
 
         Parameters
         ==========
@@ -60,31 +62,27 @@ class WeightedLayer(Layer):
         Attributes
         ==========
         a : then-part (consequence) of fuzzy rule
-            - a(i,j)
+            - a(j, i)
             - trainable weight of ith feature of jth neuron
-            - shape: (1+features, neurons)
+            - shape: (neurons, 1+features)
         """
-        # assert multi-input as list
-        assert isinstance(input_shape, list)
-        assert len(input_shape) == 2
-
-        # extract variables
         x_shape, psi_shape = input_shape
 
         self.a = self.add_weight(name='a',
-                                 shape=(1+x_shape[-1], self.output_dim),
+                                 shape=(self.output_dim, 1+x_shape[-1]),
                                  initializer=self.initializer_a if
                                  self.initializer_a is not None else 'uniform',
-                                 trainable=True)
-        super().build(input_shape)
+                                 trainable=True,
+                                 **kwargs)
+        super().build(input_shape, **kwargs)
 
-    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, inputs: List[k.KerasTensor], **kwargs) -> k.KerasTensor:
         """
-        Build processing logic for layer
+        Build processing logic for layer.
 
         Parameters
         ==========
-        x : list of tensors
+        inputs : list of tensors
             - list of tensor with input data and psi output of previous layer
             - [x, psi]
             - x shape: (samples, features)
@@ -99,39 +97,33 @@ class WeightedLayer(Layer):
         aligned_a : tensor
             - a(i,j)
             - weight parameter of ith feature of jth neuron
-            - shape: (1+features, neurons)
+            - shape: (neurons, 1+features)
 
         Returns
         =======
         f: tensor
             - psi(neurons,)
             - output of each neuron in fuzzy layer
-            - shape: (neurons,)
+            - shape: (samples, neurons)
         """
-        # assert multi-input as list and read in inputs
-        assert isinstance(x, list)
-        assert len(x) == 2
-        x, psi = x
+        if not self.built:
+            self.build(input_shape=[x_or_psi.shape for x_or_psi in inputs], **kwargs)
+
+        x, psi = inputs
 
         # align tensors by prepending bias value for input tensor in b
-        # b shape: (samples, 1)
-        b = K.ones((K.shape(x)[0], 1), dtype=x.dtype)
-        aligned_b = K.concatenate([b, x])
+        # b shape: (samples, 1+features)
+        b = K.mean(K.ones_like(x), -1, keepdims=True)
+        aligned_b = K.concatenate([b, x], axis=-1)
         aligned_a = self.a
 
-        # assert input and weight vectors are compatible
-        # w2 shape: (samples, neurons)
-        assert(aligned_b.shape[-1] == aligned_a.shape[0])
-        w2 = K.matmul(aligned_b, aligned_a)
+        w2 = K.dot(aligned_a, K.transpose(aligned_b))
 
-        # assert psi and resulting w2 vector are compatible
-        assert (psi.shape[-1] == w2.shape[-1])
-
-        return psi * w2
+        return K.multiply(psi, K.transpose(w2))
 
     def compute_output_shape(self, input_shape: List[tuple]) -> tuple:
         """
-        Return output shape of input data
+        Return output shape of input data.
 
         Parameters
         ==========
@@ -146,18 +138,15 @@ class WeightedLayer(Layer):
             - output shape of weighted layer
             - shape: (samples, neurons)
         """
-        # assert multi-input as list
-        assert isinstance(input_shape, list)
-        assert len(input_shape) == 2
         x_shape, psi_shape = input_shape
 
         return tuple(x_shape[:-1]) + (self.output_dim,)
 
     def get_config(self) -> dict:
         """
-        Return config dictionary for custom layer
-
+        Return config dictionary for custom layer.
         """
         base_config = super(WeightedLayer, self).get_config()
-        base_config['output_dim'] = self.output_dim
+        base_config['shape'] = [self.x_shape, self.psi_shape]
+        base_config['initializer_a'] = self.initializer_a
         return base_config

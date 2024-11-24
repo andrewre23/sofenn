@@ -8,7 +8,7 @@ from keras.api.models import Model
 from keras.api.utils import to_categorical
 from sklearn.metrics import mean_absolute_error
 
-from sofenn.layers import FuzzyLayer, NormalizedLayer, WeightedLayer, OutputLayer
+from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 
 
 class FuzzyNetwork(object):
@@ -183,7 +183,7 @@ class FuzzyNetwork(object):
                 shape: (*, features)
             - output : phi
                 shape : (*, neurons)
-        2 - Normalized Layer
+        2 - Normalize Layer
                 normalize each output of previous layer as
                 relative amount from sum of all previous outputs
             - input : phi
@@ -195,7 +195,7 @@ class FuzzyNetwork(object):
                 parameter vector (1+n_features,) of parameters
                 from each fuzzy rule
                 multiply each product by output of each rule's
-                layer from normalized layer
+                layer from normalize layer
             - inputs : [x, psi]
                 shape  : [(*, 1+features), (*, neurons)]
             - output : f
@@ -220,7 +220,7 @@ class FuzzyNetwork(object):
         # add layers
         inputs = Input(name='Inputs', shape=(feats,))
         fuzz = FuzzyLayer(self.neurons)
-        norm = NormalizedLayer(self.neurons)
+        norm = NormalizeLayer(self.neurons)
         weights = WeightedLayer(self.neurons)
         raw = OutputLayer()
 
