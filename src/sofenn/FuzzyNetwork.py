@@ -1,9 +1,9 @@
 from typing import Union
 
+import keras.api.ops as K
 import numpy as np
-from keras import backend as K
-from keras.api.layers import Layer
 from keras.api.layers import Input, Dense
+from keras.api.layers import Layer
 from keras.api.models import Model
 from keras.api.utils import to_categorical
 from sklearn.metrics import mean_absolute_error
@@ -232,9 +232,9 @@ class FuzzyNetwork(object):
         final_out = raw_output
         # add softmax layer for classification problem
         if self.prob_type is 'classification':
-            clasify = Dense(self.classes,
+            classify = Dense(self.classes,
                             name='Softmax', activation='softmax')
-            classes = clasify(raw_output)
+            classes = classify(raw_output)
             final_out = classes
 
         # TODO: determine logic for activation w/ regression

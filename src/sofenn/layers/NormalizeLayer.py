@@ -1,5 +1,5 @@
+import keras.api.ops as K
 import tensorflow as tf
-from keras import backend as K
 from keras.api.layers import Layer
 
 
@@ -67,7 +67,7 @@ class NormalizedLayer(Layer):
             - shape: (samples, neurons)
         """
         sums = K.sum(x, axis=-1)
-        sums = K.repeat_elements(K.expand_dims(sums, axis=-1), self.output_dim, -1)
+        sums = K.repeat(K.expand_dims(sums, axis=-1), self.output_dim, -1)
 
         # assert tensor shapes
         assert(x.shape[-1] == sums.shape[-1])

@@ -1,7 +1,7 @@
 from typing import Callable, List, Optional
 
+import keras.api.ops as K
 import tensorflow as tf
-from keras import backend as K
 from keras.api.layers import Layer
 
 
@@ -36,7 +36,7 @@ class WeightedLayer(Layer):
                  output_dim: int,
                  initializer_a: Optional[Callable]=None,
                  **kwargs):
-        # adjust argumnets
+        # adjust arguments
         if 'input_shape' not in kwargs and 'input_dim' in kwargs:
             kwargs['input_shape'] = (kwargs.pop('input_dim'),)
         # default Name
@@ -115,14 +115,14 @@ class WeightedLayer(Layer):
 
         # align tensors by prepending bias value for input tensor in b
         # b shape: (samples, 1)
-        b = K.ones((K.tf.shape(x)[0], 1), dtype=x.dtype)
+        b = K.ones((K.shape(x)[0], 1), dtype=x.dtype)
         aligned_b = K.concatenate([b, x])
         aligned_a = self.a
 
         # assert input and weight vectors are compatible
         # w2 shape: (samples, neurons)
         assert(aligned_b.shape[-1] == aligned_a.shape[0])
-        w2 = K.tf.matmul(aligned_b, aligned_a)
+        w2 = K.matmul(aligned_b, aligned_a)
 
         # assert psi and resulting w2 vector are compatible
         assert (psi.shape[-1] == w2.shape[-1])

@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 
+import keras.api.ops as K
 import tensorflow as tf
-from keras import backend as K
 from keras.api.layers import Layer
 
 
@@ -119,7 +119,7 @@ class FuzzyLayer(Layer):
             - shape: (samples, neurons)
         """
         # create variables for processing
-        aligned_x = K.repeat_elements(K.expand_dims(x, axis=-1), self.output_dim, -1)
+        aligned_x = K.repeat(K.expand_dims(x, axis=-1), self.output_dim, -1)
         aligned_c = self.c
         aligned_s = self.s
 

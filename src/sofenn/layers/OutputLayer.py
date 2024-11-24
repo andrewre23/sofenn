@@ -1,5 +1,5 @@
+import keras.api.ops as K
 import tensorflow as tf
-from keras import backend as K
 from keras.api.layers import Layer
 
 
@@ -58,7 +58,7 @@ class OutputLayer(Layer):
         """
         # get raw sum of all neurons for each sample
         sums = K.sum(x, axis=-1)
-        return K.repeat_elements(K.expand_dims(sums, axis=-1), self.output_dim, -1)
+        return K.repeat(K.expand_dims(sums, axis=-1), self.output_dim, -1)
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
