@@ -1,5 +1,5 @@
 keras==3.6.0
-tensorflow==2.18.0
+tensorflow==2.16.2
 
 # needed for metric imports
 scikit-learn==1.5.2
