@@ -170,7 +170,7 @@ class FuzzyNetwork(object):
 
     def build_model(self, **kwargs) -> None:
         """
-        Build and initialize Model if needed
+        Build and initialize Model.
 
         Layers
         ======
@@ -219,9 +219,9 @@ class FuzzyNetwork(object):
 
         # add layers
         inputs = Input(name='Inputs', shape=(feats,))
-        fuzz = FuzzyLayer(self.neurons)
-        norm = NormalizeLayer(self.neurons)
-        weights = WeightedLayer(self.neurons)
+        fuzz = FuzzyLayer(shape=self.X_train.shape, neurons=self.neurons)
+        norm = NormalizeLayer(shape=self.X_train.shape)
+        weights = WeightedLayer(shape=[self.X_train.shape, (feats, self.neurons)])
         raw = OutputLayer()
 
         # run through layers
@@ -231,7 +231,7 @@ class FuzzyNetwork(object):
         raw_output = raw(f)
         final_out = raw_output
         # add softmax layer for classification problem
-        if self.prob_type is 'classification':
+        if self.prob_type == 'classification':
             classify = Dense(self.classes,
                             name='Softmax', activation='softmax')
             classes = classify(raw_output)
@@ -264,7 +264,7 @@ class FuzzyNetwork(object):
                       s_0: float = 4.0,
                       **kwargs) -> None:
         """
-        Create and compile model
+        Create and compile model.
         - sets compiled model as self.model
 
         Parameters
@@ -343,7 +343,7 @@ class FuzzyNetwork(object):
 
     def train_model(self, **kwargs) -> None:
         """
-        Fit model on current training data
+        Fit model on current training data.
         """
         if self._debug:
             print('Training model...')
@@ -365,7 +365,7 @@ class FuzzyNetwork(object):
 
     def model_predictions(self) -> np.ndarray:
         """
-        Evaluate currently trained model and return predictions
+        Evaluate currently trained model and return predictions.
 
         Returns
         =======
@@ -379,15 +379,14 @@ class FuzzyNetwork(object):
 
     def model_evaluation(self):
         """
-        Evaluate current test dataset on model
+        Evaluate current test dataset on model.
         """
-
         # run model evaluation
         self.model.evaluate(self.X_test, self.y_test)
 
     def error_criterion(self) -> bool:
         """
-        Check error criterion for neuron-adding process
+        Check error criterion for neuron-adding process.
             - considers generalization performance of model
 
         Returns
@@ -403,7 +402,7 @@ class FuzzyNetwork(object):
 
     def if_part_criterion(self) -> bool:
         """
-        Check if-part criterion for neuron-adding process
+        Check if-part criterion for neuron-adding process.
             - considers whether current fuzzy rules suitably cover inputs
 
             - get max of all neuron outputs (pre-normalization)
@@ -430,7 +429,7 @@ class FuzzyNetwork(object):
 
     def get_layer(self, layer: Union[str, int]) -> Layer:
         """
-        Get layer object based on input parameter
+        Get layer object based on input parameter.
             - exception of Input layer
 
         Parameters
@@ -454,7 +453,7 @@ class FuzzyNetwork(object):
 
     def get_layer_weights(self, layer: Union[str, int]) -> dict:
         """
-        Get weights of layer based on input parameter
+        Get weights of layer based on input parameter.
             - exception of Input layer
 
         Parameters
@@ -467,7 +466,7 @@ class FuzzyNetwork(object):
 
     def get_layer_output(self, layer: Union[str, int]) -> np.ndarray:
         """
-        Get output of layer based on input parameter
+        Get output of layer based on input parameter.
             - exception of Input layer
 
         Parameters
@@ -484,8 +483,7 @@ class FuzzyNetwork(object):
 
     def _initialize_centers(self, random: bool = True) -> None:
         """
-        Initialize neuron center weights with samples
-        from X_train dataset
+        Initialize neuron center weights with samples from X_train dataset.
 
         Parameters
         ==========
@@ -514,7 +512,7 @@ class FuzzyNetwork(object):
 
     def _initialize_widths(self, s_0: float = 4.0)  -> None:
         """
-        Initialize neuron widths
+        Initialize neuron widths.
 
         Parameters
         ==========
