@@ -1,7 +1,8 @@
-from typing import Union
+from typing import Union, Optional
 
 import keras.api.ops as K
 import numpy as np
+import pandas
 from keras.api.layers import Input, Dense
 from keras.api.layers import Layer
 from keras.api.models import Model
@@ -136,6 +137,8 @@ class FuzzyNetworkModel(object):
         self.X_test = X_test
         self.y_train = y_train
         self.y_test = y_test
+
+        self.features = X_train.shape[-1]
 
         # set neuron attributes
         # initial number of neurons
@@ -299,7 +302,7 @@ class FuzzyNetworkModel(object):
 
         # initialize fuzzy rule centers
         if init_c:
-            self._initialize_centers(random=random)
+            self._initialize_centers(random=random, sample_data=self.X_train)
 
         # initialize fuzzy rule widths
         if init_s:
@@ -401,7 +404,10 @@ class FuzzyNetworkModel(object):
                                    outputs=last_layer.output)
         return intermediate_model.predict(self.X_test)
 
-    def _initialize_centers(self, random: bool = True) -> None:
+    def _initialize_centers(self,
+                            sample_data: np.ndarray,
+                            random: bool = True
+                            ) -> None:
         """
         Initialize neuron center weights with samples from X_train dataset.
 
@@ -413,20 +419,21 @@ class FuzzyNetworkModel(object):
         """
         if random:
             # set centers as random sampled index values
-            samples = np.random.randint(0, len(self.X_train), self.neurons)
-            x_i = np.array([self.X_train[samp] for samp in samples])
+            samples = np.random.randint(0, len(sample_data), self.neurons)
+            x_i = np.array([sample_data[samp] for samp in samples])
         else:
             # take first few samples, one for each neuron
-            x_i = self.X_train[:self.neurons]
+            x_i = sample_data[:self.neurons]
+
         # reshape from (neurons, features) to (features, neurons)
         c_init = x_i.T
 
         # set weights
-        c, s = self.get_layer_weights(1)
+        c, s = self.get_layer_weights('FuzzyRules')
         start_weights = [c_init, s]
-        self.get_layer(1).set_weights(start_weights)
+        self.get_layer('FuzzyRules').set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self.get_layer_weights(1)
+        final_weights = self.get_layer_weights('FuzzyRules')
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
@@ -440,15 +447,15 @@ class FuzzyNetworkModel(object):
             - initial sigma value for all neuron centers
         """
         # get current center and width weights
-        c, s = self.get_layer_weights(1)
+        c, s = self.get_layer_weights('FuzzyRules')
 
         # repeat s_0 value to array shaped like s
         s_init = np.repeat(s_0, s.size).reshape(s.shape)
 
         # set weights
         start_weights = [c, s_init]
-        self.get_layer(1).set_weights(start_weights)
+        self.get_layer('FuzzyRules').set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self.get_layer_weights(1)
+        final_weights = self.get_layer_weights('FuzzyRules')
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
