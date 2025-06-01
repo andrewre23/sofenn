@@ -11,7 +11,7 @@ from sklearn.metrics import mean_absolute_error
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 
 # TODO: remove X/y train/test as inputs and replace with both input_tensor and input_shape as optional inputs
-class FuzzyNetwork(object):
+class FuzzyNetworkModel(object):
     """
     Fuzzy Network
     =============
@@ -96,9 +96,6 @@ class FuzzyNetwork(object):
                  y_test: np.ndarray,
                  neurons: int = 1,
                  max_neurons: int = 100,
-                 ifpart_thresh: float = 0.1354,         # if-part threshold
-                 ifpart_samples: float = 0.95,          # percent of samples needed above if-part threshold
-                 err_delta: float = 0.12,
                  prob_type: str = 'classification',
                  debug: bool = True,
                  **kwargs):
@@ -150,19 +147,6 @@ class FuzzyNetwork(object):
         if type(max_neurons) is not int or max_neurons < neurons:
             raise ValueError("Must enter positive integer no less than number of neurons")
         self.max_neurons = max_neurons
-
-        # verify non-negative parameters
-        non_neg_params = {'ifpart_thresh': ifpart_thresh,
-                          'ifpart_samples': ifpart_samples,
-                          'err_delta': err_delta}
-        for param, val in non_neg_params.items():
-            if val < 0:
-                raise ValueError("Entered negative parameter: {}".format(param))
-
-        # set calculation attributes
-        self._ifpart_thresh = ifpart_thresh
-        self._ifpart_samples = ifpart_samples
-        self._err_delta = err_delta
 
         # define model and set model attribute
         self.model = None
@@ -362,70 +346,6 @@ class FuzzyNetwork(object):
 
         # fit model to dataset
         self.model.fit(self.X_train, self.y_train, **kwargs)
-
-    def model_predictions(self) -> np.ndarray:
-        """
-        Evaluate currently trained model and return predictions.
-
-        Returns
-        =======
-        preds : np.array
-            - predicted values
-            - shape: (samples,) or (samples, classes)
-        """
-        # get prediction values
-        preds = self.model.predict(self.X_test)
-        return preds
-
-    def model_evaluation(self):
-        """
-        Evaluate current test dataset on model.
-        """
-        # run model evaluation
-        self.model.evaluate(self.X_test, self.y_test)
-
-    def error_criterion(self) -> bool:
-        """
-        Check error criterion for neuron-adding process.
-            - considers generalization performance of model
-
-        Returns
-        =======
-        - True:
-            if criteron satisfied and no need to grow neuron
-        - False:
-            if criteron not met and need to add neuron
-        """
-        # mean of absolute test difference
-        y_pred = self.model_predictions()
-        return mean_absolute_error(self.y_test, y_pred) <= self._err_delta
-
-    def if_part_criterion(self) -> bool:
-        """
-        Check if-part criterion for neuron-adding process.
-            - considers whether current fuzzy rules suitably cover inputs
-
-            - get max of all neuron outputs (pre-normalization)
-            - test whether max val at or above threshold
-            - overall criterion met if criterion met for "ifpart_samples" % of samples
-
-        Returns
-        =======
-        - True:
-            if criteron satisfied and no need to widen centers
-        - False:
-            if criteron not met and need to widen neuron centers
-        """
-        # validate value of threshold parameter
-        if not 0 < self._ifpart_samples <= 1.0:
-            raise ValueError('Percentage threshold must be between 0 and 1')
-
-        # get max val
-        fuzz_out = self.get_layer_output(1)
-        # check if max neuron output is above threshold
-        maxes = np.max(fuzz_out, axis=-1) >= self._ifpart_thresh
-        # return True if at least half of samples agree
-        return (maxes.sum() / len(maxes)) >= self._ifpart_samples
 
     def get_layer(self, layer: Union[str, int]) -> Layer:
         """
