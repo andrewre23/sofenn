@@ -1,8 +1,8 @@
 from typing import Union, Optional
 
+import keras
 import keras.api.ops as K
 import numpy as np
-import pandas
 from keras.api.layers import Input, Dense
 from keras.api.layers import Layer
 from keras.api.models import Model
@@ -91,64 +91,47 @@ class FuzzyNetworkModel(object):
         - initialize neuron weights based on parameter
     """
     def __init__(self,
-                 X_train: np.ndarray,
-                 X_test: np.ndarray,
-                 y_train: np.ndarray,
-                 y_test: np.ndarray,
+                 input_tensor: Optional[keras.KerasTensor] = None,
+                 input_shape: Optional[tuple] = None,
                  neurons: int = 1,
                  max_neurons: int = 100,
                  prob_type: str = 'classification',
+                 target_classes: Optional[int] = 1,
                  debug: bool = True,
                  **kwargs):
 
         # set debug flag
         self._debug = debug
 
+        # validate input tensor / shape
+        if input_tensor is None and input_shape is None:
+            raise ValueError("Must provide at least one of 'input_tensor' or 'input_shape'.")
+        elif input_tensor and input_shape:
+            if input_tensor.shape != input_shape:
+                raise ValueError(f"Input tensor's shape must match 'input_shape' parameter if both provided. "
+                                 f"input tensor's shape: {input_tensor.shape}. "
+                                 f"'input_shape' parameter: {input_shape}.")
+        self.features = input_shape[-1]
+
         # set output problem type
         if prob_type.lower() not in ['classification', 'regression']:
-            raise ValueError("Invalid problem type")
+            raise ValueError("Invalid problem type.")
+        elif prob_type.lower() == 'classification' and target_classes is None:
+            raise ValueError("Must provide target_classes parameter if 'prob_type' is 'classification'.")
+        elif prob_type.lower() == 'classification' and target_classes < 2:
+            raise ValueError("Must specify more than 1 target class if 'prob_type' is 'classification'.")
         self.prob_type = prob_type
-
-        # set data attributes
-        # validate numpy arrays
-        for data in [X_train, X_test, y_train, y_test]:
-            if type(data) is not np.ndarray:
-                raise ValueError("Input data must be NumPy arrays")
-
-        # validate one-hot-encoded y values if classification
-        if self.prob_type == 'classification':
-            # convert to one-hot-encoding if y is one dimensional
-            if y_test.ndim == 1:
-                print('Converting y data to one-hot-encodings')
-
-                # get number of samples in training data
-                train_samples = y_train.shape[0]
-                # convert complete y vector at once then split again
-                y = np.concatenate([y_train, y_test])
-                y = to_categorical(y)
-                y_train = y[:train_samples]
-                y_test = y[train_samples:]
-
-            # set number of classes based on
-            self.classes = y_test.shape[1]
-
-        # set data attributes
-        self.X_train = X_train
-        self.X_test = X_test
-        self.y_train = y_train
-        self.y_test = y_test
-
-        self.features = X_train.shape[-1]
+        self.target_classes = target_classes
 
         # set neuron attributes
         # initial number of neurons
         if type(neurons) is not int or neurons <= 0:
-            raise ValueError("Must enter positive integer")
+            raise ValueError("Must enter positive integer.")
         self.neurons = neurons
 
         # max number of neurons
         if type(max_neurons) is not int or max_neurons < neurons:
-            raise ValueError("Must enter positive integer no less than number of neurons")
+            raise ValueError("Must enter positive integer no less than number of neuron.s")
         self.max_neurons = max_neurons
 
         # define model and set model attribute
@@ -201,14 +184,11 @@ class FuzzyNetworkModel(object):
             print('Building Fuzzy Network with {} neurons...'
                   .format(self.neurons))
 
-        # get shape of training data
-        features = self.X_train.shape[-1]
-
         # add layers
-        inputs = Input(name='Inputs', shape=(features,))
-        fuzz = FuzzyLayer(shape=(features,), neurons=self.neurons)
-        norm = NormalizeLayer(shape=(features, self.neurons))
-        weights = WeightedLayer(shape=[(features,), (self.neurons,)])
+        inputs = Input(name='Inputs', shape=(self.features,))
+        fuzz = FuzzyLayer(shape=(self.features,), neurons=self.neurons)
+        norm = NormalizeLayer(shape=(self.features, self.neurons))
+        weights = WeightedLayer(shape=[(self.features,), (self.neurons,)])
         raw = OutputLayer()
 
         # run through layers
@@ -219,7 +199,7 @@ class FuzzyNetworkModel(object):
         final_out = raw_output
         # add softmax layer for classification problem
         if self.prob_type == 'classification':
-            classify = Dense(self.classes,
+            classify = Dense(self.target_classes,
                             name='Softmax', activation='softmax')
             classes = classify(raw_output)
             final_out = classes
@@ -277,10 +257,11 @@ class FuzzyNetworkModel(object):
         if self.prob_type == 'classification':
             default_loss = self.loss_function
             default_optimizer = 'adam'
-            if self.y_test.ndim == 2:                       # binary classification
-                default_metrics = ['binary_accuracy']
-            else:                                           # multi-class classification
-                default_metrics = ['categorical_accuracy']
+            default_metrics = ['categorical_accuracy']
+            # if self.y_test.ndim == 2:                       # binary classification
+            #     default_metrics = ['binary_accuracy']
+            # else:                                           # multi-class classification
+            #     default_metrics = ['categorical_accuracy']
         else:
             default_loss = 'mean_squared_error'
             default_optimizer = 'rmsprop'
@@ -294,7 +275,7 @@ class FuzzyNetworkModel(object):
 
         # initialize fuzzy rule centers
         if init_c:
-            self._initialize_centers(sample_data=self.X_train, random_sample=random_sample)
+            self._initialize_centers(sample_data=sample_data, random_sample=random_sample)
 
         # initialize fuzzy rule widths
         if init_s:
@@ -320,7 +301,7 @@ class FuzzyNetworkModel(object):
         """
         return K.sum(1 / 2 * K.square(y_pred - y_true))
 
-    def train_model(self, **kwargs) -> None:
+    def train_model(self, x, y, **kwargs) -> None:
         """
         Fit model on current training data.
         """
@@ -340,7 +321,7 @@ class FuzzyNetworkModel(object):
         kwargs['batch_size'] = kwargs.get('batch_size', default_batch_size)
 
         # fit model to dataset
-        self.model.fit(self.X_train, self.y_train, **kwargs)
+        self.model.fit(x, y, **kwargs)
 
     def get_layer(self, layer: Union[str, int]) -> Layer:
         """
