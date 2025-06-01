@@ -246,7 +246,8 @@ class FuzzyNetworkModel(object):
 
     def compile_model(self,
                       init_c: bool = True,
-                      random: bool = True,
+                      sample_data: Optional[np.ndarray] = None,
+                      random_sample: bool = True,
                       init_s: bool = True,
                       s_0: float = 4.0,
                       **kwargs) -> None:
@@ -258,7 +259,9 @@ class FuzzyNetworkModel(object):
         ==========
         init_c : bool
             - run method to initialize centers or take default initializations
-        random : bool
+        sample_data : np.ndarray
+            - sample data to initialize centers
+        random_sample : bool
             - take either random samples or first samples that appear in training data
         init_s : bool
             - run method to initialize widths or take default initializations
@@ -268,33 +271,22 @@ class FuzzyNetworkModel(object):
         if self._debug:
             print('Compiling model...')
 
-        # default loss for classification
-        if self.prob_type is 'classification':
+        if init_c and sample_data is None:
+            raise ValueError('Must provide sample data when initializing centers.')
+
+        if self.prob_type == 'classification':
             default_loss = self.loss_function
-        # default loss for regression
+            default_optimizer = 'adam'
+            if self.y_test.ndim == 2:                       # binary classification
+                default_metrics = ['binary_accuracy']
+            else:                                           # multi-class classification
+                default_metrics = ['categorical_accuracy']
         else:
             default_loss = 'mean_squared_error'
-        kwargs['loss'] = kwargs.get('loss', default_loss)
-
-        # default optimizer for classification
-        if self.prob_type is 'classification':
-            default_optimizer = 'adam'
-        # default optimizer for regression
-        else:
             default_optimizer = 'rmsprop'
-        kwargs['optimizer'] = kwargs.get('optimizer', default_optimizer)
-
-        # default metrics for classification
-        if self.prob_type == 'classification':
-            # default for binary classification
-            if self.y_test.ndim == 2:
-                default_metrics = ['binary_accuracy']
-            # default for multi-class classification
-            else:
-                default_metrics = ['categorical_accuracy']
-        # default metrics for regression
-        else:
             default_metrics = ['accuracy']
+        kwargs['loss'] = kwargs.get('loss', default_loss)
+        kwargs['optimizer'] = kwargs.get('optimizer', default_optimizer)
         kwargs['metrics'] = kwargs.get('metrics', default_metrics)
 
         # compile model and show model summary
@@ -302,7 +294,7 @@ class FuzzyNetworkModel(object):
 
         # initialize fuzzy rule centers
         if init_c:
-            self._initialize_centers(random=random, sample_data=self.X_train)
+            self._initialize_centers(sample_data=self.X_train, random_sample=random_sample)
 
         # initialize fuzzy rule widths
         if init_s:
@@ -406,7 +398,7 @@ class FuzzyNetworkModel(object):
 
     def _initialize_centers(self,
                             sample_data: np.ndarray,
-                            random: bool = True
+                            random_sample: bool = True
                             ) -> None:
         """
         Initialize neuron center weights with samples from X_train dataset.
@@ -417,7 +409,7 @@ class FuzzyNetworkModel(object):
             - take random samples from training data or
             take first n instances (n=# of neurons)
         """
-        if random:
+        if random_sample:
             # set centers as random sampled index values
             samples = np.random.randint(0, len(sample_data), self.neurons)
             x_i = np.array([sample_data[samp] for samp in samples])
