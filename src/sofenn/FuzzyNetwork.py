@@ -10,7 +10,7 @@ from sklearn.metrics import mean_absolute_error
 
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 
-
+# TODO: remove X/y train/test as inputs and replace with both input_tensor and input_shape as optional inputs
 class FuzzyNetwork(object):
     """
     Fuzzy Network
@@ -215,13 +215,13 @@ class FuzzyNetwork(object):
                   .format(self.neurons))
 
         # get shape of training data
-        samples, feats = self.X_train.shape
+        features = self.X_train.shape[-1]
 
         # add layers
-        inputs = Input(name='Inputs', shape=(feats,))
-        fuzz = FuzzyLayer(shape=self.X_train.shape, neurons=self.neurons)
-        norm = NormalizeLayer(shape=self.X_train.shape)
-        weights = WeightedLayer(shape=[self.X_train.shape, (feats, self.neurons)])
+        inputs = Input(name='Inputs', shape=(features,))
+        fuzz = FuzzyLayer(shape=(features,), neurons=self.neurons)
+        norm = NormalizeLayer(shape=(features, self.neurons))
+        weights = WeightedLayer(shape=[(features,), (self.neurons,)])
         raw = OutputLayer()
 
         # run through layers
@@ -298,7 +298,7 @@ class FuzzyNetwork(object):
         kwargs['optimizer'] = kwargs.get('optimizer', default_optimizer)
 
         # default metrics for classification
-        if self.prob_type is 'classification':
+        if self.prob_type == 'classification':
             # default for binary classification
             if self.y_test.ndim == 2:
                 default_metrics = ['binary_accuracy']

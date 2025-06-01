@@ -11,7 +11,8 @@ OUTPUT_DIM = (1,)
 PARAM_COMBOS = [
             {"testcase_name": "1D", "shape": SHAPE_1D},
             {"testcase_name": "2D", "shape": SAMPLES + SHAPE_1D},
-        ]
+            {"testcase_name": "with_None", "shape": (None,) + SHAPE_1D},
+]
 
 
 class OutputLayerTest(testing.TestCase):
@@ -25,11 +26,13 @@ class OutputLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(PARAM_COMBOS)
     def test_output_basics(self, shape):
+        # if None in shape:
+        #     fixed_shape = shape[1:]
         self.run_layer_test(
             OutputLayer,
             init_kwargs={},
-            input_shape=shape,
-            expected_output_shape=shape[:-1] + OUTPUT_DIM,
+            input_shape=shape[1:] if None in shape else shape,
+            expected_output_shape=OUTPUT_DIM if None in shape else shape[:-1] + OUTPUT_DIM,
             expected_num_trainable_weights=0,
             expected_num_non_trainable_weights=0,
             supports_masking=False,
@@ -47,12 +50,16 @@ class OutputLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(PARAM_COMBOS)
     def test_call_method(self, shape):
-        input_tensor = k.convert_to_tensor(np.random.random(shape))
+        if None in shape:
+            fixed_shape = shape[1:]
+        else:
+            fixed_shape = shape
+        input_tensor = k.convert_to_tensor(np.random.random(fixed_shape))
         layer = OutputLayer()
         output = layer.call(inputs=input_tensor)
 
         self.assertIsNotNone(output)
-        self.assertEqual(output.shape, shape[:-1] + OUTPUT_DIM)
+        self.assertEqual(output.shape, fixed_shape[:-1] + OUTPUT_DIM)
 
     def test_get_config(self):
         config = OutputLayer().get_config()
