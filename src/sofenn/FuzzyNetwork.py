@@ -96,8 +96,9 @@ class FuzzyNetworkModel(Model):
         - initialize neuron weights based on parameter
     """
     def __init__(self,
-                 input_tensor: Optional[keras.KerasTensor] = None,
-                 input_shape: Optional[tuple] = None,
+#                 input_tensor: Optional[keras.KerasTensor] = None,
+#                 input_shape: Optional[tuple] = None,
+                 features: int,
                  neurons: int = 1,
                  max_neurons: int = 100,
                  prob_type: str = 'classification',
@@ -110,14 +111,16 @@ class FuzzyNetworkModel(Model):
         self._debug = debug
 
         # validate input tensor / shape
-        if input_tensor is None and input_shape is None:
-            raise ValueError("Must provide at least one of 'input_tensor' or 'input_shape'.")
-        elif input_tensor and input_shape:
-            if input_tensor.shape != input_shape:
-                raise ValueError(f"Input tensor's shape must match 'input_shape' parameter if both provided. "
-                                 f"input tensor's shape: {input_tensor.shape}. "
-                                 f"'input_shape' parameter: {input_shape}.")
-        self.features = input_shape[-1]
+        # if input_tensor is None and input_shape is None:
+        #     raise ValueError("Must provide at least one of 'input_tensor' or 'input_shape'.")
+        # elif input_tensor and input_shape:
+        #     if input_tensor.shape != input_shape:
+        #         raise ValueError(f"Input tensor's shape must match 'input_shape' parameter if both provided. "
+        #                          f"input tensor's shape: {input_tensor.shape}. "
+        #                          f"'input_shape' parameter: {input_shape}.")
+        if features <1:
+            raise ValueError('FuzzyNetwork requires at least 1 input feature.')
+        self.features = features
 
         # set output problem type
         if prob_type.lower() not in ['classification', 'regression']:
@@ -305,37 +308,31 @@ class FuzzyNetworkModel(Model):
     #     super().fit(*args, **kwargs)
 
 
-    # def fit(self,
-    #         x,
-    #         y,
-    #         init_c: bool = True,
-    #         random_sample: bool = True,
-    #         init_s: bool = True,
-    #         s_0: float = 4.0,
-    #         **kwargs):
-    #
-    #     # # initialize fuzzy rule centers
-    #     # if init_c:
-    #     #     self._initialize_centers(sample_data=x, random_sample=random_sample)
-    #     #
-    #     # # initialize fuzzy rule widths
-    #     # if init_s:
-    #     #     self._initialize_widths(s_0=s_0)
-    #
-    #     # set default verbose setting
-    #     default_verbose = 1
-    #     kwargs['verbose'] = kwargs.get('verbose', default_verbose)
-    #
-    #     # set default training epochs
-    #     default_epochs = 100
-    #     kwargs['epochs'] = kwargs.get('epochs', default_epochs)
-    #
-    #     # set default training epochs
-    #     default_batch_size = 32
-    #     kwargs['batch_size'] = kwargs.get('batch_size', default_batch_size)
-    #
-    #     # fit model to dataset
-    #     super().fit(x, y, **kwargs)
+    def fit(self, *args, **kwargs):
+        if not self.built:
+            print("FuzzyNetwork cannot be built until seeing training data.")
+
+        # set default verbose setting
+        default_verbose = 1
+        kwargs['verbose'] = kwargs.get('verbose', default_verbose)
+
+        # set default training epochs
+        default_epochs = 100
+        kwargs['epochs'] = kwargs.get('epochs', default_epochs)
+
+        # set default training epochs
+        default_batch_size = 32
+        kwargs['batch_size'] = kwargs.get('batch_size', default_batch_size)
+
+        # add callbacks
+        # if 'callbacks' in kwargs:
+        #     if any([isinstance(cb, InitializeFuzzyWeights) for cb in kwargs['callbacks']]):
+        #     kwargs['callbacks'].append(InitializeFuzzyWeights)
+        # else:
+        #     kwargs['callbacks'] = [InitializeFuzzyWeights]
+
+        # fit model to dataset
+        super().fit(*args, **kwargs)
 
 
     @staticmethod
@@ -374,7 +371,7 @@ class FuzzyNetworkModel(Model):
         kwargs['batch_size'] = kwargs.get('batch_size', default_batch_size)
 
         # fit model to dataset
-        self.model.fit(x, y, **kwargs)
+        self.fit(x, y, **kwargs)
 
     # def get_layer(self, layer: Union[str, int]) -> Layer:
     #     """
