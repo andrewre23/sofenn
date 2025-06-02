@@ -14,7 +14,7 @@ class InitializeFuzzyWeights(Callback):
         print(f"params attribute: {self.params}")
         print(f'Model Status: {self.model.built}')
         print(f'Fuzzy rules layer Status: {self.model.get_layer("FuzzyRules")}')
-        print(f'Fuzzy rules weights: {self.model.get_layer_weights("FuzzyRules")}')
+        print(f'Fuzzy rules weights: {self.model.get_layer("FuzzyRules").get_weights()}')
 
         if not self.model.get_layer("FuzzyRules").built:
             self.model.get_layer("FuzzyRules").build(input_shape=self.sample_data.shape)
@@ -27,7 +27,7 @@ class InitializeFuzzyWeights(Callback):
         print("...post training")  # TODO: update to logging
         print(f'Model Status: {self.model.built}')
         print(f'Fuzzy rules layer Status: {self.model.get_layer("FuzzyRules")}')
-        print(f'Fuzzy rules weights: {self.model.get_layer_weights("FuzzyRules")}')
+        print(f'Fuzzy rules weights: {self.model.get_layer("FuzzyRules").get_weights()}')
 
     def _initialize_centers(self,
                             sample_data: np.ndarray,
@@ -54,11 +54,11 @@ class InitializeFuzzyWeights(Callback):
         c_init = x_i.T
 
         # set weights
-        c, s = self.model.get_layer_weights('FuzzyRules')
+        c, s = self.model.get_layer("FuzzyRules").get_weights()
         start_weights = [c_init, s]
         self.model.get_layer('FuzzyRules').set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self.model.get_layer_weights('FuzzyRules')
+        final_weights = self.model.get_layer("FuzzyRules").get_weights()
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
@@ -72,7 +72,7 @@ class InitializeFuzzyWeights(Callback):
             - initial sigma value for all neuron centers
         """
         # get current center and width weights
-        c, s = self.model.get_layer_weights('FuzzyRules')
+        c, s = self.model.get_layer("FuzzyRules").get_weights()
 
         # repeat s_0 value to array shaped like s
         s_init = np.repeat(s_0, s.size).reshape(s.shape)
@@ -81,6 +81,6 @@ class InitializeFuzzyWeights(Callback):
         start_weights = [c, s_init]
         self.model.get_layer('FuzzyRules').set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self.model.get_layer_weights('FuzzyRules')
+        final_weights = self.model.get_layer("FuzzyRules").get_weights()
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
