@@ -9,10 +9,15 @@ from keras.api.models import Model
 from keras.api.utils import to_categorical
 from sklearn.metrics import mean_absolute_error
 
+from sofenn.callbacks import InitializeFuzzyWeights
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 
+
+# TODO: update to logging
+
+
 # TODO: remove X/y train/test as inputs and replace with both input_tensor and input_shape as optional inputs
-class FuzzyNetworkModel(object):
+class FuzzyNetworkModel(Model):
     """
     Fuzzy Network
     =============
@@ -97,6 +102,7 @@ class FuzzyNetworkModel(object):
                  max_neurons: int = 100,
                  prob_type: str = 'classification',
                  target_classes: Optional[int] = 1,
+                 name: str = 'FuzzyNetwork',
                  debug: bool = True,
                  **kwargs):
 
@@ -135,102 +141,118 @@ class FuzzyNetworkModel(object):
         self.max_neurons = max_neurons
 
         # define model and set model attribute
-        self.model = None
-        self.build_model(**kwargs)
+        if 'name' not in kwargs:
+            kwargs['name'] = name
+        self.inputs = Input(name='Inputs', shape=(self.features,))
+        self.fuzz = FuzzyLayer(shape=(self.features,), neurons=self.neurons)
+        self.norm = NormalizeLayer(shape=(self.features, self.neurons))
+        self.w = WeightedLayer(shape=[(self.features,), (self.neurons,)])
+        self.raw = OutputLayer()
+        self.softmax = Dense(self.target_classes, name='Softmax', activation='softmax')
 
-    def build_model(self, **kwargs) -> None:
-        """
-        Build and initialize Model.
+        super().__init__(**kwargs)
+        #super().build(input_shape=input_shape)
 
-        Layers
-        ======
-        0 - Input Layer
-                input dataset
-            - input shape  : (*, features)
-        1 - Radial Basis Function Layer (Fuzzy Layer)
-                layer to hold fuzzy rules for complex system
-            - input : x
-                shape: (*, features)
-            - output : phi
-                shape : (*, neurons)
-        2 - Normalize Layer
-                normalize each output of previous layer as
-                relative amount from sum of all previous outputs
-            - input : phi
-                shape  : (*, neurons)
-            - output : psi
-                shape : (*, neurons)
-        3 - Weighted Layer
-                multiply bias vector (1+n_features, neurons) by
-                parameter vector (1+n_features,) of parameters
-                from each fuzzy rule
-                multiply each product by output of each rule's
-                layer from normalize layer
-            - inputs : [x, psi]
-                shape  : [(*, 1+features), (*, neurons)]
-            - output : f
-                shape : (*, neurons)
-        4 - Output Layer
-                summation of incoming signals from weighted layer
-            - input shape  : (*, neurons)
-            - output shape : (*,)
-
-        5 - Softmax Layer (classification)
-            softmax layer for classification problems
-            - input shape : (*, 1)
-            - output shape : (*, classes)
-        """
-        if self._debug:
-            print('Building Fuzzy Network with {} neurons...'
-                  .format(self.neurons))
-
-        # add layers
-        inputs = Input(name='Inputs', shape=(self.features,))
-        fuzz = FuzzyLayer(shape=(self.features,), neurons=self.neurons)
-        norm = NormalizeLayer(shape=(self.features, self.neurons))
-        weights = WeightedLayer(shape=[(self.features,), (self.neurons,)])
-        raw = OutputLayer()
-
-        # run through layers
-        phi = fuzz(inputs)
-        psi = norm(phi)
-        f = weights([inputs, psi])
-        raw_output = raw(f)
+    def call(self, inputs):
+        phi = self.fuzz(inputs)
+        psi = self.norm(phi)
+        f = self.w([inputs, psi])
+        raw_output = self.raw(f)
         final_out = raw_output
+
         # add softmax layer for classification problem
         if self.prob_type == 'classification':
-            classify = Dense(self.target_classes,
-                            name='Softmax', activation='softmax')
-            classes = classify(raw_output)
+            classes = self.softmax(raw_output)
             final_out = classes
+        return final_out
 
-        # TODO: determine logic for activation w/ regression
-        # # extract activation from kwargs
-        # if 'activation' not in kwargs:
-        #     activation = 'sigmoid'
-        # else:
-        #     activation = kwargs['activation']
-        # preds = Activation(name='OutputActivation', activation=activation)(raw_output)
+    # def build_model(self, **kwargs) -> None:
+    #     """
+    #     Build and initialize Model.
+    #
+    #     Layers
+    #     ======
+    #     0 - Input Layer
+    #             input dataset
+    #         - input shape  : (*, features)
+    #     1 - Radial Basis Function Layer (Fuzzy Layer)
+    #             layer to hold fuzzy rules for complex system
+    #         - input : x
+    #             shape: (*, features)
+    #         - output : phi
+    #             shape : (*, neurons)
+    #     2 - Normalize Layer
+    #             normalize each output of previous layer as
+    #             relative amount from sum of all previous outputs
+    #         - input : phi
+    #             shape  : (*, neurons)
+    #         - output : psi
+    #             shape : (*, neurons)
+    #     3 - Weighted Layer
+    #             multiply bias vector (1+n_features, neurons) by
+    #             parameter vector (1+n_features,) of parameters
+    #             from each fuzzy rule
+    #             multiply each product by output of each rule's
+    #             layer from normalize layer
+    #         - inputs : [x, psi]
+    #             shape  : [(*, 1+features), (*, neurons)]
+    #         - output : f
+    #             shape : (*, neurons)
+    #     4 - Output Layer
+    #             summation of incoming signals from weighted layer
+    #         - input shape  : (*, neurons)
+    #         - output shape : (*,)
+    #
+    #     5 - Softmax Layer (classification)
+    #         softmax layer for classification problems
+    #         - input shape : (*, 1)
+    #         - output shape : (*, classes)
+    #     """
+    #     if self._debug:
+    #         print('Building Fuzzy Network with {} neurons...'
+    #               .format(self.neurons))
+    #
+    #     # add layers
+    #     inputs = Input(name='Inputs', shape=(self.features,))
+    #     fuzz = FuzzyLayer(shape=(self.features,), neurons=self.neurons)
+    #     norm = NormalizeLayer(shape=(self.features, self.neurons))
+    #     weights = WeightedLayer(shape=[(self.features,), (self.neurons,)])
+    #     raw = OutputLayer()
+    #
+    #     # run through layers
+    #     phi = fuzz(inputs)
+    #     psi = norm(phi)
+    #     f = weights([inputs, psi])
+    #     raw_output = raw(f)
+    #     final_out = raw_output
+    #     # add softmax layer for classification problem
+    #     if self.prob_type == 'classification':
+    #         classify = Dense(self.target_classes,
+    #                         name='Softmax', activation='softmax')
+    #         classes = classify(raw_output)
+    #         final_out = classes
+    #
+    #     # TODO: determine logic for activation w/ regression
+    #     # # extract activation from kwargs
+    #     # if 'activation' not in kwargs:
+    #     #     activation = 'sigmoid'
+    #     # else:
+    #     #     activation = kwargs['activation']
+    #     # preds = Activation(name='OutputActivation', activation=activation)(raw_output)
+    #
+    #     # remove name from kwargs
+    #     if 'name' in kwargs:
+    #         kwargs.pop('name')
+    #
+    #     # define model and set as model attribute
+    #     model = Model(inputs=inputs, outputs=final_out,
+    #                   name='FuzzyNetwork', **kwargs)
+    #     self.model = model
+    #
+    #     if self._debug:
+    #         print('...Model successfully built!')
 
-        # remove name from kwargs
-        if 'name' in kwargs:
-            kwargs.pop('name')
-
-        # define model and set as model attribute
-        model = Model(inputs=inputs, outputs=final_out,
-                      name='FuzzyNetwork', **kwargs)
-        self.model = model
-
-        if self._debug:
-            print('...Model successfully built!')
-
-    def compile_model(self,
-                      init_c: bool = True,
-                      sample_data: Optional[np.ndarray] = None,
-                      random_sample: bool = True,
-                      init_s: bool = True,
-                      s_0: float = 4.0,
-                      **kwargs) -> None:
+    def compile(self, **kwargs) -> None:
         """
         Create and compile model.
         - sets compiled model as self.model
@@ -251,9 +273,6 @@ class FuzzyNetworkModel(object):
         if self._debug:
             print('Compiling model...')
 
-        if init_c and sample_data is None:
-            raise ValueError('Must provide sample data when initializing centers.')
-
         if self.prob_type == 'classification':
             default_loss = self.loss_function
             default_optimizer = 'adam'
@@ -271,19 +290,53 @@ class FuzzyNetworkModel(object):
         kwargs['metrics'] = kwargs.get('metrics', default_metrics)
 
         # compile model and show model summary
-        self.model.compile(**kwargs)
-
-        # initialize fuzzy rule centers
-        if init_c:
-            self._initialize_centers(sample_data=sample_data, random_sample=random_sample)
-
-        # initialize fuzzy rule widths
-        if init_s:
-            self._initialize_widths(s_0=s_0)
+        super().compile(**kwargs)
 
         # print model summary
         if self._debug:
-            print(self.model.summary())
+            print(self.summary())
+
+    # def fit(self, *args, **kwargs):
+    #     # add callbacks
+    #     if 'callbacks' in kwargs:
+    #         kwargs['callbacks'].append(InitializeFuzzyWeights)
+    #     else:
+    #         kwargs['callbacks'] = [InitializeFuzzyWeights]
+    #     super().fit(*args, **kwargs)
+
+
+    # def fit(self,
+    #         x,
+    #         y,
+    #         init_c: bool = True,
+    #         random_sample: bool = True,
+    #         init_s: bool = True,
+    #         s_0: float = 4.0,
+    #         **kwargs):
+    #
+    #     # # initialize fuzzy rule centers
+    #     # if init_c:
+    #     #     self._initialize_centers(sample_data=x, random_sample=random_sample)
+    #     #
+    #     # # initialize fuzzy rule widths
+    #     # if init_s:
+    #     #     self._initialize_widths(s_0=s_0)
+    #
+    #     # set default verbose setting
+    #     default_verbose = 1
+    #     kwargs['verbose'] = kwargs.get('verbose', default_verbose)
+    #
+    #     # set default training epochs
+    #     default_epochs = 100
+    #     kwargs['epochs'] = kwargs.get('epochs', default_epochs)
+    #
+    #     # set default training epochs
+    #     default_batch_size = 32
+    #     kwargs['batch_size'] = kwargs.get('batch_size', default_batch_size)
+    #
+    #     # fit model to dataset
+    #     super().fit(x, y, **kwargs)
+
 
     @staticmethod
     def loss_function(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -323,29 +376,29 @@ class FuzzyNetworkModel(object):
         # fit model to dataset
         self.model.fit(x, y, **kwargs)
 
-    def get_layer(self, layer: Union[str, int]) -> Layer:
-        """
-        Get layer object based on input parameter.
-            - exception of Input layer
-
-        Parameters
-        ==========
-        layer : str or int
-            - layer to get weights from
-            - input can be layer name or index
-        """
-        # if named parameter
-        if layer in [mlayer.name for mlayer in self.model.layers]:
-            layer_out = self.model.get_layer(layer)
-
-        # if indexed parameter
-        elif layer in range(len(self.model.layers)):
-            layer_out = self.model.layers[layer]
-
-        else:
-            raise ValueError('Error: layer must be layer name or index')
-
-        return layer_out
+    # def get_layer(self, layer: Union[str, int]) -> Layer:
+    #     """
+    #     Get layer object based on input parameter.
+    #         - exception of Input layer
+    #
+    #     Parameters
+    #     ==========
+    #     layer : str or int
+    #         - layer to get weights from
+    #         - input can be layer name or index
+    #     """
+    #     # if named parameter
+    #     if layer in [mlayer.name for mlayer in self.model.layers]:
+    #         layer_out = self.model.get_layer(layer)
+    #
+    #     # if indexed parameter
+    #     elif layer in range(len(self.model.layers)):
+    #         layer_out = self.model.layers[layer]
+    #
+    #     else:
+    #         raise ValueError('Error: layer must be layer name or index')
+    #
+    #     return layer_out
 
     def get_layer_weights(self, layer: Union[str, int]) -> dict:
         """
@@ -377,58 +430,3 @@ class FuzzyNetworkModel(object):
                                    outputs=last_layer.output)
         return intermediate_model.predict(self.X_test)
 
-    def _initialize_centers(self,
-                            sample_data: np.ndarray,
-                            random_sample: bool = True
-                            ) -> None:
-        """
-        Initialize neuron center weights with samples from X_train dataset.
-
-        Parameters
-        ==========
-        random: bool
-            - take random samples from training data or
-            take first n instances (n=# of neurons)
-        """
-        if random_sample:
-            # set centers as random sampled index values
-            samples = np.random.randint(0, len(sample_data), self.neurons)
-            x_i = np.array([sample_data[samp] for samp in samples])
-        else:
-            # take first few samples, one for each neuron
-            x_i = sample_data[:self.neurons]
-
-        # reshape from (neurons, features) to (features, neurons)
-        c_init = x_i.T
-
-        # set weights
-        c, s = self.get_layer_weights('FuzzyRules')
-        start_weights = [c_init, s]
-        self.get_layer('FuzzyRules').set_weights(start_weights)
-        # validate weights updated as expected
-        final_weights = self.get_layer_weights('FuzzyRules')
-        assert np.allclose(start_weights[0], final_weights[0])
-        assert np.allclose(start_weights[1], final_weights[1])
-
-    def _initialize_widths(self, s_0: float = 4.0)  -> None:
-        """
-        Initialize neuron widths.
-
-        Parameters
-        ==========
-        s_0 : float
-            - initial sigma value for all neuron centers
-        """
-        # get current center and width weights
-        c, s = self.get_layer_weights('FuzzyRules')
-
-        # repeat s_0 value to array shaped like s
-        s_init = np.repeat(s_0, s.size).reshape(s.shape)
-
-        # set weights
-        start_weights = [c, s_init]
-        self.get_layer('FuzzyRules').set_weights(start_weights)
-        # validate weights updated as expected
-        final_weights = self.get_layer_weights('FuzzyRules')
-        assert np.allclose(start_weights[0], final_weights[0])
-        assert np.allclose(start_weights[1], final_weights[1])
