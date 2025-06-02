@@ -5,7 +5,7 @@ from keras.api.models import Model
 
 from sofenn.callbacks import InitializeFuzzyWeights
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
-from sofenn.losses import custom_loss_function
+from sofenn.losses import CustomLoss
 
 
 # TODO: update to logging
@@ -137,7 +137,7 @@ class FuzzyNetwork(Model):
 
     def compile(self, **kwargs) -> None:
         if self.problem_type == 'classification':
-            default_loss = custom_loss_function
+            default_loss = CustomLoss
             default_optimizer = 'adam'
             default_metrics = ['categorical_accuracy']
             # if self.y_test.ndim == 2:                       # binary classification

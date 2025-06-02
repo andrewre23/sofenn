@@ -1,1 +1,1 @@
-from .custom import custom_loss_function
+from .CustomLoss import CustomLoss
