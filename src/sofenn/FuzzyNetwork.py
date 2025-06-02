@@ -23,6 +23,7 @@ class FuzzyNetwork(Model):
 
     Parameters
     ==========
+    :param input_shape: Shape of input tensor.
     :param features: Number of features for input data.
     :param neurons: Number of neurons to use. Each one represents fuzzy neuron (if/then) operator.
     :param problem_type: Either 'classification' or 'regression' problem.
@@ -30,17 +31,27 @@ class FuzzyNetwork(Model):
     :param name: Name of network (default: FuzzyNetwork).
     """
     def __init__(self,
-                 features: int,
+                 input_shape: Optional[tuple] = None,
+                 features: Optional[int] = None,
                  neurons: int = 1,
                  problem_type: str = 'classification',
                  target_classes: Optional[int] = 1,
                  name: str = 'FuzzyNetwork',
                  **kwargs):
-        if features < 1:
+        if features is not None and features < 1:
             raise ValueError('At least 1 input feature required.')
-        self.features = features
+        if features is not None and input_shape is not None:
+            if input_shape not in [(features,), (None, features)]:
+                raise ValueError('Input shape must match feature shape if providing both.')
+            self.features = features
+        elif features is not None and input_shape is None:
+            self.features = features
+        elif features is None and input_shape is not None:
+            self.features = input_shape[-1]
+        else:
+            raise ValueError('Must provide either features or input_shape.')
 
-        if neurons <= 0:
+        if neurons < 1:
             raise ValueError("Neurons must be a positive integer.")
         self.neurons = neurons
 
@@ -68,6 +79,14 @@ class FuzzyNetwork(Model):
         self.trained = False
 
         super().__init__(**kwargs)
+
+    @property
+    def input_shape(self) -> tuple:
+        return None, self.features
+
+    @property
+    def output_shape(self) -> tuple:
+        return None, 1 if self.target_classes is None else self.target_classes
 
     def call(self, inputs):
         """
@@ -182,3 +201,11 @@ class FuzzyNetwork(Model):
         x = Input(shape=(self.features,), name="InputRow")
         model = Model(inputs=[x], outputs=self.call(x), name=self.name + ' Summary')
         return model.summary(*args, **kwargs)
+
+    def get_config(self):
+        base_config = super().get_config()
+        base_config['features'] = self.features
+        base_config['neurons'] = self.neurons
+        base_config['problem_type'] = self.problem_type
+        base_config['target_classes'] = self.target_classes
+        return base_config
