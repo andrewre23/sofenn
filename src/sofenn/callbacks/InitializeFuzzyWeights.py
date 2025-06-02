@@ -16,12 +16,11 @@ class InitializeFuzzyWeights(Callback):
         print(f'Fuzzy rules layer Status: {self.model.get_layer("FuzzyRules")}')
         print(f'Fuzzy rules weights: {self.model.get_layer("FuzzyRules").get_weights()}')
 
+        # build fuzzy rules layer before initializing centers
         if not self.model.get_layer("FuzzyRules").built:
             self.model.get_layer("FuzzyRules").build(input_shape=self.sample_data.shape)
-            self._initialize_centers(sample_data=self.sample_data, random_sample=self.random_sample)
-            self._initialize_widths(s_0=self.s_0)
-
-
+        self._initialize_centers(sample_data=self.sample_data, random_sample=self.random_sample)
+        self._initialize_widths(s_0=self.s_0)
 
     def on_train_end(self, logs=None):
         print("...post training")  # TODO: update to logging

@@ -1,6 +1,5 @@
-from typing import Union, Optional
+from typing import Optional
 
-import numpy as np
 from keras.api.layers import Input, Dense
 from keras.api.models import Model
 
@@ -12,7 +11,7 @@ from sofenn.losses import custom_loss_function
 # TODO: update to logging
 
 
-class FuzzyNetworkModel(Model):
+class FuzzyNetwork(Model):
     """
     Fuzzy Network
     =============
@@ -20,117 +19,45 @@ class FuzzyNetworkModel(Model):
     -Implemented per description in:
         "An on-line algorithm for creating self-organizing
         fuzzy neural networks" - Leng, Prasad, McGinnity (2004)
-    -Composed of 5 layers with varying "fuzzy rule" nodes
-
-    * = samples
+    -Composed of 5 layers with varying "fuzzy rule" nodes.
 
     Parameters
     ==========
-    - X_train : training input data
-        - shape :(train_*, features)
-    - X_test  : testing input data
-        - shape: (test_*, features)
-    - y_train : training output data
-        - shape: (train_*,)
-    - y_test  : testing output data
-        - shape: (test_*,)
-
-    Attributes
-    ==========
-    - prob_type : str
-        - regression/classification problem
-    - classes : int
-        - number of output classes for classification problems
-    - neurons : int
-        - number of initial neurons
-    - max_neurons : int
-        - max number of neurons
-    - ifpart_thresh : float
-        - threshold for if-part
-    - ifpart_samples : float
-        - percent of samples needed to meet ifpart criterion
-    - err_delta : float
-        - threshold for error criterion whether new neuron to be added
-    - debug : boolean
-        - debug flag
-
-    Methods
-    =======
-    - build_model :
-        - build Fuzzy Network and set as model attribute
-    - compile_model :
-        - compile Fuzzy Network
-    - loss_function :
-        - custom loss function per Leng, Prasad, McGinnity (2004)
-    - train_model :
-        - train on data
-    - model_predictions :
-        - yield model predictions without full evaluation
-    - model_evaluations :
-        - evaluate models and yield metrics
-    - error_criterion :
-        - considers generalized performance of overall network
-        - add neuron if error above predefined error threshold (delta)
-    - if_part_criterion :
-        - checks if current fuzzy rules cover/cluster input vector suitably
-
-    Secondary Methods
-    =================
-    - get_layer :
-        - return layer object from model by name
-    - get_layer_weights :
-        - get current weights from any layer in model
-    - get_layer_output :
-        - get test output from any layer in model
-
-    Protected Methods
-    =================
-    - initialize_centers :
-        - initialize neuron centers
-    - initialize_widths :
-        - initialize neuron weights based on parameter
+    :param features: Number of features for input data.
+    :param neurons: Number of neurons to use. Each one represents fuzzy neuron (if/then) operator.
+    :param problem_type: Either 'classification' or 'regression' problem.
+    :param target_classes: Optional number of classes in target data.
+    :param name: Name of network (default: FuzzyNetwork).
     """
     def __init__(self,
                  features: int,
                  neurons: int = 1,
-                 max_neurons: int = 100,
-                 prob_type: str = 'classification',
+                 problem_type: str = 'classification',
                  target_classes: Optional[int] = 1,
                  name: str = 'FuzzyNetwork',
-                 debug: bool = True,
                  **kwargs):
-
-        # set debug flag
-        self._debug = debug
-
-        if features <1:
-            raise ValueError('FuzzyNetwork requires at least 1 input feature.')
+        if features < 1:
+            raise ValueError('At least 1 input feature required.')
         self.features = features
 
-        # set output problem type
-        if prob_type.lower() not in ['classification', 'regression']:
-            raise ValueError("Invalid problem type.")
-        elif prob_type.lower() == 'classification' and target_classes is None:
-            raise ValueError("Must provide target_classes parameter if 'prob_type' is 'classification'.")
-        elif prob_type.lower() == 'classification' and target_classes < 2:
-            raise ValueError("Must specify more than 1 target class if 'prob_type' is 'classification'.")
-        self.prob_type = prob_type
-        self.target_classes = target_classes
-
-        # set neuron attributes
-        # initial number of neurons
-        if type(neurons) is not int or neurons <= 0:
-            raise ValueError("Must enter positive integer.")
+        if neurons <= 0:
+            raise ValueError("Neurons must be a positive integer.")
         self.neurons = neurons
 
-        # max number of neurons
-        if type(max_neurons) is not int or max_neurons < neurons:
-            raise ValueError("Must enter positive integer no less than number of neuron.s")
-        self.max_neurons = max_neurons
+        if problem_type.lower() not in ['classification', 'regression']:
+            raise ValueError(f"Invalid problem type provided: {problem_type}.")
+        self.problem_type = problem_type.lower()
 
-        # define model and set model attribute
+        if self.problem_type == 'classification':
+            if target_classes is None:
+                raise ValueError("Must provide target_classes parameter if 'problem_type' is 'classification'.")
+            elif target_classes < 2:
+                raise ValueError("Must specify more than 1 target class if 'problem_type' is 'classification'.")
+        self.target_classes = None if self.problem_type == 'regression' else target_classes
+
         if 'name' not in kwargs:
             kwargs['name'] = name
+
         self.inputs = Input(name='Inputs', shape=(self.features,))
         self.fuzz = FuzzyLayer(shape=(self.features,), neurons=self.neurons)
         self.norm = NormalizeLayer(shape=(self.features, self.neurons))
@@ -192,7 +119,7 @@ class FuzzyNetworkModel(Model):
         final_out = raw_output
 
         # add softmax layer for classification problem
-        if self.prob_type == 'classification':
+        if self.problem_type == 'classification':
             classes = self.softmax(raw_output)
             final_out = classes
 
@@ -207,27 +134,7 @@ class FuzzyNetworkModel(Model):
         return final_out
 
     def compile(self, **kwargs) -> None:
-        """
-        Create and compile model.
-        - sets compiled model as self.model
-
-        Parameters
-        ==========
-        init_c : bool
-            - run method to initialize centers or take default initializations
-        sample_data : np.ndarray
-            - sample data to initialize centers
-        random_sample : bool
-            - take either random samples or first samples that appear in training data
-        init_s : bool
-            - run method to initialize widths or take default initializations
-        s_0 : float
-            - value for initial centers of neurons
-        """
-        if self._debug:
-            print('Compiling model...')
-
-        if self.prob_type == 'classification':
+        if self.problem_type == 'classification':
             default_loss = custom_loss_function
             default_optimizer = 'adam'
             default_metrics = ['categorical_accuracy']
@@ -243,31 +150,17 @@ class FuzzyNetworkModel(Model):
         kwargs['optimizer'] = kwargs.get('optimizer', default_optimizer)
         kwargs['metrics'] = kwargs.get('metrics', default_metrics)
 
-        # compile model and show model summary
         super().compile(**kwargs)
-
-        # print model summary
-        if self._debug:
-            print(self.summary())
-
 
     def fit(self, *args, **kwargs):
         if not self.built:
             print("FuzzyNetwork cannot be built until seeing training data.")
 
-        # set default verbose setting
-        default_verbose = 1
-        kwargs['verbose'] = kwargs.get('verbose', default_verbose)
+        kwargs['verbose'] = kwargs.get('verbose', 1)
+        kwargs['epochs'] = kwargs.get('epochs', 100)
+        kwargs['batch_size'] = kwargs.get('batch_size', 32)
 
-        # set default training epochs
-        default_epochs = 100
-        kwargs['epochs'] = kwargs.get('epochs', default_epochs)
-
-        # set default training epochs
-        default_batch_size = 32
-        kwargs['batch_size'] = kwargs.get('batch_size', default_batch_size)
-
-        # add callback to instantiate fuzzy weights unless already added
+        # add callback to instantiate fuzzy weights unless already provided
         x = kwargs['x'] if 'x' in kwargs else args[0]
         if 'callbacks' in kwargs:
             if any([isinstance(cb, InitializeFuzzyWeights) for cb in kwargs['callbacks']]):
@@ -277,10 +170,9 @@ class FuzzyNetworkModel(Model):
         else:
             kwargs['callbacks'] = [InitializeFuzzyWeights(sample_data=x)]
 
-        # fit model to dataset
         super().fit(*args, **kwargs)
 
     def summary(self, *args, **kwargs):
-        x = Input(shape=self.features, name="input_layer")
-        model = Model(inputs=[x], outputs=self.call(x))
+        x = Input(shape=(self.features,), name="InputRow")
+        model = Model(inputs=[x], outputs=self.call(x), name=self.name + ' Summary')
         return model.summary(*args, **kwargs)

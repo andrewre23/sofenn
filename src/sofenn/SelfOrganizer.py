@@ -4,7 +4,7 @@ import numpy as np
 from keras.api.models import clone_model, Model
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from sofenn.FuzzyNetwork import FuzzyNetworkModel
+from sofenn.FuzzyNetwork import FuzzyNetwork
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 
 
@@ -218,11 +218,11 @@ class SelfOrganizingFuzzyNN(object):
         """
 
         # Fuzzy network as network attribute
-        self.network = FuzzyNetworkModel(X_train, X_test, y_train, y_test,
-                                    neurons=neurons, max_neurons=max_neurons,
-                                    ifpart_thresh=ifpart_thresh, ifpart_samples=ifpart_samples,
-                                    err_delta=err_delta, prob_type=prob_type,
-                                    debug=self.__debug, **kwargs)
+        self.network = FuzzyNetwork(X_train, X_test, y_train, y_test,
+                                         neurons=neurons, max_neurons=max_neurons,
+                                         ifpart_thresh=ifpart_thresh, ifpart_samples=ifpart_samples,
+                                         err_delta=err_delta, problem_type=prob_type,
+                                         debug=self.__debug, **kwargs)
         # shortcut reference to network model
         self.model = self.network.model
 
