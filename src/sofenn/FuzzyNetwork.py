@@ -279,3 +279,8 @@ class FuzzyNetworkModel(Model):
 
         # fit model to dataset
         super().fit(*args, **kwargs)
+
+    def summary(self, *args, **kwargs):
+        x = Input(shape=self.features, name="input_layer")
+        model = Model(inputs=[x], outputs=self.call(x))
+        return model.summary(*args, **kwargs)
