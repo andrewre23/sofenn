@@ -65,6 +65,8 @@ class FuzzyNetwork(Model):
         self.raw = OutputLayer()
         self.softmax = Dense(self.target_classes, name='Softmax', activation='softmax')
 
+        self.trained = False
+
         super().__init__(**kwargs)
 
     def call(self, inputs):
@@ -171,6 +173,10 @@ class FuzzyNetwork(Model):
             kwargs['callbacks'] = [InitializeFuzzyWeights(sample_data=x)]
 
         super().fit(*args, **kwargs)
+
+        if not self.trained:
+            self.trained = True
+
 
     def summary(self, *args, **kwargs):
         x = Input(shape=(self.features,), name="InputRow")
