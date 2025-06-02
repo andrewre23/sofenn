@@ -299,14 +299,6 @@ class FuzzyNetworkModel(Model):
         if self._debug:
             print(self.summary())
 
-    # def fit(self, *args, **kwargs):
-    #     # add callbacks
-    #     if 'callbacks' in kwargs:
-    #         kwargs['callbacks'].append(InitializeFuzzyWeights)
-    #     else:
-    #         kwargs['callbacks'] = [InitializeFuzzyWeights]
-    #     super().fit(*args, **kwargs)
-
 
     def fit(self, *args, **kwargs):
         if not self.built:
@@ -324,12 +316,15 @@ class FuzzyNetworkModel(Model):
         default_batch_size = 32
         kwargs['batch_size'] = kwargs.get('batch_size', default_batch_size)
 
-        # add callbacks
-        # if 'callbacks' in kwargs:
-        #     if any([isinstance(cb, InitializeFuzzyWeights) for cb in kwargs['callbacks']]):
-        #     kwargs['callbacks'].append(InitializeFuzzyWeights)
-        # else:
-        #     kwargs['callbacks'] = [InitializeFuzzyWeights]
+        # add callback to instantiate fuzzy weights unless already added
+        x = kwargs['x'] if 'x' in kwargs else args[0]
+        if 'callbacks' in kwargs:
+            if any([isinstance(cb, InitializeFuzzyWeights) for cb in kwargs['callbacks']]):
+                print('User already provided Fuzzy Weight Initializer callback.')
+            else:
+                kwargs['callbacks'].append(InitializeFuzzyWeights(sample_data=x))
+        else:
+            kwargs['callbacks'] = [InitializeFuzzyWeights(sample_data=x)]
 
         # fit model to dataset
         super().fit(*args, **kwargs)
