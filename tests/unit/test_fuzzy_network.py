@@ -3,6 +3,7 @@ import pickle
 from pathlib import Path
 
 import keras.src.backend as K
+# TODO: remove numpy from dependency and replace with Keras functions
 import numpy
 import numpy as np
 import pandas
