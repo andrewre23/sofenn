@@ -1,1 +1,1 @@
-from .InitializeFuzzyWeights import InitializeFuzzyWeights
+from .FuzzyWeightsInitializer import FuzzyWeightsInitializer

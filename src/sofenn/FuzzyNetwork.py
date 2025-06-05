@@ -3,7 +3,7 @@ from typing import Optional
 from keras.api.layers import Input, Dense
 from keras.api.models import Model
 
-from sofenn.callbacks import InitializeFuzzyWeights
+from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 from sofenn.losses import CustomLoss
 
@@ -184,18 +184,16 @@ class FuzzyNetwork(Model):
         # add callback to instantiate fuzzy weights unless already provided
         x = kwargs['x'] if 'x' in kwargs else args[0]
         if 'callbacks' in kwargs:
-            if any([isinstance(cb, InitializeFuzzyWeights) for cb in kwargs['callbacks']]):
+            if any([isinstance(cb, FuzzyWeightsInitializer) for cb in kwargs['callbacks']]):
                 print('User already provided Fuzzy Weight Initializer callback.')
             else:
-                kwargs['callbacks'].append(InitializeFuzzyWeights(sample_data=x))
+                kwargs['callbacks'].append(FuzzyWeightsInitializer(sample_data=x))
         else:
-            kwargs['callbacks'] = [InitializeFuzzyWeights(sample_data=x)]
+            kwargs['callbacks'] = [FuzzyWeightsInitializer(sample_data=x)]
 
         super().fit(*args, **kwargs)
-
         if not self.trained:
             self.trained = True
-
 
     def summary(self, *args, **kwargs):
         x = Input(shape=(self.features,), name="InputRow")

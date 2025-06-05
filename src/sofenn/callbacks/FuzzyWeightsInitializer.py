@@ -1,13 +1,21 @@
 import numpy as np
-
 from keras.api.callbacks import Callback
 
-class InitializeFuzzyWeights(Callback):
-    def __init__(self, sample_data, random_sample=True, s_0 = 4.0):
+from sofenn.layers import FuzzyLayer
+
+
+class FuzzyWeightsInitializer(Callback):
+    def __init__(self,
+                 sample_data,
+                 random_sample=True,
+                 s_0 = 4.0,
+                 layer_name: str = 'FuzzyRules'
+                 ):
         super().__init__()
         self.sample_data = sample_data
         self.random_sample = random_sample
         self.s_0 = s_0
+        self.layer_name = layer_name
 
     def on_train_begin(self, logs=None):
         # TODO: update to logging
@@ -16,10 +24,13 @@ class InitializeFuzzyWeights(Callback):
         # print(f'Model Status: {self.model.built}')
         # print(f'Fuzzy rules layer Status: {self.model.get_layer("FuzzyRules")}')
         # print(f'Fuzzy rules weights: {self.model.get_layer("FuzzyRules").get_weights()}')
+        if not isinstance(self.model.get_layer(self.layer_name), FuzzyLayer):
+            raise ValueError(f'Initializer must be used on FuzzyLayer. Attempted to use: '
+                             f'name={self.layer_name} type={type(self.model.get_layer(self.layer_name))}.')
 
         # build fuzzy rules layer before initializing centers
-        if not self.model.get_layer("FuzzyRules").built:
-            self.model.get_layer("FuzzyRules").build(input_shape=self.sample_data.shape)
+        if not self.model.get_layer(self.layer_name).built:
+            self.model.get_layer(self.layer_name).build(input_shape=self.sample_data.shape)
 
         # initialize centers for first training run
         if not self.model.trained:
@@ -59,11 +70,11 @@ class InitializeFuzzyWeights(Callback):
         c_init = x_i.T
 
         # set weights
-        c, s = self.model.get_layer("FuzzyRules").get_weights()
+        c, s = self.model.get_layer(self.layer_name).get_weights()
         start_weights = [c_init, s]
-        self.model.get_layer('FuzzyRules').set_weights(start_weights)
+        self.model.get_layer(self.layer_name).set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self.model.get_layer("FuzzyRules").get_weights()
+        final_weights = self.model.get_layer(self.layer_name).get_weights()
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])
 
@@ -77,15 +88,15 @@ class InitializeFuzzyWeights(Callback):
             - initial sigma value for all neuron centers
         """
         # get current center and width weights
-        c, s = self.model.get_layer("FuzzyRules").get_weights()
+        c, s = self.model.get_layer(self.layer_name).get_weights()
 
         # repeat s_0 value to array shaped like s
         s_init = np.repeat(s_0, s.size).reshape(s.shape)
 
         # set weights
         start_weights = [c, s_init]
-        self.model.get_layer('FuzzyRules').set_weights(start_weights)
+        self.model.get_layer(self.layer_name).set_weights(start_weights)
         # validate weights updated as expected
-        final_weights = self.model.get_layer("FuzzyRules").get_weights()
+        final_weights = self.model.get_layer(self.layer_name).get_weights()
         assert np.allclose(start_weights[0], final_weights[0])
         assert np.allclose(start_weights[1], final_weights[1])

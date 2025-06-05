@@ -12,7 +12,7 @@ from keras.src import testing
 from sklearn.model_selection import train_test_split
 
 from sofenn import FuzzyNetwork
-from sofenn.callbacks import InitializeFuzzyWeights
+from sofenn.callbacks import FuzzyWeightsInitializer
 
 DATA_DIR = Path(__file__).parent / 'data'
 DEFAULTS = {
@@ -208,7 +208,7 @@ class FuzzyNetworkTest(testing.TestCase):
         model = FuzzyNetwork(**_params(name='InitializerCallbackAlreadyProvided'))
         model.compile()
         model.fit(X_train, y_train, epochs=epochs, callbacks=[
-            InitializeFuzzyWeights(
+            FuzzyWeightsInitializer(
                 sample_data=X_train,
                 random_sample=False
             )
