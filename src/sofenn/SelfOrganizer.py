@@ -198,9 +198,7 @@ class FuzzySelfOrganizer(object):
         # self.combine_membership_functions(**kwargs)
         #
 
-    def error_criterion(self,
-                        y_true,
-                        y_pred) -> bool:
+    def error_criterion(self, y_true, y_pred) -> bool:
         """
         Check error criterion for neuron-adding process.
             - considers generalization performance of model
@@ -271,6 +269,56 @@ class FuzzySelfOrganizer(object):
         dupe_mod.set_weights(self.model.get_weights())
         return dupe_mod
 
+    def widen_centers(self, x) -> bool:
+        """
+        Widen center of neurons to better cover data
+        """
+        # print alert of successful widening
+        print('Widening centers...')
+
+        # create simple alias for self.network
+        fuzzy_net = self.model
+
+        # get fuzzy layer and output to find max neuron output
+        fuzz_layer = fuzzy_net.get_layer('FuzzyRules')
+
+        # get old weights and create current weight vars
+        c, s = fuzz_layer.get_weights()
+
+        # repeat until if-part criterion satisfied
+        # only perform for max iterations
+        counter = 0
+        while not self.if_part_criterion(x):
+
+            counter += 1
+            # check if max iterations exceeded prior to satisfying if-part-criterion
+            if counter > self.max_widens:
+                print(f'Max iterations reached: ({counter - 1})')
+                break
+
+            # get neuron with max-output for each sample
+            # then select the most common one to update
+            fuzz_out = fuzz_layer(x)
+            maxes = np.argmax(fuzz_out, axis=-1)
+            max_neuron = np.argmax(np.bincount(maxes.flat))
+
+            # select minimum width to expand
+            # and multiply by factor
+            mf_min = s[:, max_neuron].argmin()
+            s[mf_min, max_neuron] = self.ksig * s[mf_min, max_neuron]
+
+            # update weights
+            new_weights = [c, s]
+            fuzz_layer.set_weights(new_weights)
+
+        # print alert of successful widening
+        if counter == 0:
+            print('Centers not widened')
+        else:
+            print(f'Centers widened after {counter} iterations')
+
+        return self.if_part_criterion(x)
+
     # def rebuild_model(self,
     #                   new_weights: np.ndarray,
     #                   new_neurons: int,
@@ -301,58 +349,6 @@ class FuzzySelfOrganizer(object):
     #     # update neuron attribute
     #     self.network.neurons = new_neurons
     #     return new_model
-    #
-    # def widen_centers(self) -> None:
-    #     """
-    #     Widen center of neurons to better cover data
-    #     """
-    #     # print alert of successful widening
-    #     if self.__debug:
-    #         print('Widening centers...')
-    #
-    #     # create simple alias for self.network
-    #     fuzzy_net = self.network
-    #
-    #     # get fuzzy layer and output to find max neuron output
-    #     fuzz_layer = fuzzy_net.get_layer(1)
-    #
-    #     # get old weights and create current weight vars
-    #     c, s = fuzz_layer.get_weights()
-    #
-    #     # repeat until if-part criterion satisfied
-    #     # only perform for max iterations
-    #     counter = 0
-    #     while not fuzzy_net.if_part_criterion():
-    #
-    #         counter += 1
-    #         # check if max iterations exceeded
-    #         if counter > self._max_widens:
-    #             if self.__debug:
-    #                 print('Max iterations reached ({})'
-    #                       .format(counter - 1))
-    #             return False
-    #
-    #         # get neuron with max-output for each sample
-    #         # then select the most common one to update
-    #         fuzz_out = fuzzy_net.get_layer_output(1)
-    #         maxes = np.argmax(fuzz_out, axis=-1)
-    #         max_neuron = np.argmax(np.bincount(maxes.flat))
-    #
-    #         # select minimum width to expand
-    #         # and multiply by factor
-    #         mf_min = s[:, max_neuron].argmin()
-    #         s[mf_min, max_neuron] = self._ksig * s[mf_min, max_neuron]
-    #
-    #         # update weights
-    #         new_weights = [c, s]
-    #         fuzz_layer.set_weights(new_weights)
-    #
-    #     # print alert of successful widening
-    #     if self.__debug:
-    #         if counter == 0:
-    #             print('Centers not widened')
-    #         else:
-    #             print('Centers widened after {} iterations'.format(counter))
     #
     # def add_neuron(self, **kwargs) -> bool:
     #     """

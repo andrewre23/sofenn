@@ -163,6 +163,89 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             )
         )
 
+    def test_widening_centers(self):
+        _, X_test, _, _ = _get_training_data()
+
+        model = keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+
+        # if-part criterion already satisfied and weights unchanged when widening
+        sofnn = FuzzySelfOrganizer(
+            model=model
+        )
+        starting_weights = sofnn.model.fuzz.get_weights()
+        self.assertTrue(sofnn.if_part_criterion(X_test))
+        self.assertTrue(sofnn.widen_centers(X_test))
+        self.assertTrue(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+
+        # do no widening iterations even when if-part criterion not satisfied
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            max_widens=0
+        )
+        sofnn.model.fuzz.set_weights(
+            [numpy.zeros_like(weight) for weight in sofnn.model.fuzz.get_weights()]
+        )
+        starting_weights = sofnn.model.fuzz.get_weights()
+        self.assertFalse(sofnn.if_part_criterion(X_test))
+        self.assertFalse(sofnn.widen_centers(X_test))
+        self.assertTrue(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+
+        # widen centers, but terminate before if-part criterion satisfied
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            max_widens=5
+        )
+        sofnn.model.fuzz.set_weights(
+            [numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()]
+        )
+        starting_weights = sofnn.model.fuzz.get_weights()
+        self.assertFalse(sofnn.if_part_criterion(X_test))
+        self.assertFalse(sofnn.widen_centers(X_test))
+        self.assertFalse(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+        self.assertTrue(
+            np.allclose(
+                sofnn.model.fuzz.get_weights(),
+                [
+                    numpy.array([[1., 1., 1.],
+                                 [1., 1., 1.],
+                                 [1., 1., 1.],
+                                 [1., 1., 1.]]),
+                    numpy.array([[1.2544, 1., 1.],
+                                 [1.12, 1., 1.],
+                                 [1.12, 1., 1.],
+                                 [1.12, 1., 1.]])
+                 ]
+            )
+        )
+
+        # widen centers until if-part criterion satisfied
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+        )
+        sofnn.model.fuzz.set_weights(
+            [numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()]
+        )
+        starting_weights = sofnn.model.fuzz.get_weights()
+        self.assertFalse(sofnn.if_part_criterion(X_test))
+        self.assertTrue(sofnn.widen_centers(X_test))
+        self.assertFalse(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+        self.assertTrue(
+            np.allclose(
+                sofnn.model.fuzz.get_weights(),
+                [
+                    numpy.array([[1., 1., 1.],
+                                 [1., 1., 1.],
+                                 [1., 1., 1.],
+                                 [1., 1., 1.]]),
+                    numpy.array([[4.3634925, 1., 1.],
+                                 [4.3634925, 1., 1.],
+                                 [3.8959754, 1., 1.],
+                                 [3.8959754, 1., 1.]])
+                 ]
+            )
+        )
+
+
 
     # def test_init_with_features_and_input_shape(self):
     #     FuzzyNetwork(**_params(
