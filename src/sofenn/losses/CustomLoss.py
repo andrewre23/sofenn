@@ -1,6 +1,6 @@
 import keras.api.ops as K
 from keras.src.losses import Loss
-
+import keras
 
 # def custom_loss_function(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 #     """
@@ -18,7 +18,7 @@ from keras.src.losses import Loss
 #     return K.sum(1 / 2 * K.square(y_pred - y_true))
 
 
-
+@keras.saving.register_keras_serializable()
 class CustomLoss(Loss):
     """
     Custom loss function.
@@ -41,3 +41,10 @@ class CustomLoss(Loss):
         :param y_pred: Predicted values.
         """
         return 1 / 2 * K.square(y_pred - y_true)
+
+    def get_config(self):
+        return super().get_config()
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)

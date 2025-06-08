@@ -1,19 +1,22 @@
 import copy
 import pickle
+import tempfile
 from pathlib import Path
 
 import keras.src.backend as K
 # TODO: remove numpy from dependency and replace with Keras functions
 import numpy
-import numpy as np
 import pandas
 import pytest
 from keras.api.callbacks import ProgbarLogger
+from keras.api.saving import load_model
 from keras.src import testing
 from sklearn.model_selection import train_test_split
 
 from sofenn import FuzzyNetwork
 from sofenn.callbacks import FuzzyWeightsInitializer
+from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
+from sofenn.losses import CustomLoss
 
 DATA_DIR = Path(__file__).parent / 'data'
 DEFAULTS = {
@@ -136,8 +139,29 @@ class FuzzyNetworkTest(testing.TestCase):
 
     def test_serialization(self):
         model = FuzzyNetwork(**_params(name='Serialization test.'))
-        revived = self.run_class_serialization_test(model)
+        revived = self.run_class_serialization_test(
+            model,
+            custom_objects={
+                'FuzzyLayer': FuzzyLayer,
+                'NormalizationLayer': NormalizeLayer,
+                'WeightedLayer': WeightedLayer,
+                'OutputLayer': OutputLayer,
+                'CustomLoss': CustomLoss,
+                'FuzzyWeightsInitializer': FuzzyWeightsInitializer
+            }
+        )
         self.assertLen(revived.layers, 5)
+
+    def test_saving_model(self):
+        epochs = 1
+        X_train, X_test, y_train, y_test = _get_training_data()
+
+        trained_model = FuzzyNetwork(**_params(name='ModelFitTest'))
+        trained_model.compile()
+        trained_model.fit(X_train, y_train, epochs=epochs)
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            trained_model.save(tmpdirname + 'model.keras')
 
     def test_functional_properties(self):
         model = FuzzyNetwork(**_params(name='Functional properties test.'))
@@ -186,15 +210,16 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model = FuzzyNetwork(**_params(name='ModelFitTest'))
         trained_model.compile()
         trained_model.fit(X_train, y_train, epochs=epochs)
-        #trained_model.save_weights(DATA_DIR / 'weights/classification.weights.h5')
+        #trained_model.save(DATA_DIR / 'models/iris_classification.keras')
 
-        loaded_model = FuzzyNetwork(**_params(name='LoadedModel'))
-        loaded_model.compile()
-        loaded_model.fit(X_train, y_train, epochs=1)
-        self.assertTrue(loaded_model.built)
-        loaded_model.load_weights(DATA_DIR / 'weights/classification.weights.h5')
+        # loaded_model = FuzzyNetwork(**_params(name='LoadedModel'))
+        # loaded_model.compile()
+        # loaded_model.fit(X_train, y_train, epochs=1)
+        # self.assertTrue(loaded_model.built)
+        # loaded_model.load_weights(DATA_DIR / 'weights/classification.weights.h5')
 
-        assert np.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
+        loaded_model = load_model(DATA_DIR / 'models/iris_classification.keras')
+        assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
 
     def test_fit_callbacks(self):
         epochs = 1

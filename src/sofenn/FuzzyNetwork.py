@@ -1,7 +1,10 @@
 from typing import Optional
 
+import keras
 from keras.api.layers import Input, Dense
 from keras.api.models import Model
+from keras.api.optimizers import Adam, RMSprop
+from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
 
 from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
@@ -156,22 +159,22 @@ class FuzzyNetwork(Model):
 
     def compile(self, **kwargs) -> None:
         if self.problem_type == 'classification':
-            default_loss = CustomLoss
-            default_optimizer = 'adam'
-            default_metrics = ['categorical_accuracy']
+            default_loss = CustomLoss()
+            default_optimizer = Adam()
+            default_metrics = [CategoricalAccuracy()]
             # if self.y_test.ndim == 2:                       # binary classification
             #     default_metrics = ['binary_accuracy']
             # else:                                           # multi-class classification
             #     default_metrics = ['categorical_accuracy']
         else:
-            default_loss = 'mean_squared_error'
-            default_optimizer = 'rmsprop'
-            default_metrics = ['accuracy']
-        kwargs['loss'] = kwargs.get('loss', default_loss)
-        kwargs['optimizer'] = kwargs.get('optimizer', default_optimizer)
-        kwargs['metrics'] = kwargs.get('metrics', default_metrics)
+            default_loss = MeanSquaredError()
+            default_optimizer = RMSprop()
+            default_metrics = [Accuracy()]
+        loss = kwargs.pop('loss', default_loss)
+        optimizer = kwargs.pop('optimizer', default_optimizer)
+        metrics = kwargs.pop('metrics', default_metrics)
 
-        super().compile(**kwargs)
+        super().compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
 
     def fit(self, *args, **kwargs):
         if not self.built:
