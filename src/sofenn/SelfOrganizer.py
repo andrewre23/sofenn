@@ -121,10 +121,6 @@ class FuzzySelfOrganizer(object):
 
         self.model = FuzzyNetwork(**kwargs) if model is None else model
 
-
-
-
-
     # def self_organize(self, **kwargs) -> None:
     #     """
     #     Main run function to handle organization logic
@@ -160,23 +156,22 @@ class FuzzySelfOrganizer(object):
     #     print('Self-Organization complete!')
     #     print('If-Part Criterion and Error Criterion both satisfied')
 
-    def organize(self, **kwargs) -> None:
+    def organize(self, x, **kwargs) -> None:
         """
         Run one iteration of organizational logic
-        - check on system error and if-part criteron
+        - check on system error and if-part criterion
         - add neurons or prune if needed
         """
-        pass
-        # # create simple alias for self.network
-        # fuzzy_net = self.network
-        #
-        # # get copy of initial fuzzy weights
-        # start_weights = fuzzy_net.get_layer_weights(1)
-        #
-        # # widen centers if necessary
-        # if not fuzzy_net.if_part_criterion():
-        #     self.widen_centers()
-        #
+        # create simple alias for self.model
+        fuzzy_net = self.model
+
+        # get copy of initial fuzzy weights
+        start_weights = fuzzy_net.fuzz.get_weights()
+
+        # widen centers if necessary
+        if not self.if_part_criterion(x):
+            self.widen_centers(x)
+
         # # add neuron if necessary
         # if not fuzzy_net.error_criterion():
         #     # reset fuzzy weights if previously widened before adding
