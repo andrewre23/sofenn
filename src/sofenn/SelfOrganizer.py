@@ -226,7 +226,7 @@ class FuzzySelfOrganizer(object):
             if criteron not met and need to widen neuron centers
         """
         # get max val
-        fuzz_out = self.model.get_layer('FuzzyRules')(x)
+        fuzz_out = self.model.fuzz(x)
         # check if max neuron output is above threshold
         maxes = np.max(fuzz_out, axis=-1) >= self.ifpart_thresh
         # return True if proportion of samples above threshold is at least required sample proportion
@@ -245,11 +245,11 @@ class FuzzySelfOrganizer(object):
 
         # get input values and fuzzy weights
         samples = x.shape[0]
-        c, s = self.model.get_layer('FuzzyRules').get_weights()
+        c, s = self.model.fuzz.get_weights()
 
         # align x and c and assert matching dims
-        aligned_x = x.repeat(self.model.get_layer('FuzzyRules').neurons). \
-            reshape(x.shape + (self.model.get_layer('FuzzyRules').neurons,))
+        aligned_x = x.repeat(self.model.neurons). \
+            reshape(x.shape + (self.model.neurons,))
         aligned_c = c.repeat(samples).reshape((samples,) + c.shape)
 
         # average the minimum distance across samples
@@ -275,7 +275,7 @@ class FuzzySelfOrganizer(object):
         fuzzy_net = self.model
 
         # get fuzzy layer and output to find max neuron output
-        fuzz_layer = fuzzy_net.get_layer('FuzzyRules')
+        fuzz_layer = fuzzy_net.fuzz
 
         # get old weights and create current weight vars
         c, s = fuzz_layer.get_weights()
