@@ -229,7 +229,7 @@ class FuzzySelfOrganizer(object):
         fuzz_out = self.model.get_layer('FuzzyRules')(x)
         # check if max neuron output is above threshold
         maxes = np.max(fuzz_out, axis=-1) >= self.ifpart_thresh
-        # return True if at least half of samples agree
+        # return True if proportion of samples above threshold is at least required sample proportion
         return (maxes.sum() / len(maxes)) >= self.ifpart_samples
 
     def minimum_distance_vector(self, x) -> np.ndarray:
