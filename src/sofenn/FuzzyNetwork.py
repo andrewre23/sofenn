@@ -157,6 +157,7 @@ class FuzzyNetwork(Model):
 
         return final_out
 
+    # TODO: add get_compile_config and compile_from_config(config)
     def compile(self, **kwargs) -> None:
         if self.problem_type == 'classification':
             default_loss = CustomLoss()
