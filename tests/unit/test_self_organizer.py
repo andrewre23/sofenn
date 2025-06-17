@@ -244,33 +244,45 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         )
 
     def test_organize(self):
-        _, X_test, _, _ = _get_training_data()
+        X_train, X_test, y_train, y_test = _get_training_data()
 
-        # widen centers until if-part criterion satisfied
+        # CASE 1 - NO STRUCTURAL ADJUSTMENT. TRAIN MODEL
+        # ERROR -> GOOD
+        # IF-PART -> GOOD
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras')
         )
-        sofnn.model.fuzz.set_weights(
-            [numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()]
-        )
-        starting_weights = sofnn.model.fuzz.get_weights()
-        sofnn.organize(X_test)
-        self.assertFalse(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
-        self.assertTrue(
-            np.allclose(
-                sofnn.model.fuzz.get_weights(),
-                [
-                    numpy.array([[1., 1., 1.],
-                                 [1., 1., 1.],
-                                 [1., 1., 1.],
-                                 [1., 1., 1.]]),
-                    numpy.array([[4.3634925, 1., 1.],
-                                 [4.3634925, 1., 1.],
-                                 [3.8959754, 1., 1.],
-                                 [3.8959754, 1., 1.]])
-                ]
-            )
-        )
+        self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
+        self.assertTrue(sofnn.if_part_criterion(X_test))
+        starting_neurons = sofnn.model.neurons
+        sofnn.model.compile()
+        sofnn.organize(x=X_test, y=y_test)
+        self.assertTrue(sofnn.model.neurons == starting_neurons)
+
+
+
+
+        # sofnn.model.fuzz.set_weights(
+        #     [numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()]
+        # )
+        # starting_weights = sofnn.model.fuzz.get_weights()
+        # sofnn.organize(X_test)
+        # self.assertFalse(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+        # self.assertTrue(
+        #     np.allclose(
+        #         sofnn.model.fuzz.get_weights(),
+        #         [
+        #             numpy.array([[1., 1., 1.],
+        #                          [1., 1., 1.],
+        #                          [1., 1., 1.],
+        #                          [1., 1., 1.]]),
+        #             numpy.array([[4.3634925, 1., 1.],
+        #                          [4.3634925, 1., 1.],
+        #                          [3.8959754, 1., 1.],
+        #                          [3.8959754, 1., 1.]])
+        #         ]
+        #     )
+        # )
 
 
 

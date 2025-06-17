@@ -156,7 +156,7 @@ class FuzzySelfOrganizer(object):
     #     print('Self-Organization complete!')
     #     print('If-Part Criterion and Error Criterion both satisfied')
 
-    def organize(self, x, **kwargs) -> None:
+    def organize(self, x, y, **kwargs) -> None:
         """
         Run one iteration of organizational logic
         - check on system error and if-part criterion
@@ -164,6 +164,19 @@ class FuzzySelfOrganizer(object):
         """
         # create simple alias for self.model
         fuzzy_net = self.model
+
+        if 'epochs' not in kwargs:
+            kwargs['epochs'] = 10
+
+        # no structural adjustment
+        if self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
+            self.model.fit(x, y, **kwargs)
+        elif self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
+            pass
+        elif not self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
+            pass
+        elif not self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
+            pass
 
         # get copy of initial fuzzy weights
         start_weights = fuzzy_net.fuzz.get_weights()
@@ -232,6 +245,8 @@ class FuzzySelfOrganizer(object):
         # return True if proportion of samples above threshold is at least required sample proportion
         return (maxes.sum() / len(maxes)) >= self.ifpart_samples
 
+    # TODO: refactor to function instead of method?
+    #       f(weights, x) -> f([c, s], x) => min_dist_vect ?
     def minimum_distance_vector(self, x) -> np.ndarray:
         """
         Get minimum distance vector
@@ -248,8 +263,7 @@ class FuzzySelfOrganizer(object):
         c, s = self.model.fuzz.get_weights()
 
         # align x and c and assert matching dims
-        aligned_x = x.repeat(self.model.neurons). \
-            reshape(x.shape + (self.model.neurons,))
+        aligned_x = x.repeat(self.model.neurons).reshape(x.shape + (self.model.neurons,))
         aligned_c = c.repeat(samples).reshape((samples,) + c.shape)
 
         # average the minimum distance across samples
