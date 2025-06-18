@@ -253,6 +253,24 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.add_neuron(X_train))
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
+    def test_new_neuron_weights(self):
+        X_train, _, _, _ = _get_training_data()
+
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+        )
+        ck, sk = sofnn.new_neuron_weights(X_train)
+        self.assertTrue(
+            numpy.allclose(
+                ck,
+                numpy.array([5.80018616, 2.62788224, 3.9982748 , 1.21259259]))
+        )
+        self.assertTrue(
+            numpy.allclose(
+                sk,
+                numpy.array([4.00925207, 4.0355587 , 4.02074146, 2.86290745])
+            )
+        )
 
     def test_organize(self):
         X_train, X_test, y_train, y_test = _get_training_data()
