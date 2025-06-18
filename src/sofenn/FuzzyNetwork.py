@@ -211,3 +211,7 @@ class FuzzyNetwork(Model):
         base_config['problem_type'] = self.problem_type
         base_config['target_classes'] = self.target_classes
         return base_config
+
+    # # TODO: create from_config method
+    # def from_config(self, config):
+    #     pass

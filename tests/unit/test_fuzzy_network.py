@@ -245,3 +245,7 @@ class FuzzyNetworkTest(testing.TestCase):
         self.assertFalse(model.built)
         model.summary()
         self.assertFalse(model.built)
+
+    # TODO: create from_config method
+    # def test_from_config(self):
+    #     pass
