@@ -160,6 +160,7 @@ class FuzzyNetwork(Model):
     # TODO: add get_compile_config and compile_from_config(config)
     def compile(self, **kwargs) -> None:
         if self.problem_type == 'classification':
+            # TODO: create mapping dictionary of problem type and default loss/optimizer/metrics
             default_loss = CustomLoss()
             default_optimizer = Adam()
             default_metrics = [CategoricalAccuracy()]
