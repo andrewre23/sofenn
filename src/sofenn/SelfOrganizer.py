@@ -1,9 +1,16 @@
 from typing import Tuple, Optional
 import inspect
 
+# TODO: remove numpy import
 import numpy as np
+import keras.api.ops as K
+import keras.src.backend as k
 from keras.api.models import clone_model, Model
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from keras.api.optimizers import Adam, RMSprop
+from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
+from sofenn.losses import CustomLoss
+
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
@@ -171,11 +178,20 @@ class FuzzySelfOrganizer(object):
         # no structural adjustment
         if self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
             self.model.fit(x, y, **kwargs)
+        # widen MF widths to cover input vector of MF with lowest value
         elif self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
+            #self.widen_centers()
             pass
+        # add neuron following algorithm using min dist
         elif not self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
+            #self.add_neuron()
             pass
+        # widen centers until if-part satisfied. if if-else not satisfied, reset widths and add neuron
         elif not self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
+            #self.widen_centers()
+            # if not self.if_part_criterion(x):
+            #   self.reset_widths()
+            #   self.add_neuron()
             pass
 
         # get copy of initial fuzzy weights
@@ -328,73 +344,141 @@ class FuzzySelfOrganizer(object):
 
         return self.if_part_criterion(x)
 
-    # def rebuild_model(self,
-    #                   new_weights: np.ndarray,
-    #                   new_neurons: int,
-    #                   **kwargs) -> Model:
-    #     """
-    #     Create updated FuzzyNetwork by adding or pruning neurons and updating to new weights
-    #     """
-    #     # get config from current model and update output_dim of neuron layers
-    #     config = self.model.get_config()
-    #     for layer in config['layers']:
-    #         if 'output_dim' in layer['config']:
-    #             layer['config']['output_dim'] = new_neurons
-    #
-    #     # load new model from custom config data and load new weights
-    #     custom_objects = {'FuzzyLayer': FuzzyLayer,
-    #                       'NormalizeLayer': NormalizeLayer,
-    #                       'WeightedLayer': WeightedLayer,
-    #                       'OutputLayer': OutputLayer}
-    #     new_model = Model.from_config(config, custom_objects=custom_objects)
-    #     new_model.set_weights(new_weights)
-    #
-    #     # recompile model based on current model parameters
-    #     optimizer = kwargs.get('optimizer', self.model.optimizer)
-    #     loss = kwargs.get('loss', self.model.loss)
-    #     metrics = kwargs.get('metrics', self.model.metrics)
-    #     new_model.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
-    #
-    #     # update neuron attribute
-    #     self.network.neurons = new_neurons
-    #     return new_model
-    #
-    # def add_neuron(self, **kwargs) -> bool:
-    #     """
-    #     Add one additional neuron to the network
-    #         - new FuzzyLayer  weights will be added using minimum distance vector calculation
-    #         - new WeightedLayer weights are always a new column of 1
-    #     """
-    #     if self.__debug:
-    #         print('Adding neuron...')
-    #
-    #     # get current weights
-    #     w = self.model.get_weights()
-    #     c_curr, s_curr, a_curr = w[0], w[1], w[2]
-    #
-    #     # get weights for new neuron
-    #     ck, sk = self.new_neuron_weights()
-    #     # expand dim for stacking
-    #     ck = np.expand_dims(ck, axis=-1)
-    #     sk = np.expand_dims(sk, axis=-1)
-    #     c_new = np.hstack((c_curr, ck))
-    #     s_new = np.hstack((s_curr, sk))
-    #
-    #     # update a vector to include column of 1s
-    #     a_add = np.ones((a_curr.shape[-2]))
-    #     a_new = np.column_stack((a_curr, a_add))
-    #
-    #     # update weights to include new neurons
-    #     w[0], w[1], w[2] = c_new, s_new, a_new
-    #
-    #     # update model and neurons
-    #     self.network.model = self.rebuild_model(new_weights=w, new_neurons=self.network.neurons + 1, **kwargs)
-    #     self.model = self.network.model
-    #
-    #     if self.__debug:
-    #         print('Neuron successfully added! - {} current neurons...'.format(self.network.neurons))
-    #     return True
-    #
+    def add_neuron(self, x, **kwargs) -> bool:
+        """
+        Add one additional neuron to the network
+            - new FuzzyLayer weights will be added using minimum distance vector calculation
+            - new WeightedLayer weights are always a new column of 1
+        """
+        # if self.__debug:
+        #     print('Adding neuron...')
+        #pass
+
+        # get current weights
+        w = self.model.get_weights()
+        c_curr, s_curr, a_curr = w[0], w[1], w[2]
+
+        # get weights for new neuron
+        ck, sk = self.new_neuron_weights(x)
+        # expand dim for stacking
+        ck = np.expand_dims(ck, axis=-1)
+        sk = np.expand_dims(sk, axis=-1)
+        c_new = np.hstack((c_curr, ck))
+        s_new = np.hstack((s_curr, sk))
+
+        # update a vector to include column of 1s
+        a_add = np.ones((a_curr.shape[0]))
+        a_new = np.column_stack((a_curr, a_add))
+
+        # update weights to include new neurons
+        w[0], w[1], w[2] = c_new, s_new, a_new
+
+        # update model and neurons
+        self.model = self.rebuild_model(new_weights=w, new_neurons=self.model.neurons + 1, **kwargs)
+        #self.model = self.network.model
+
+        #if self.__debug:
+        print('Neuron successfully added! - {} current neurons...'.format(self.model.neurons))
+        return True
+
+    def new_neuron_weights(self, x, dist_thresh: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Return new c and s weights for k new fuzzy neuron
+
+        Parameters
+        ==========
+        dist_thresh : float
+            - multiplier of average features values to use as distance thresholds
+
+        Returns
+        =======
+        ck : np.array
+            - average minimum distance vector across samples
+            - shape: (features,)
+        sk : np.array
+            - average minimum distance vector across samples
+            - shape: (features,)
+        """
+
+        # get input values and fuzzy weights
+        #x = fuzzy_net.X_train
+        c, s = self.model.get_layer('FuzzyRules').get_weights()
+
+        # get minimum distance vector
+        min_dist = self.minimum_distance_vector(x)
+        # get minimum distance across neurons
+        # and arg-min for neuron with lowest distance
+        dist_vec = min_dist.min(axis=-1)
+        min_neurs = min_dist.argmin(axis=-1)
+
+        # get min c and s weights
+        c_min = c[:, min_neurs].diagonal()
+        s_min = s[:, min_neurs].diagonal()
+        assert c_min.shape == s_min.shape
+
+        # set threshold distance as factor of mean
+        # value for each feature across samples
+        kd_i = x.mean(axis=0) * dist_thresh
+
+        # get final weight vectors
+        ck = np.where(dist_vec <= kd_i, c_min, x.mean(axis=0))
+        sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
+        return ck, sk
+
+    def rebuild_model(self,
+                      new_weights: np.ndarray,
+                      new_neurons: int,
+                      **kwargs) -> Model:
+        """
+        Create updated FuzzyNetwork by adding or pruning neurons and updating to new weights
+        """
+        # get config from current model and update output_dim of neuron layers
+        config = self.model.get_config()
+        config['neurons'] = new_neurons
+
+        # TODO: edit to update layer output dims based on current shape for each layer
+        #       for layer in self.model.get_layers(): print(layer.get_config())
+        #       - potentially add output_dim to config?
+        # for layer in config['layers']:
+        #     if 'output_dim' in layer['config']:
+        #         layer['config']['output_dim'] = new_neurons
+
+        # load new model from custom config data and load new weights
+        # custom_objects = {'FuzzyLayer': FuzzyLayer,
+        #                   'NormalizeLayer': NormalizeLayer,
+        #                   'WeightedLayer': WeightedLayer,
+        #                   'OutputLayer': OutputLayer}
+        # new_model = Model.from_config(config, custom_objects=custom_objects)
+        # new_model.set_weights(new_weights)
+        new_model = FuzzyNetwork(**config)
+
+        # recompile model based on current model parameters
+        if self.model.problem_type == 'classification':
+            # TODO: create mapping dictionary of problem type and default loss/optimizer/metrics
+            default_loss = CustomLoss()
+            default_optimizer = Adam()
+            default_metrics = [CategoricalAccuracy()]
+            # if self.y_test.ndim == 2:                       # binary classification
+            #     default_metrics = ['binary_accuracy']
+            # else:                                           # multi-class classification
+            #     default_metrics = ['categorical_accuracy']
+        else:
+            default_loss = MeanSquaredError()
+            default_optimizer = RMSprop()
+            default_metrics = [Accuracy()]
+        loss = kwargs.pop('loss', default_loss)
+        optimizer = kwargs.pop('optimizer', default_optimizer)
+        metrics = kwargs.pop('metrics', default_metrics)
+
+        # optimizer = kwargs.pop('optimizer', self.model.optimizer)
+        # loss = kwargs.pop('loss', self.model.loss)
+        # metrics = kwargs.pop('metrics', self.model.metrics)
+        new_model.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
+
+        # update neuron attribute
+        #new_model.neurons = new_neurons
+        return new_model
+
     # def prune_neurons(self, **kwargs) -> bool:
     #     """
     #     Prune any unimportant neurons per effect on RMSE
@@ -502,53 +586,6 @@ class FuzzySelfOrganizer(object):
     #         print('{} neurons successfully pruned! - {} current neurons...'.
     #               format(len(deleted), self.network.neurons))
     #     return True
-    #
-    # def new_neuron_weights(self, dist_thresh: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
-    #     """
-    #     Return new c and s weights for k new fuzzy neuron
-    #
-    #     Parameters
-    #     ==========
-    #     dist_thresh : float
-    #         - multiplier of average features values to use as distance thresholds
-    #
-    #     Returns
-    #     =======
-    #     ck : np.array
-    #         - average minimum distance vector across samples
-    #         - shape: (features,)
-    #     sk : np.array
-    #         - average minimum distance vector across samples
-    #         - shape: (features,)
-    #     """
-    #
-    #     # create simple alias for self.network
-    #     fuzzy_net = self.network
-    #
-    #     # get input values and fuzzy weights
-    #     x = fuzzy_net.X_train
-    #     c, s = fuzzy_net.get_layer_weights(1)
-    #
-    #     # get minimum distance vector
-    #     min_dist = self.min_dist_vector()
-    #     # get minimum distance across neurons
-    #     # and arg-min for neuron with lowest distance
-    #     dist_vec = min_dist.min(axis=-1)
-    #     min_neurs = min_dist.argmin(axis=-1)
-    #
-    #     # get min c and s weights
-    #     c_min = c[:, min_neurs].diagonal()
-    #     s_min = s[:, min_neurs].diagonal()
-    #     assert c_min.shape == s_min.shape
-    #
-    #     # set threshold distance as factor of mean
-    #     # value for each feature across samples
-    #     kd_i = x.mean(axis=0) * dist_thresh
-    #
-    #     # get final weight vectors
-    #     ck = np.where(dist_vec <= kd_i, c_min, x.mean(axis=0))
-    #     sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
-    #     return ck, sk
     #
     # # TODO: add method combining membership functions
     # def combine_membership_functions(self, **kwargs) -> None:
