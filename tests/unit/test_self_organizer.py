@@ -313,10 +313,10 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         )
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
-        # starting_neurons = sofnn.model.neurons
-        # sofnn.model.compile()
-        # sofnn.organize(x=X_test, y=y_test)
-        # self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
+        starting_neurons = sofnn.model.neurons
+        sofnn.model.compile()
+        sofnn.organize(x=X_test, y=y_test)
+        self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
 
 

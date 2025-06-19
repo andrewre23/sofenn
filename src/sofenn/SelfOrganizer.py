@@ -185,8 +185,9 @@ class FuzzySelfOrganizer(object):
             pass
         # add neuron following algorithm using min dist
         elif not self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
-            #self.add_neuron()
-            pass
+            self.add_neuron(x, y, **kwargs)
+            # TODO: add re-fitting after adding neuron
+            #pass
         # widen centers until if-part satisfied. if if-else not satisfied, reset widths and add neuron
         elif not self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
             #self.widen_centers()
@@ -478,20 +479,20 @@ class FuzzySelfOrganizer(object):
         loss = kwargs.pop('loss', default_loss)
         optimizer = kwargs.pop('optimizer', default_optimizer)
         metrics = kwargs.pop('metrics', default_metrics)
-
         # optimizer = kwargs.pop('optimizer', self.model.optimizer)
         # loss = kwargs.pop('loss', self.model.loss)
         # metrics = kwargs.pop('metrics', self.model.metrics)
-        if 'x' in kwargs:
-            kwargs.pop('x')
-        if 'y' in kwargs:
-            kwargs.pop('y')
-        new_model.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
 
-        new_model.fit(x, y, epochs=1)
+        compile_args = list(inspect.signature(FuzzyNetwork.compile).parameters)
+        compile_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in compile_args}
+
+        fit_args = list(inspect.signature(FuzzyNetwork.fit).parameters)
+        fit_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in fit_args}
+
+        new_model.compile(optimizer=optimizer, loss=loss, metrics=metrics, **compile_dict)
+        new_model.fit(x, y, epochs=1, **fit_dict)
         new_model.set_weights(new_weights)
-        # update neuron attribute
-        #new_model.neurons = new_neurons
+
         return new_model
 
     # def prune_neurons(self, **kwargs) -> bool:
