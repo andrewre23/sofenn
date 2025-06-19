@@ -1,6 +1,7 @@
 from typing import Tuple, Optional
 import inspect
 
+import numpy
 # TODO: remove numpy import
 import numpy as np
 import keras.api.ops as K
@@ -344,7 +345,7 @@ class FuzzySelfOrganizer(object):
 
         return self.if_part_criterion(x)
 
-    def add_neuron(self, x, **kwargs) -> bool:
+    def add_neuron(self, x, y, **kwargs) -> bool:
         """
         Add one additional neuron to the network
             - new FuzzyLayer weights will be added using minimum distance vector calculation
@@ -366,15 +367,21 @@ class FuzzySelfOrganizer(object):
         c_new = np.hstack((c_curr, ck))
         s_new = np.hstack((s_curr, sk))
 
+        # TODO: confirm new logic of adding weights A for new neuron.
+        #       currently taking average of existing weights, but explore other options
+        #       1 - (current) use average of existing weights
+        #       2 - initialize A weights as 0 or 1
         # update a vector to include column of 1s
-        a_add = np.ones((a_curr.shape[0]))
-        a_new = np.column_stack((a_curr, a_add))
+        #a_add = np.ones((a_curr.shape[0]))
+        #a_new = np.column_stack((a_curr, a_add))
+        a_add = a_curr.mean(axis=0)
+        a_new = np.row_stack((a_curr, a_add))
 
         # update weights to include new neurons
         w[0], w[1], w[2] = c_new, s_new, a_new
 
         # update model and neurons
-        self.model = self.rebuild_model(new_weights=w, new_neurons=self.model.neurons + 1, **kwargs)
+        self.model = self.rebuild_model(x=x, y=y, new_weights=w, new_neurons=self.model.neurons + 1, **kwargs)
         #self.model = self.network.model
 
         #if self.__debug:
@@ -426,19 +433,20 @@ class FuzzySelfOrganizer(object):
         return ck, sk
 
     def rebuild_model(self,
-                      new_weights: np.ndarray,
+                      x: np.ndarray,
+                      y: np.ndarray,
+                      new_weights: list[numpy.ndarray],
                       new_neurons: int,
-                      **kwargs) -> Model:
+                      **kwargs) -> FuzzyNetwork:
         """
         Create updated FuzzyNetwork by adding or pruning neurons and updating to new weights
         """
         # get config from current model and update output_dim of neuron layers
         config = self.model.get_config()
         config['neurons'] = new_neurons
+        # TODO: add keras.backend.clear_session() to reuse same name for new model instead of renaming new version
+        config['name'] = config['name'] + '_NEW'
 
-        # TODO: edit to update layer output dims based on current shape for each layer
-        #       for layer in self.model.get_layers(): print(layer.get_config())
-        #       - potentially add output_dim to config?
         # for layer in config['layers']:
         #     if 'output_dim' in layer['config']:
         #         layer['config']['output_dim'] = new_neurons
@@ -449,8 +457,9 @@ class FuzzySelfOrganizer(object):
         #                   'WeightedLayer': WeightedLayer,
         #                   'OutputLayer': OutputLayer}
         # new_model = Model.from_config(config, custom_objects=custom_objects)
-        # new_model.set_weights(new_weights)
+        #
         new_model = FuzzyNetwork(**config)
+        #new_model.set_weights(new_weights)
 
         # recompile model based on current model parameters
         if self.model.problem_type == 'classification':
@@ -473,8 +482,14 @@ class FuzzySelfOrganizer(object):
         # optimizer = kwargs.pop('optimizer', self.model.optimizer)
         # loss = kwargs.pop('loss', self.model.loss)
         # metrics = kwargs.pop('metrics', self.model.metrics)
+        if 'x' in kwargs:
+            kwargs.pop('x')
+        if 'y' in kwargs:
+            kwargs.pop('y')
         new_model.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
 
+        new_model.fit(x, y, epochs=1)
+        new_model.set_weights(new_weights)
         # update neuron attribute
         #new_model.neurons = new_neurons
         return new_model
