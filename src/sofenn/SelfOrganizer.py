@@ -184,10 +184,10 @@ class FuzzySelfOrganizer(object):
             #self.widen_centers()
             pass
         # add neuron following algorithm using min dist
+        # and retrain after adding neuron
         elif not self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
             self.add_neuron(x, y, **kwargs)
-            # TODO: add re-fitting after adding neuron
-            #pass
+            self.model.fit(x, y, **kwargs)
         # widen centers until if-part satisfied. if if-else not satisfied, reset widths and add neuron
         elif not self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
             #self.widen_centers()
