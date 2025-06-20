@@ -181,8 +181,7 @@ class FuzzySelfOrganizer(object):
             self.model.fit(x, y, **kwargs)
         # widen MF widths to cover input vector of MF with lowest value
         elif self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
-            #self.widen_centers()
-            pass
+            self.widen_centers(x)
         # add neuron following algorithm using min dist
         # and retrain after adding neuron
         elif not self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
