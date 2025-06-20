@@ -339,29 +339,47 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
 
-        # sofnn.model.fuzz.set_weights(
-        #     [numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()]
-        # )
-        # starting_weights = sofnn.model.fuzz.get_weights()
-        # sofnn.organize(X_test)
-        # self.assertFalse(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
-        # self.assertTrue(
-        #     np.allclose(
-        #         sofnn.model.fuzz.get_weights(),
-        #         [
-        #             numpy.array([[1., 1., 1.],
-        #                          [1., 1., 1.],
-        #                          [1., 1., 1.],
-        #                          [1., 1., 1.]]),
-        #             numpy.array([[4.3634925, 1., 1.],
-        #                          [4.3634925, 1., 1.],
-        #                          [3.8959754, 1., 1.],
-        #                          [3.8959754, 1., 1.]])
-        #         ]
-        #     )
-        # )
+        # CASE 4A - WIDEN CENTERS AND NO NEED TO ADD NEURON
+        # ERROR -> BAD
+        # IF-PART -> BAD
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            ifpart_threshold=0.9,
+            ifpart_samples=0.99,
+            err_delta=0.1,
+            max_widens=250
+        )
+        self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
+        self.assertFalse(sofnn.if_part_criterion(X_test))
+        starting_neurons = sofnn.model.neurons
+        starting_weights = sofnn.model.get_weights()
+        sofnn.model.compile()
+        sofnn.organize(x=X_test, y=y_test)
+        self.assertTrue(sofnn.model.neurons == starting_neurons)
+        final_weights = sofnn.model.get_weights()
+        self.assertFalse(np.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
+        self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
+        self.assertTrue(sofnn.if_part_criterion(X_test))
 
-
+        # CASE 4B - ADD NEURON AFTER WIDENING CENTERS FAILS
+        # ERROR -> BAD
+        # IF-PART -> BAD
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            ifpart_threshold=0.9,
+            ifpart_samples=0.99,
+            err_delta=0.1,
+            max_widens=0,
+            epochs=100
+        )
+        self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
+        self.assertFalse(sofnn.if_part_criterion(X_test))
+        starting_neurons = sofnn.model.neurons
+        sofnn.model.compile()
+        sofnn.organize(x=X_test, y=y_test)
+        self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
+        self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
+        self.assertFalse(sofnn.if_part_criterion(X_test))
 
 
     # def test_init_with_features_and_input_shape(self):

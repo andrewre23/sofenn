@@ -170,9 +170,6 @@ class FuzzySelfOrganizer(object):
         - check on system error and if-part criterion
         - add neurons or prune if needed
         """
-        # create simple alias for self.model
-        fuzzy_net = self.model
-
         if 'epochs' not in kwargs:
             kwargs['epochs'] = 10
 
@@ -189,31 +186,13 @@ class FuzzySelfOrganizer(object):
             self.model.fit(x, y, **kwargs)
         # widen centers until if-part satisfied. if if-else not satisfied, reset widths and add neuron
         elif not self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
-            #self.widen_centers()
-            # if not self.if_part_criterion(x):
-            #   self.reset_widths()
-            #   self.add_neuron()
-            pass
-
-        # get copy of initial fuzzy weights
-        start_weights = fuzzy_net.fuzz.get_weights()
-
-        # widen centers if necessary
-        if not self.if_part_criterion(x):
+            original_weights = self.model.get_weights()
             self.widen_centers(x)
+            if not self.if_part_criterion(x):
+                self.model.set_weights(original_weights)
+                self.add_neuron(x, y, **kwargs)
+                self.model.fit(x, y, **kwargs)
 
-        # # add neuron if necessary
-        # if not fuzzy_net.error_criterion():
-        #     # reset fuzzy weights if previously widened before adding
-        #     curr_weights = fuzzy_net.get_layer_weights(1)
-        #     if not np.array_equal(start_weights, curr_weights):
-        #         fuzzy_net.get_layer(1).set_weights(start_weights)
-        #
-        #     # add neuron and retrain model (if added)
-        #     added = self.add_neuron(**kwargs)
-        #     if added:
-        #         self.train_model(**kwargs)
-        #
         # # prune neurons and retrain model (if pruned)
         # pruned = self.prune_neurons(**kwargs)
         # if pruned:
