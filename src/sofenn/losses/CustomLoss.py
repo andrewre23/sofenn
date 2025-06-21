@@ -8,7 +8,9 @@ logger = logging.getLogger(__name__)
 
 class CustomLoss(Loss):
     """
-    Custom loss function.
+    Custom Loss Function
+    ====================
+    Measures loss as half of the square of the error.
 
     E = exp{-sum[i=1,j; 1/2 * [pred(j) - test(j)]^2]}
     """

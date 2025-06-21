@@ -17,20 +17,19 @@ class FuzzyNetwork(Model):
     """
     Fuzzy Network
     =============
+    Neural network using fuzzy logic modeling.
 
     -Implemented per description in:
         "An on-line algorithm for creating self-organizing
         fuzzy neural networks" - Leng, Prasad, McGinnity (2004)
-    -Composed of 5 layers with varying "fuzzy rule" nodes.
+    -Composed of 5 layers with varying "fuzzy rule" nodes (neurons).
 
-    Parameters
-    ==========
     :param input_shape: Shape of input tensor.
     :param features: Number of features for input data.
     :param neurons: Number of neurons to use. Each one represents fuzzy neuron (if/then) operator.
     :param problem_type: Either 'classification' or 'regression' problem.
     :param target_classes: Optional number of classes in target data.
-    :param name: Name of network (default: FuzzyNetwork).
+    :param name: Name of network (default: 'FuzzyNetwork').
     """
     def __init__(
             self,
@@ -70,8 +69,7 @@ class FuzzyNetwork(Model):
                 raise ValueError("Must specify more than 1 target class if 'problem_type' is 'classification'.")
         self.target_classes = None if self.problem_type == 'regression' else target_classes
 
-        if 'name' not in kwargs:
-            kwargs['name'] = name
+        kwargs['name'] = kwargs.get('name', name)
 
         self.inputs = Input(name='Inputs', shape=(self.features,))
         self.fuzz = FuzzyLayer(shape=(self.features,), neurons=self.neurons)
@@ -173,18 +171,18 @@ class FuzzyNetwork(Model):
             default_loss = MeanSquaredError()
             default_optimizer = RMSprop()
             default_metrics = [Accuracy()]
-        loss = kwargs.pop('loss', default_loss)
-        optimizer = kwargs.pop('optimizer', default_optimizer)
-        metrics = kwargs.pop('metrics', default_metrics)
 
-        super().compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
+        kwargs['loss'] = kwargs.get('loss', default_loss)
+        kwargs['optimizer'] = kwargs.get('optimizer', default_optimizer)
+        kwargs['metrics'] = kwargs.get('metrics', default_metrics)
+        super().compile(**kwargs)
 
     def fit(self, *args, **kwargs):
         if not self.built:
             logger.debug('FuzzyNetwork cannot be built until seeing training data.')
 
         kwargs['verbose'] = kwargs.get('verbose', 1)
-        kwargs['epochs'] = kwargs.get('epochs', 100)
+        kwargs['epochs'] = kwargs.get('epochs', 10)
         kwargs['batch_size'] = kwargs.get('batch_size', 32)
 
         # add callback to instantiate fuzzy weights unless already provided
