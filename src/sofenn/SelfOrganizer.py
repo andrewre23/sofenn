@@ -249,8 +249,6 @@ class FuzzySelfOrganizer(object):
         # return True if proportion of samples above threshold is at least required sample proportion
         return (maxes.sum() / len(maxes)) >= self.ifpart_samples
 
-    # TODO: refactor to function instead of method?
-    #       f(weights, x) -> f([c, s], x) => min_dist_vect ?
     def minimum_distance_vector(self, x) -> np.ndarray:
         """
         Get minimum distance vector
@@ -273,7 +271,7 @@ class FuzzySelfOrganizer(object):
         # average the minimum distance across samples
         return np.abs(aligned_x - aligned_c).mean(axis=0)
 
-    def duplicate_model(self) -> Model:
+    def duplicate_model(self) -> FuzzyNetwork:
         """
         Create duplicate model as FuzzyNetwork with identical weights
         """

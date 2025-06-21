@@ -1,10 +1,9 @@
 from typing import Optional
 
-import keras
 from keras.api.layers import Input, Dense
+from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
 from keras.api.models import Model
 from keras.api.optimizers import Adam, RMSprop
-from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
 
 from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
@@ -94,8 +93,8 @@ class FuzzyNetwork(Model):
     def call(self, inputs):
         """
         Call model.
-        Note: keras.Model subclasses are not built until executing '.call()', as the model requires
-        visibility into the input data to properly initialize.
+        Note: keras.Model subclasses are not built until executing '.call()',
+        as the model requires visibility into the input data to properly initialize.
 
         Layers
         ======
