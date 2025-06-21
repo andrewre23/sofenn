@@ -2,10 +2,7 @@ from typing import List, Optional
 
 import keras.api.ops as K
 import keras.src.backend as k
-import numpy as np
 from keras.api.layers import Layer
-
-from sofenn.layers.utils import fixed_shape
 
 
 class WeightedLayer(Layer):

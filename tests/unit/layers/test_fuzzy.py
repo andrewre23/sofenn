@@ -4,7 +4,7 @@ from absl.testing import parameterized
 from keras.src import testing
 
 from sofenn.layers import FuzzyLayer
-from sofenn.layers.utils import get_fuzzy_output_shape
+from sofenn.utils.layers import get_fuzzy_output_shape
 
 SHAPE_1D = (10,)
 SAMPLES = (100,)

@@ -4,7 +4,7 @@ import keras.api.ops as K
 import keras.src.backend as k
 from keras.api.layers import Layer
 
-from sofenn.layers.utils import get_fuzzy_output_shape
+from sofenn.utils.layers import get_fuzzy_output_shape
 
 
 class FuzzyLayer(Layer):
