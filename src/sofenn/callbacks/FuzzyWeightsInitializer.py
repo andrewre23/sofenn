@@ -1,7 +1,9 @@
 import logging
 
+import keras.api.ops as K
 import numpy
 from keras.api.callbacks import Callback
+from numpy.typing import ArrayLike
 
 from sofenn.layers import FuzzyLayer
 
@@ -24,6 +26,7 @@ class FuzzyWeightsInitializer(Callback):
 
     def on_train_begin(self, logs=None):
         logger.debug('Initializing Fuzzy Weights prior to training.')
+
         if not isinstance(self.model.get_layer(self.layer_name), FuzzyLayer):
             raise ValueError(f'Initializer must be used on FuzzyLayer. Attempted to use: '
                              f'name={self.layer_name} type={type(self.model.get_layer(self.layer_name))}.')
@@ -37,11 +40,11 @@ class FuzzyWeightsInitializer(Callback):
             self._initialize_centers(sample_data=self.sample_data, random_sample=self.random_sample)
             self._initialize_widths(s_0=self.s_0)
 
-    def _initialize_centers(self, sample_data: numpy.ndarray, random_sample: bool = True) -> None:
+    def _initialize_centers(self, sample_data: ArrayLike, random_sample: bool = True) -> None:
         """
         Initialize neuron center weights with samples from sample dataset.
 
-        :param sample_data: Numpy Array with sample of input data.
+        :param sample_data: Array of sample data.
         :param random_sample: If True, randomly sample weights. If False, take first n (# neurons) records.
         """
         if random_sample:
@@ -70,7 +73,7 @@ class FuzzyWeightsInitializer(Callback):
         c, s = self.model.get_layer(self.layer_name).get_weights()
 
         # repeat s_0 value to array shaped like s
-        s_init = numpy.repeat(s_0, s.size).reshape(s.shape)
+        s_init = K.repeat(s_0, s.size).numpy().reshape(s.shape)
 
         # set weights
         start_weights = [c, s_init]
