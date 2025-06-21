@@ -197,9 +197,8 @@ class FuzzySelfOrganizer(object):
         if pruned:
             self.model.fit(x, y, **kwargs)
 
-        # # check if needing to combine membership functions
-        # self.combine_membership_functions(**kwargs)
-        #
+        # combine membership functions where appropriate
+        #self.combine_membership_functions(**kwargs)
 
     def error_criterion(self, y_true, y_pred) -> bool:
         """
@@ -410,12 +409,7 @@ class FuzzySelfOrganizer(object):
         sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
         return ck, sk
 
-    def rebuild_model(self,
-                      x: np.ndarray,
-                      y: np.ndarray,
-                      new_weights: list[numpy.ndarray],
-                      new_neurons: int,
-                      **kwargs) -> FuzzyNetwork:
+    def rebuild_model(self,x, y, new_weights: list[numpy.ndarray], new_neurons: int, **kwargs) -> FuzzyNetwork:
         """
         Create updated FuzzyNetwork by adding or pruning neurons and updating to new weights
         """
@@ -563,9 +557,8 @@ class FuzzySelfOrganizer(object):
         print(f'{len(to_delete)} neurons successfully pruned! - {self.model.neurons} current neurons...')
         return True
 
-    # # TODO: add method combining membership functions
-    # def combine_membership_functions(self, **kwargs) -> None:
-    #     """
-    #     Function to combine redundant membership functions to simplify training parameters
-    #     """
-    #     pass
+    def combine_membership_functions(self, **kwargs) -> None:
+        """
+        Combine redundant membership functions to simplify training parameters
+        """
+        raise NotImplementedError
