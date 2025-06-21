@@ -1,13 +1,11 @@
 import logging
 
-import keras
 import keras.api.ops as K
 from keras.src.losses import Loss
 
 logger = logging.getLogger(__name__)
 
 
-@keras.saving.register_keras_serializable()
 class CustomLoss(Loss):
     """
     Custom loss function.

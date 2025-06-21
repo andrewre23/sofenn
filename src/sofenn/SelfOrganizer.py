@@ -5,16 +5,16 @@ from typing import Tuple, Optional
 import numpy
 # TODO: remove numpy import
 import numpy as np
+from numpy.typing import ArrayLike
 import keras.api.ops as K
 import keras.src.backend as k
-from keras.api.models import clone_model, Model
+from keras.api.models import clone_model
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from keras.api.optimizers import Adam, RMSprop
 from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
 from sofenn.losses import CustomLoss
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
-from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 
 logger = logging.getLogger(__name__)
 

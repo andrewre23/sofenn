@@ -3,7 +3,6 @@ import logging
 import keras.api.ops as K
 import numpy
 from keras.api.callbacks import Callback
-from numpy.typing import ArrayLike
 
 from sofenn.layers import FuzzyLayer
 
@@ -13,9 +12,9 @@ logger = logging.getLogger(__name__)
 class FuzzyWeightsInitializer(Callback):
     def __init__(
             self,
-            sample_data,
-            random_sample=True,
-            s_0 = 4.0,
+            sample_data: numpy.ndarray,
+            random_sample: bool = True,
+            s_0: float = 4.0,
             layer_name: str = 'FuzzyRules'
     ):
         super().__init__()
@@ -40,7 +39,7 @@ class FuzzyWeightsInitializer(Callback):
             self._initialize_centers(sample_data=self.sample_data, random_sample=self.random_sample)
             self._initialize_widths(s_0=self.s_0)
 
-    def _initialize_centers(self, sample_data: ArrayLike, random_sample: bool = True) -> None:
+    def _initialize_centers(self, sample_data: numpy.ndarray, random_sample: bool = True) -> None:
         """
         Initialize neuron center weights with samples from sample dataset.
 
@@ -50,7 +49,7 @@ class FuzzyWeightsInitializer(Callback):
         if random_sample:
             # set centers as random sampled index values
             samples = numpy.random.randint(0, len(sample_data), self.model.neurons)
-            x_i = numpy.array([sample_data[samp] for samp in samples])
+            x_i = numpy.array([sample_data[s] for s in samples])
         else:
             # take first few samples, one for each neuron
             x_i = sample_data[:self.model.neurons]
