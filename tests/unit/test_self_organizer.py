@@ -65,6 +65,12 @@ class FuzzySelfOrganizerTest(testing.TestCase):
     def test_input_validation(self):
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
+                name='MaxLoopsLessThanZero',
+                max_loops=-1,
+            ))
+
+        with self.assertRaises(ValueError):
+            FuzzySelfOrganizer(**_params(
                 name='MaxNeuronsLessThanInitialNeurons',
                 max_neurons=DEFAULTS['neurons'] - 1,
             ))
@@ -289,6 +295,51 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 )
             )
 
+    def test_prune_neuron(self):
+        X_train, _, y_train, _ = _get_training_data()
+
+        sofnn = FuzzySelfOrganizer(
+            model=FuzzyNetwork(**_params(
+                name='OneNeuron',
+                neurons=1
+            ))
+        )
+        self.assertFalse(sofnn.prune_neurons(X_train, y_train))
+
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+        )
+        sofnn.model.compile()
+        starting_neurons = sofnn.model.neurons
+        self.assertFalse(sofnn.prune_neurons(X_train, y_train))
+        self.assertTrue(starting_neurons >= sofnn.model.neurons)
+
+        # only 1 neuron above threshold to prune
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            prune_threshold=0.99,
+            k_rmse=0.4390
+        )
+        sofnn.model.compile()
+        starting_neurons = sofnn.model.neurons
+        self.assertTrue(sofnn.prune_neurons(X_train, y_train))
+        self.assertTrue(sofnn.model.neurons == starting_neurons - 1)
+
+        # prune all but last neuron
+        sofnn = FuzzySelfOrganizer(
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            prune_threshold=0.99,
+            k_rmse=5
+        )
+        sofnn.model.compile()
+        starting_neurons = sofnn.model.neurons
+        self.assertTrue(sofnn.prune_neurons(X_train, y_train))
+        self.assertTrue(sofnn.model.neurons == starting_neurons - 2 == 1)
+
+    def test_combine_membership_functions(self):
+        with self.assertRaises(NotImplementedError):
+            FuzzySelfOrganizer(model=FuzzyNetwork(**_params())).combine_membership_functions()
+
     def test_organize(self):
         X_train, X_test, y_train, y_test = _get_training_data()
 
@@ -338,7 +389,6 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         sofnn.organize(x=X_test, y=y_test, epochs=1)
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
-
         # CASE 4A - WIDEN CENTERS AND NO NEED TO ADD NEURON
         # ERROR -> BAD
         # IF-PART -> BAD
@@ -381,47 +431,64 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
 
-    def test_prune_neuron(self):
-        X_train, _, y_train, _ = _get_training_data()
-
-        sofnn = FuzzySelfOrganizer(
-            model=FuzzyNetwork(**_params(
-                name='OneNeuron',
-                neurons=1
-            ))
-        )
-        self.assertFalse(sofnn.prune_neurons(X_train, y_train))
-
-        sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
-        )
-        sofnn.model.compile()
-        starting_neurons = sofnn.model.neurons
-        self.assertFalse(sofnn.prune_neurons(X_train, y_train))
-        self.assertTrue(starting_neurons >= sofnn.model.neurons)
-
-        # only 1 neuron above threshold to prune
+        # CASE 5 - PRUNE NEURON
+        # ERROR -> BAD
+        # IF-PART -> BAD
         sofnn = FuzzySelfOrganizer(
             model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            ifpart_threshold=0.9,
+            ifpart_samples=0.99,
+            err_delta=0.1,
+            max_widens=0,
             prune_threshold=0.99,
-            k_rmse=0.4390
+            k_rmse=5,
+            epochs=3
         )
-        sofnn.model.compile()
+        self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
+        self.assertFalse(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
-        self.assertTrue(sofnn.prune_neurons(X_train, y_train))
-        self.assertTrue(sofnn.model.neurons == starting_neurons - 1)
-
-        # prune all but last neuron
-        sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
-            prune_threshold=0.99,
-            k_rmse=5
-        )
         sofnn.model.compile()
-        starting_neurons = sofnn.model.neurons
-        self.assertTrue(sofnn.prune_neurons(X_train, y_train))
+        sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons - 2 == 1)
+        self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
+        self.assertFalse(sofnn.if_part_criterion(X_test))
 
-    def test_combine_membership_functions(self):
-        with self.assertRaises(NotImplementedError):
-            FuzzySelfOrganizer(model=FuzzyNetwork(**_params())).combine_membership_functions()
+    def test_self_organize(self):
+        X_train, X_test, y_train, y_test = _get_training_data()
+
+        sofnn = FuzzySelfOrganizer(
+            name='FailToOrganize',
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            max_loops=5,
+            epochs=1
+        )
+        starting_neurons = sofnn.model.neurons
+        sofnn.model.compile()
+        self.assertFalse(sofnn.self_organize(X_test, y_test, epochs=1))
+        self.assertTrue(sofnn.model.neurons > starting_neurons)
+
+        sofnn = FuzzySelfOrganizer(
+            name='StopAtMaxNeurons',
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            max_loops=5,
+            max_neurons=3,
+            epochs=1
+        )
+        starting_neurons = sofnn.model.neurons
+        sofnn.model.compile()
+        self.assertFalse(sofnn.self_organize(X_test, y_test, epochs=1))
+        self.assertTrue(sofnn.model.neurons > starting_neurons)
+
+        sofnn = FuzzySelfOrganizer(
+            name='SuccessfullyOrganize',
+            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras'),
+            max_loops=3,
+            err_delta=0.99,
+            epochs=5
+        )
+        self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
+        self.assertTrue(sofnn.if_part_criterion(X_test))
+        starting_neurons = sofnn.model.neurons
+        sofnn.model.compile()
+        self.assertTrue(sofnn.self_organize(X_test, y_test, epochs=5))
+        self.assertTrue(sofnn.model.neurons == starting_neurons)

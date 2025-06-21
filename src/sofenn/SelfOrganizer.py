@@ -75,6 +75,7 @@ class FuzzySelfOrganizer(object):
 
     def __init__(self,
                  model: Optional[FuzzyNetwork] = None,
+                 max_loops: int = 10,
 
                  max_neurons: int = 100,            # maximum neurons during organizing
                  ifpart_threshold: float = 0.1354,  # if-part threshold
@@ -88,6 +89,11 @@ class FuzzySelfOrganizer(object):
 
                  **kwargs
                  ):
+
+        # max number of neurons
+        if max_loops < 0:
+            raise ValueError(f"Maximum organizing loops cannot be less than 0.")
+        self.max_loops = max_loops
 
         # max number of neurons
         init_neurons = kwargs.get('neurons', inspect.signature(FuzzyNetwork).parameters['neurons'].default)
@@ -128,40 +134,44 @@ class FuzzySelfOrganizer(object):
 
         self.model = FuzzyNetwork(**kwargs) if model is None else model
 
-    # def self_organize(self, **kwargs) -> None:
-    #     """
-    #     Main run function to handle organization logic
-    #
-    #     - Train initial model in parameters then begin self-organization
-    #     - If fails If-Part test, widen rule widths
-    #     - If still fails, reset to original widths
-    #         then add neuron and retrain weights
-    #     """
-    #     # initial training of model - yields predictions
-    #     print('Beginning model training...')
-    #     self.model.fit(**kwargs)
-    #
-    #     # set organization iterations counter
-    #     org_ints = 1
-    #
-    #     # run update logic until passes criterion checks
-    #     while not self.error_criterion() and not self.if_part_criterion():
-    #         print('Organization iteration {}...'.format(org_ints))
-    #
-    #         # run criterion checks and organize accordingly
-    #         self.organize(**kwargs)
-    #
-    #         # quit if above max neurons allowed
-    #         if self.model.neurons >= self.max_neurons:
-    #             print('Maximum neurons reached')
-    #             print('Terminating self-organizing process')
-    #
-    #         # increase counter
-    #         org_ints += 1
-    #
-    #     # print terminal message if successfully organized
-    #     print('Self-Organization complete!')
-    #     print('If-Part Criterion and Error Criterion both satisfied')
+    def self_organize(self, x, y, **kwargs) -> bool:
+        """
+        Main run function to handle organization logic
+
+        - Train initial model in parameters then begin self-organization
+        - If fails If-Part test, widen rule widths
+        - If still fails, reset to original widths
+            then add neuron and retrain weights
+        """
+        # initial training of model - yields predictions
+        print('Beginning model training...')
+        self.model.fit(x, y, **kwargs)
+
+        # set organization iterations counter
+        org_ints = 1
+
+        # run update logic until passes criterion checks
+        while not (self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x)):
+            if org_ints > self.max_loops:
+                break
+
+            print('Organization iteration {}...'.format(org_ints))
+
+            # run criterion checks and organize accordingly
+            self.organize(x, y, **kwargs)
+
+            # quit if above max neurons allowed
+            if self.model.neurons >= self.max_neurons:
+                print('Maximum neurons reached')
+                print('Terminating self-organizing process')
+                break
+
+            # increase counter
+            org_ints += 1
+
+        # print terminal message if successfully organized
+        print('Self-Organization complete!')
+        return self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x)
 
     def organize(self, x, y, **kwargs) -> None:
         """
