@@ -7,11 +7,10 @@ import numpy as np
 import keras.api.ops as K
 import keras.src.backend as k
 from keras.api.models import clone_model, Model
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from keras.api.optimizers import Adam, RMSprop
 from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
 from sofenn.losses import CustomLoss
-
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
@@ -193,11 +192,11 @@ class FuzzySelfOrganizer(object):
                 self.add_neuron(x, y, **kwargs)
                 self.model.fit(x, y, **kwargs)
 
-        # # prune neurons and retrain model (if pruned)
-        # pruned = self.prune_neurons(**kwargs)
-        # if pruned:
-        #     self.train_model(**kwargs)
-        #
+        # prune neurons and retrain model (if pruned)
+        pruned = self.prune_neurons(x, y, **kwargs)
+        if pruned:
+            self.model.fit(x, y, **kwargs)
+
         # # check if needing to combine membership functions
         # self.combine_membership_functions(**kwargs)
         #
@@ -473,114 +472,97 @@ class FuzzySelfOrganizer(object):
 
         return new_model
 
-    # def prune_neurons(self, **kwargs) -> bool:
-    #     """
-    #     Prune any unimportant neurons per effect on RMSE
-    #     """
-    #     if self.__debug:
-    #         print('Pruning neurons...')
-    #
-    #     # create simple alias for self.network
-    #     fuzzy_net = self.network
-    #
-    #     # quit if only 1 neuron exists
-    #     if fuzzy_net.neurons == 1:
-    #         if self.__debug:
-    #             print('Skipping pruning steps - only 1 neuron exists')
-    #         return False
-    #
-    #     # get current training predictions
-    #     preds = self.model.predict(fuzzy_net.X_train)
-    #
-    #     # calculate mean-absolute-error on training data
-    #     E_rmse = mean_squared_error(fuzzy_net.y_train, preds)
-    #
-    #     # create duplicate model and get both sets of model weights
-    #     prune_model = self.duplicate_model()
-    #     act_weights = self.model.get_weights()
-    #
-    #     # for each neuron, zero it out in prune model
-    #     # and get change in mae for dropping neuron
-    #     delta_E = []
-    #     for neuron in range(fuzzy_net.neurons):
-    #         # reset prune model weights to actual weights
-    #         prune_model.set_weights(act_weights)
-    #
-    #         # get current prune weights
-    #         w = prune_model.get_weights()
-    #         # zero our i neuron column in weighted vector
-    #         a = w[2]
-    #         a[:, neuron] = 0
-    #         prune_model.set_weights(w)
-    #
-    #         # predict values with new zeroed out weights
-    #         neur_pred = prune_model.predict(fuzzy_net.X_train)
-    #         neur_rmae = mean_absolute_error(fuzzy_net.y_train, neur_pred)
-    #
-    #         # append difference in rmse and new prediction rmse
-    #         delta_E.append(neur_rmae - E_rmse)
-    #
-    #     # convert delta_E to numpy array
-    #     delta_E = np.array(delta_E)
-    #     # choose max of tolerance or threshold limit
-    #     E = max(self._prune_tol * E_rmse, self._k_rmse)
-    #
-    #     # iterate over each neuron in ascending importance
-    #     # and prune until hit "important" neuron
-    #     deleted = []
-    #     # for each neuron up to second most important
-    #     for neuron in delta_E.argsort()[:-1]:
-    #         # reset prune model weights to actual weights
-    #         prune_model.set_weights(act_weights)
-    #
-    #         # get current prune weights
-    #         w = prune_model.get_weights()
-    #         a = w[2]
-    #         # zero out previous deleted neurons
-    #         for delete in deleted:
-    #             a[:, delete] = 0
-    #         prune_model.set_weights(w)
-    #
-    #         # predict values with new zeroed out weights
-    #         neur_pred = prune_model.predict(fuzzy_net.X_train)
-    #         E_rmae_del = mean_absolute_error(fuzzy_net.y_train, neur_pred)
-    #
-    #         # if E_mae_del < E
-    #         # delete neuron
-    #         if E_rmae_del < E:
-    #             deleted.append(neuron)
-    #             continue
-    #         # quit deleting if >= E
-    #         else:
-    #             break
-    #
-    #     # exit if no neurons to be deleted
-    #     if not deleted:
-    #         if self.__debug:
-    #             print('No neurons detected for pruning')
-    #         return False
-    #     else:
-    #         if self.__debug:
-    #             print('Neurons to be deleted: ')
-    #             print(deleted)
-    #
-    #     # reset prune model weights to actual weights
-    #     prune_model.set_weights(act_weights)
-    #     # get current prune weights and remove deleted neurons
-    #     w = prune_model.get_weights()
-    #     for i, weight in enumerate(w[:3]):
-    #         w[i] = np.delete(weight, deleted, axis=-1)
-    #
-    #     # update model with updated weights
-    #     self.network.model = self.rebuild_model(new_weights=w, new_neurons=self.network.neurons - len(deleted),
-    #                                             **kwargs)
-    #     self.model = self.network.model
-    #
-    #     if self.__debug:
-    #         print('{} neurons successfully pruned! - {} current neurons...'.
-    #               format(len(deleted), self.network.neurons))
-    #     return True
-    #
+    def prune_neurons(self, x, y, **kwargs) -> bool:
+        """
+        Prune any unimportant neurons per effect on RMSE
+        """
+        print('Pruning neurons...')
+
+        # quit if only 1 neuron exists
+        if self.model.neurons == 1:
+            print('Skipping pruning steps - only 1 neuron exists')
+            return False
+
+        # get current training predictions
+        # calculate mean-absolute-error on training data
+        E_rmse = mean_squared_error(y, self.model.predict(x))
+
+        # create duplicate model and get both sets of model weights
+        prune_model = self.duplicate_model()
+        starting_weights = self.model.get_weights()
+
+        # for each neuron, zero it out in prune model
+        # and get change in mae for dropping neuron
+        delta_E = []
+        for neuron in range(self.model.neurons):
+            # reset prune model weights to actual weights
+            prune_model.set_weights(starting_weights)
+
+            # get current prune weights
+            w = prune_model.get_weights()
+            # zero our i neuron column in weighted vector
+            a = w[2]
+            a[neuron, :] = 0
+            prune_model.set_weights(w)
+
+            # predict values with new zeroed out weights
+            neuron_rmae = mean_absolute_error(y, prune_model.predict(x))
+
+            # append difference in rmse and new prediction rmse
+            delta_E.append(neuron_rmae - E_rmse)
+
+        # convert delta_E to numpy array
+        delta_E = np.array(delta_E)
+        # choose max of tolerance or threshold limit
+        E = max(self.prune_tol * E_rmse, self.k_rmse)
+
+        # iterate over each neuron in ascending importance
+        # and prune until hit "important" neuron
+        to_delete = []
+        # for each neuron excluding most important
+        for neuron in delta_E.argsort()[:-1]:
+            # reset prune model weights to actual weights
+            prune_model.set_weights(starting_weights)
+
+            # get current prune weights
+            w = prune_model.get_weights()
+            a = w[2]
+            # zero out previous deleted neurons
+            a[neuron, :] = 0
+            prune_model.set_weights(w)
+
+            # predict values with new zeroed out weights
+            E_rmae_del = mean_absolute_error(y, prune_model.predict(x))
+
+            # if E_mae_del < E
+            # delete neuron
+            if E_rmae_del < E:
+                to_delete.append(neuron)
+                continue
+            # quit deleting if >= E
+            else:
+                break
+        # exit if no neurons to be deleted
+        if not to_delete:
+            print('No neurons detected for pruning')
+            return False
+        else:
+            print(f'Neurons to be deleted: {to_delete}')
+
+        # reset prune model weights to actual weights
+        prune_model.set_weights(starting_weights)
+        # get current prune weights and remove deleted neurons
+        w = prune_model.get_weights()
+        for i, weight in enumerate(w[:2]):
+            w[i] = np.delete(weight, to_delete, axis=-1)
+        w[2] = np.delete(w[2], to_delete, axis=0)
+
+        # update model with updated weights
+        self.model = self.rebuild_model(x, y, new_weights=w, new_neurons=self.model.neurons - len(to_delete),**kwargs)
+
+        print(f'{len(to_delete)} neurons successfully pruned! - {self.model.neurons} current neurons...')
+        return True
+
     # # TODO: add method combining membership functions
     # def combine_membership_functions(self, **kwargs) -> None:
     #     """
