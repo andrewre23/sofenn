@@ -3,3 +3,10 @@ tensorflow==2.16.2
 
 # needed for metric imports
 scikit-learn==1.5.2
+
+# TODO: update requirements
+#       can we remove tf requirement
+#       can we use tf gpu in separate requirements for different tests?
+#       can we list numpy as explicit package (even though already bundled in keras)
+#       remove scikit-learn for testing
+#       add build_requirements (scikit-learn if only needed for testing)
