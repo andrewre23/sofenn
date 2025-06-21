@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from keras.api.layers import Input, Dense
@@ -9,8 +10,7 @@ from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 from sofenn.losses import CustomLoss
 
-
-# TODO: update to logging
+logger = logging.getLogger(__name__)
 
 
 class FuzzyNetwork(Model):
@@ -179,7 +179,7 @@ class FuzzyNetwork(Model):
 
     def fit(self, *args, **kwargs):
         if not self.built:
-            print("FuzzyNetwork cannot be built until seeing training data.")
+            logger.debug('FuzzyNetwork cannot be built until seeing training data.')
 
         kwargs['verbose'] = kwargs.get('verbose', 1)
         kwargs['epochs'] = kwargs.get('epochs', 100)
@@ -189,7 +189,8 @@ class FuzzyNetwork(Model):
         x = kwargs['x'] if 'x' in kwargs else args[0]
         if 'callbacks' in kwargs:
             if any([isinstance(cb, FuzzyWeightsInitializer) for cb in kwargs['callbacks']]):
-                print('User already provided Fuzzy Weight Initializer callback.')
+                logger.warning('User already provided Fuzzy Weight Initializer callback. '
+                               'Will use existing Fuzzy Weight Initializer in kwargs.')
             else:
                 kwargs['callbacks'].append(FuzzyWeightsInitializer(sample_data=x))
         else:
