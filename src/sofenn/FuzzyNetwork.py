@@ -32,14 +32,16 @@ class FuzzyNetwork(Model):
     :param target_classes: Optional number of classes in target data.
     :param name: Name of network (default: FuzzyNetwork).
     """
-    def __init__(self,
-                 input_shape: Optional[tuple] = None,
-                 features: Optional[int] = None,
-                 neurons: int = 1,
-                 problem_type: str = 'classification',
-                 target_classes: Optional[int] = 1,
-                 name: str = 'FuzzyNetwork',
-                 **kwargs):
+    def __init__(
+            self,
+            input_shape: Optional[tuple] = None,
+            features: Optional[int] = None,
+            neurons: int = 1,
+            problem_type: str = 'classification',
+            target_classes: Optional[int] = 1,
+            name: str = 'FuzzyNetwork',
+            **kwargs
+    ):
         if features is not None and features < 1:
             raise ValueError('At least 1 input feature required.')
         if features is not None and input_shape is not None:

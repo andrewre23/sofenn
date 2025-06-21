@@ -1,5 +1,6 @@
-from typing import Tuple, Optional
 import inspect
+import logging
+from typing import Tuple, Optional
 
 import numpy
 # TODO: remove numpy import
@@ -15,6 +16,7 @@ from sofenn.losses import CustomLoss
 from sofenn.FuzzyNetwork import FuzzyNetwork
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 
+logger = logging.getLogger(__name__)
 
 class FuzzySelfOrganizer(object):
     """
