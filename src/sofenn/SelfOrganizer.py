@@ -5,16 +5,13 @@ from typing import Tuple, Optional
 import numpy
 # TODO: remove numpy import
 import numpy as np
-from numpy.typing import ArrayLike
-import keras.api.ops as K
-import keras.src.backend as k
-from keras.api.models import clone_model
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from keras.api.optimizers import Adam, RMSprop
 from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
-from sofenn.losses import CustomLoss
+from keras.api.models import clone_model
+from keras.api.optimizers import Adam, RMSprop
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
+from sofenn.losses import CustomLoss
 
 logger = logging.getLogger(__name__)
 
@@ -22,76 +19,64 @@ class FuzzySelfOrganizer(object):
     """
     Self-Organizing Fuzzy Neural Network
     ====================================
-
-    Organizer
-    =========
+    Meta-model for fuzzy neural network that updates model architecture in addition to parameter tuning.
 
     -Implemented per description in:
         "An on-line algorithm for creating self-organizing
         fuzzy neural networks" - Leng, Prasad, McGinnity (2004)
     -Composed of 5 layers with varying "fuzzy rule" nodes
 
-    Attributes
-    ==========
-    - ksig : float
-        - factor to widen centers
-    - max_widens : int
-        - max iterations for widening centers
-    - prune_tol : float
-        - tolerance limit for RMSE (0 < lambda < 1)
-    - k_mae : float
-        - expected RMSE for error when pruning neurons
-    - debug : debug flag
+    :param max_neurons: Maximum neurons allowed during organizing.
+    :param ifpart_threshold: If-Part threshold.
+    :param ifpart_samples: If-Part samples.
+    :param err_delta: Error delta.
+    :param k_sig: Widening factor during center-widening.
+    :param max_widens: Maximum number of center-widening loops.
+    :param prune_tol: Pruning tolerance limit of total root mean squared error.
+    :param k_rmse: Expected root mean squared error when pruning neurons.
 
     Methods
     =======
-    - self_organize :
-        - main method for network to learn optimal network structure
-    - organize :
-        - one iteration of logic to test network structure
-    - build_network :
-        - create and initialize FuzzyNetwork object
-    - build_model :
-        - build fuzzy network
-    - compile_model :
-        - compile fuzzy network
-    - train_model :
-        - train fuzzy network on currently set training data
-    - recompile_model :
-        - recompile already existing model after modifications
-    - duplicate_model :
-        - create copy of model for safely modifying original model
-    - widen_centers :
-        - widen centers of membership functions to better cluster the dataset
-    - add_neuron :
-        - add new neuron to network
-    - new_neuron_weights :
-        - yield neuron weights to use when adding new neuron
-    - min_dist_vector :
-        - calculate minimum distance vector for calculating new neuron weights
-    - prune_neurons :
-        - remove unnecessary neurons from network architecture
-    - combine_membership_functions :
-        - combine similar membership functions to simplify network
+    self_organize:
+        Run self-organizing logic to determine optimal network structure.
+    organize:
+        One iteration of self-organizing logic.
+    error_criterion:
+        Check the error criterion for the neuron-adding process.
+        Criterion considers generalization performance of the model.
+    if_part_criterion:
+        Check the if-part criterion for the neuron-adding process.
+        Criterion considers whether current fuzzy rules suitably cover inputs.
+    minimum_distance_vector:
+        Calculate minimum distance vector.
+    duplicate_model:
+        Yield a duplicate fuzzy neural network model with identical weights.
+    widen_centers:
+        Widen the neuron centers to better cover input data.
+    add_neuron:
+        Add one neuron to the network.
+    new_neuron_weights:
+        Return new centers and widths for new fuzzy neuron.
+    rebuild_model:
+        Create updated fuzzy network when adding or pruning neurons, and update weights.
+    prune_neurons:
+        Prune any unimportant neurons as measured by their contribution to root mean squared error.
     """
 
-    def __init__(self,
-                 model: Optional[FuzzyNetwork] = None,
-                 max_loops: int = 10,
-
-                 max_neurons: int = 100,            # maximum neurons during organizing
-                 ifpart_threshold: float = 0.1354,  # if-part threshold
-                 ifpart_samples: float = 0.95,      # percent of samples needed above if-part threshold
-                 err_delta: float = 0.12,           # error delta
-
-                 k_sig: float = 1.12,               # TODO: add definition
-                 max_widens: float = 250,           # adding neuron or widening centers
-                 prune_tol: float = 0.8,            # pruning parameters
-                 k_rmse:float = 0.1,                # TODO: add definition
-
-                 **kwargs
-                 ):
-
+    def __init__(
+            self,
+            model: Optional[FuzzyNetwork] = None,
+            max_loops: int = 10,
+            max_neurons: int = 100,
+            ifpart_threshold: float = 0.1354,
+            ifpart_samples: float = 0.95,
+            err_delta: float = 0.12,
+            k_sig: float = 1.12,
+            max_widens: float = 250,
+            prune_tol: float = 0.8,
+            k_rmse:float = 0.1,
+            **kwargs
+    ):
         # max number of neurons
         if max_loops < 0:
             raise ValueError(f"Maximum organizing loops cannot be less than 0.")
