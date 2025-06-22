@@ -2,7 +2,6 @@ keras==3.6.0
 tensorflow==2.16.2
 
 
-
 # TODO: update requirements
 #       can we remove tf requirement
 #       can we use tf gpu in separate requirements for different tests?
