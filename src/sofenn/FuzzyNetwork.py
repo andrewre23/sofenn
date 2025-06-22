@@ -141,7 +141,7 @@ class FuzzyNetwork(Model):
         raw_output = self.raw(f)
         final_out = raw_output
 
-        # add softmax layer for classification problem
+        # add softmax layer for a classification problem
         if self.problem_type == 'classification':
             classes = self.softmax(raw_output)
             final_out = classes
@@ -180,10 +180,6 @@ class FuzzyNetwork(Model):
     def fit(self, *args, **kwargs):
         if not self.built:
             logger.debug('FuzzyNetwork cannot be built until seeing training data.')
-
-        kwargs['verbose'] = kwargs.get('verbose', 1)
-        kwargs['epochs'] = kwargs.get('epochs', 10)
-        kwargs['batch_size'] = kwargs.get('batch_size', 32)
 
         # add callback to instantiate fuzzy weights unless already provided
         x = kwargs['x'] if 'x' in kwargs else args[0]

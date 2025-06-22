@@ -1,21 +1,14 @@
 import copy
-import pickle
 from pathlib import Path
 
 import keras
-import keras.src.backend as K
-#import keras.src.saving
-# TODO: remove numpy from dependency and replace with Keras functions
 import numpy
-import numpy as np
 import pandas
 import pytest
-from keras.api.callbacks import ProgbarLogger
 from keras.src import testing
 from sklearn.model_selection import train_test_split
 
 from sofenn import FuzzyNetwork, FuzzySelfOrganizer
-from sofenn.callbacks import FuzzyWeightsInitializer
 
 DATA_DIR = Path(__file__).parent / 'data'
 DEFAULTS = {
@@ -179,7 +172,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertTrue(sofnn.if_part_criterion(X_test))
         self.assertTrue(sofnn.widen_centers(X_test))
-        self.assertTrue(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+        self.assertTrue(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
 
         # do no widening iterations even when if-part criterion not satisfied
         sofnn = FuzzySelfOrganizer(
@@ -192,7 +185,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertFalse(sofnn.if_part_criterion(X_test))
         self.assertFalse(sofnn.widen_centers(X_test))
-        self.assertTrue(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+        self.assertTrue(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
 
         # widen centers, but terminate before if-part criterion satisfied
         sofnn = FuzzySelfOrganizer(
@@ -205,9 +198,9 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertFalse(sofnn.if_part_criterion(X_test))
         self.assertFalse(sofnn.widen_centers(X_test))
-        self.assertFalse(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+        self.assertFalse(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
         self.assertTrue(
-            np.allclose(
+            numpy.allclose(
                 sofnn.model.fuzz.get_weights(),
                 [
                     numpy.array([[1., 1., 1.],
@@ -232,9 +225,9 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertFalse(sofnn.if_part_criterion(X_test))
         self.assertTrue(sofnn.widen_centers(X_test))
-        self.assertFalse(np.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
+        self.assertFalse(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
         self.assertTrue(
-            np.allclose(
+            numpy.allclose(
                 sofnn.model.fuzz.get_weights(),
                 [
                     numpy.array([[1., 1., 1.],
@@ -353,7 +346,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile()
-        sofnn.organize(x=X_test, y=y_test)
+        sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
 
         # CASE 2 - WIDEN CENTERS
@@ -374,7 +367,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         sofnn.organize(x=X_test, y=y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
         final_weights = sofnn.model.get_weights()
-        self.assertFalse(np.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
+        self.assertFalse(numpy.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
 
         # CASE 3 - ADD NEURON. RE-TRAIN MODEL
         # ERROR -> BAD
@@ -389,7 +382,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         sofnn.organize(x=X_test, y=y_test, epochs=1)
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
-        # CASE 4A - WIDEN CENTERS AND NO NEED TO ADD NEURON
+        # CASE 4-A - WIDEN CENTERS AND NO NEED TO ADD NEURON
         # ERROR -> BAD
         # IF-PART -> BAD
         sofnn = FuzzySelfOrganizer(
@@ -407,11 +400,11 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         sofnn.organize(x=X_test, y=y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
         final_weights = sofnn.model.get_weights()
-        self.assertFalse(np.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
+        self.assertFalse(numpy.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
 
-        # CASE 4B - ADD NEURON AFTER WIDENING CENTERS FAILS
+        # CASE 4-B - ADD NEURON AFTER WIDENING CENTERS FAILS
         # ERROR -> BAD
         # IF-PART -> BAD
         sofnn = FuzzySelfOrganizer(
