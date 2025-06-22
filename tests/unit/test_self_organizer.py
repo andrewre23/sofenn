@@ -84,13 +84,13 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
                 name='ErrorDeltaIsNegative',
-                err_delta=-1,
+                error_delta=-5,
             ))
 
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='KSigLessThan1',
-                k_sig=0
+                name='KSigmaLessThan1',
+                k_sigma=-1
             ))
 
         with self.assertRaises(ValueError):
