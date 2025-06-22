@@ -43,31 +43,31 @@ class FuzzyNetwork(Model):
             **kwargs
     ):
         if features is not None and features < 1:
-            raise ValueError('At least 1 input feature required.')
+            raise ValueError('At least 1 input feature required')
         if features is not None and input_shape is not None:
             if input_shape not in [(features,), (None, features)]:
-                raise ValueError('Input shape must match feature shape if providing both.')
+                raise ValueError('Input shape must match feature shape if providing both')
             self.features = features
         elif features is not None and input_shape is None:
             self.features = features
         elif features is None and input_shape is not None:
             self.features = input_shape[-1]
         else:
-            raise ValueError('Must provide either features or input_shape.')
+            raise ValueError('Must provide either features or input_shape')
 
         if neurons < 1:
-            raise ValueError("Neurons must be a positive integer.")
+            raise ValueError('Neurons must be a positive integer')
         self.neurons = neurons
 
         if problem_type.lower() not in ['classification', 'regression']:
-            raise ValueError(f"Invalid problem type provided: {problem_type}.")
+            raise ValueError(f'Invalid problem type provided: {problem_type}')
         self.problem_type = problem_type.lower()
 
         if self.problem_type == 'classification':
             if target_classes is None:
-                raise ValueError("Must provide target_classes parameter if 'problem_type' is 'classification'.")
+                raise ValueError("Must provide target_classes parameter if 'problem_type' is 'classification'")
             elif target_classes < 2:
-                raise ValueError("Must specify more than 1 target class if 'problem_type' is 'classification'.")
+                raise ValueError("Must specify more than 1 target class if 'problem_type' is 'classification'")
         self.target_classes = None if self.problem_type == 'regression' else target_classes
 
         kwargs['name'] = kwargs.get('name', name)
@@ -188,14 +188,14 @@ class FuzzyNetwork(Model):
     def fit(self, *args, **kwargs):
         """Fit fuzzy network to training data."""
         if not self.built:
-            logger.debug('FuzzyNetwork cannot be built until seeing training data.')
+            logger.debug('FuzzyNetwork cannot be built until seeing training data')
 
         # add callback to instantiate fuzzy weights unless already provided
         x = kwargs['x'] if 'x' in kwargs else args[0]
         if 'callbacks' in kwargs:
             if any([isinstance(cb, FuzzyWeightsInitializer) for cb in kwargs['callbacks']]):
                 logger.warning('User already provided Fuzzy Weight Initializer callback. '
-                               'Will use existing Fuzzy Weight Initializer in kwargs.')
+                               'Will use existing Fuzzy Weight Initializer in kwargs')
             else:
                 kwargs['callbacks'].append(FuzzyWeightsInitializer(sample_data=x))
         else:
