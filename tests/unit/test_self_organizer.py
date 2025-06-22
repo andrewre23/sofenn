@@ -285,7 +285,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
         )
 
-        rebuilt = sofnn.rebuild_model(X_train, y_train, sofnn.model.get_weights(), sofnn.model.neurons)
+        rebuilt = sofnn.rebuild_model(X_train, y_train, sofnn.model.neurons, sofnn.model.get_weights())
         self.assertTrue(sofnn.model.neurons == rebuilt.neurons)
         for i, original_weight in enumerate(sofnn.model.fuzz.get_weights()):
             self.assertTrue(
@@ -363,7 +363,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             model=keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras'),
             ifpart_threshold=0.9,
             ifpart_samples=0.99,
-            err_delta=0.5,
+            error_delta=0.5,
             max_widens=100,
         )
         self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
@@ -396,7 +396,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
             ifpart_threshold=0.9,
             ifpart_samples=0.99,
-            err_delta=0.1,
+            error_delta=0.1,
             max_widens=250
         )
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
@@ -418,7 +418,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
             ifpart_threshold=0.9,
             ifpart_samples=0.99,
-            err_delta=0.1,
+            error_delta=0.1,
             max_widens=0,
             epochs=100
         )
@@ -438,7 +438,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
             ifpart_threshold=0.9,
             ifpart_samples=0.99,
-            err_delta=0.1,
+            error_delta=0.1,
             max_widens=0,
             prune_threshold=0.99,
             k_rmse=5,
@@ -483,7 +483,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             name='SuccessfullyOrganize',
             model=keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras'),
             max_loops=3,
-            err_delta=0.99,
+            error_delta=0.99,
             epochs=5
         )
         self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
