@@ -3,8 +3,6 @@ import logging
 from typing import Tuple, Optional
 
 import numpy
-# TODO: remove numpy import
-import numpy as np
 from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
 from keras.api.models import clone_model
 from keras.api.optimizers import Adam, RMSprop
@@ -223,11 +221,11 @@ class FuzzySelfOrganizer(object):
         # get fuzzy output
         fuzz_out = self.model.fuzz(x)
         # check if max neuron output is above the if-part threshold
-        maxes = np.max(fuzz_out, axis=-1) >= self.ifpart_threshold
+        maxes = numpy.max(fuzz_out, axis=-1) >= self.ifpart_threshold
         # return True if the proportion of samples above the if-part threshold exceeds the required sample proportion
         return (maxes.sum() / len(maxes)) >= self.ifpart_samples
 
-    def minimum_distance_vector(self, x) -> np.ndarray:
+    def minimum_distance_vector(self, x) -> numpy.ndarray:
         """
         Calculate the minimum distance vector between inputs and current neuron centers.
 
@@ -245,7 +243,7 @@ class FuzzySelfOrganizer(object):
         aligned_c = c.repeat(samples).reshape((samples,) + c.shape)
 
         # average the minimum distance across samples
-        return np.abs(aligned_x - aligned_c).mean(axis=0)
+        return numpy.abs(aligned_x - aligned_c).mean(axis=0)
 
     def duplicate_model(self) -> FuzzyNetwork:
         """
@@ -292,8 +290,8 @@ class FuzzySelfOrganizer(object):
             # get neuron with max-output for each sample
             # then select the most common one to update
             fuzz_out = fuzz_layer(x)
-            maxes = np.argmax(fuzz_out, axis=-1)
-            max_neuron = np.argmax(np.bincount(maxes.flat))
+            maxes = numpy.argmax(fuzz_out, axis=-1)
+            max_neuron = numpy.argmax(numpy.bincount(maxes.flat))
 
             # select minimum width to expand
             # and multiply by factor
@@ -335,10 +333,10 @@ class FuzzySelfOrganizer(object):
         # get weights for new neuron
         ck, sk = self.new_neuron_weights(x)
         # expand dim for stacking
-        ck = np.expand_dims(ck, axis=-1)
-        sk = np.expand_dims(sk, axis=-1)
-        c_new = np.hstack((c_curr, ck))
-        s_new = np.hstack((s_curr, sk))
+        ck = numpy.expand_dims(ck, axis=-1)
+        sk = numpy.expand_dims(sk, axis=-1)
+        c_new = numpy.hstack((c_curr, ck))
+        s_new = numpy.hstack((s_curr, sk))
 
         # TODO: confirm new logic of adding weights A for new neuron.
         #       currently taking average of existing weights, but explore other options
@@ -348,7 +346,7 @@ class FuzzySelfOrganizer(object):
         #a_add = np.ones((a_curr.shape[0]))
         #a_new = np.column_stack((a_curr, a_add))
         a_add = a_curr.mean(axis=0)
-        a_new = np.row_stack((a_curr, a_add))
+        a_new = numpy.row_stack((a_curr, a_add))
 
         # update weights to include new neurons
         w[0], w[1], w[2] = c_new, s_new, a_new
@@ -361,7 +359,7 @@ class FuzzySelfOrganizer(object):
         print('Neuron successfully added! - {} current neurons...'.format(self.model.neurons))
         return True
 
-    def new_neuron_weights(self, x, dist_thresh: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+    def new_neuron_weights(self, x, dist_thresh: float = 1.0) -> Tuple[numpy.ndarray, numpy.ndarray]:
         """
         Return new centers and widths for new fuzzy neuron.
 
@@ -389,8 +387,8 @@ class FuzzySelfOrganizer(object):
         kd_i = x.mean(axis=0) * dist_thresh
 
         # get final weight vectors
-        ck = np.where(dist_vec <= kd_i, c_min, x.mean(axis=0))
-        sk = np.where(dist_vec <= kd_i, s_min, dist_vec)
+        ck = numpy.where(dist_vec <= kd_i, c_min, x.mean(axis=0))
+        sk = numpy.where(dist_vec <= kd_i, s_min, dist_vec)
         return ck, sk
 
     def rebuild_model(self,x, y, new_neurons: int, new_weights: list[numpy.ndarray], **kwargs) -> FuzzyNetwork:
@@ -502,7 +500,7 @@ class FuzzySelfOrganizer(object):
             delta_E.append(neuron_rmae - E_rmse)
 
         # convert delta_E to numpy array
-        delta_E = np.array(delta_E)
+        delta_E = numpy.array(delta_E)
         # choose max of tolerance or threshold limit
         E = max(self.prune_tol * E_rmse, self.k_rmse)
 
@@ -544,8 +542,8 @@ class FuzzySelfOrganizer(object):
         # get current prune weights and remove deleted neurons
         w = prune_model.get_weights()
         for i, weight in enumerate(w[:2]):
-            w[i] = np.delete(weight, to_delete, axis=-1)
-        w[2] = np.delete(w[2], to_delete, axis=0)
+            w[i] = numpy.delete(weight, to_delete, axis=-1)
+        w[2] = numpy.delete(w[2], to_delete, axis=0)
 
         # update model with updated weights
         self.model = self.rebuild_model(x, y, new_neurons=self.model.neurons - len(to_delete), new_weights=w,**kwargs)
