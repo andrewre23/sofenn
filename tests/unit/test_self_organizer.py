@@ -35,23 +35,29 @@ def _get_training_data():
     target = pandas.read_csv(DATA_DIR / 'iris/target.csv')
     return train_test_split(features.values, target.values, test_size=0.1, random_state=23)
 
+def _classification_model(deep=False):
+    if deep:
+        return keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras')
+    else:
+        return keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+
 
 @pytest.mark.requires_trainable_backend
 class FuzzySelfOrganizerTest(testing.TestCase):
 
     def test_init_with_model(self):
         model = FuzzyNetwork(**_params(
-            name='PreInitializedModel'
+            name='Preinitialized model'
         ))
         assert model.get_config() == FuzzySelfOrganizer(model).model.get_config()
 
         FuzzySelfOrganizer(
-            name='InputShapeAndTargetClasses',
+            name='Input shape and target classes',
             input_shape=(DEFAULTS['samples'], DEFAULTS['features']),
             target_classes=DEFAULTS['target_classes']
         )
         FuzzySelfOrganizer(
-            name='FeaturesAndTargetClasses',
+            name='Features and target classes',
             features=DEFAULTS['features'],
             target_classes=DEFAULTS['target_classes']
         )
@@ -59,63 +65,63 @@ class FuzzySelfOrganizerTest(testing.TestCase):
     def test_input_validation(self):
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='MaxLoopsLessThanZero',
+                name='Max loops < 0',
                 max_loops=-1,
             ))
 
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='MaxNeuronsLessThanInitialNeurons',
+                name='Max neurons < initial neurons',
                 max_neurons=DEFAULTS['neurons'] - 1,
             ))
 
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='IfPartThresholdIsNegative',
+                name='If-part threshold < 0',
                 ifpart_threshold=-1,
             ))
 
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='IfPartSamplesIsNegative',
+                name='If-part samples < 0',
                 ifpart_samples=-1,
             ))
 
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='ErrorDeltaIsNegative',
+                name='Error delta < 0',
                 error_delta=-5,
             ))
 
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='KSigmaLessThan1',
+                name='Widening factor < 0',
                 k_sigma=-1
             ))
 
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='MaximumWidensIsNegative',
+                name='Maximum widens < 0',
                 max_widens=-1
             ))
 
         for prune_tol in [-1, 2]:
             with self.assertRaises(ValueError):
                 FuzzySelfOrganizer(**_params(
-                    name='PruneToleranceNotBetweenZeroAndOne',
+                    name='Prune tolerance not [0,1]',
                     prune_tol=prune_tol
                 ))
 
         with self.assertRaises(ValueError):
             FuzzySelfOrganizer(**_params(
-                name='KRMSELessThanOne',
+                name='K root mean squared error < 1',
                 k_rmse=0
             ))
 
     def test_error_criterion(self):
         _, X_test, _, y_test = _get_training_data()
 
-        sofnn = FuzzySelfOrganizer(model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'))
+        sofnn = FuzzySelfOrganizer(model=_classification_model())
         y_pred = sofnn.model.predict(X_test)
         self.assertFalse(sofnn.error_criterion(y_pred, y_test))
         self.assertTrue(sofnn.error_criterion(y_pred, y_pred))
@@ -125,20 +131,20 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
         self.assertTrue(
             FuzzySelfOrganizer(
-                model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+                model=_classification_model()
             ).if_part_criterion(X_test)
         )
 
     def test_min_dist_vector(self):
         _, X_test, _, _ = _get_training_data()
 
-        min_dist = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+        minimum_distance = FuzzySelfOrganizer(
+            model=_classification_model()
         ).minimum_distance_vector(X_test)
 
         self.assertTrue(
             numpy.allclose(
-                min_dist,
+                minimum_distance,
                 numpy.array([
                     [2.22789976, 2.22789976, 2.22789976],
                     [1.82063121, 1.82063121, 1.82063121],
@@ -151,14 +157,13 @@ class FuzzySelfOrganizerTest(testing.TestCase):
     def test_duplicated_model(self):
         _, X_test, _, _ = _get_training_data()
 
-        loaded_model = keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
         duplicated_model = FuzzySelfOrganizer(
-            model=loaded_model
+            model=_classification_model()
         ).duplicate_model()
 
         self.assertTrue(
             numpy.allclose(
-                loaded_model.predict(X_test),
+                _classification_model().predict(X_test),
                 duplicated_model.predict(X_test)
             )
         )
@@ -168,16 +173,16 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
         # if-part criterion already satisfied and weights unchanged when widening
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+            model=_classification_model()
         )
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertTrue(sofnn.if_part_criterion(X_test))
         self.assertTrue(sofnn.widen_centers(X_test))
         self.assertTrue(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
 
-        # do no widening iterations even when if-part criterion not satisfied
+        # do no widening iterations even when the if-part criterion not satisfied
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            model=_classification_model(),
             max_widens=0
         )
         sofnn.model.fuzz.set_weights(
@@ -188,9 +193,9 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertFalse(sofnn.widen_centers(X_test))
         self.assertTrue(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
 
-        # widen centers, but terminate before if-part criterion satisfied
+        # widen centers, but terminate before the if-part criterion satisfied
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            model=_classification_model(),
             max_widens=5
         )
         sofnn.model.fuzz.set_weights(
@@ -216,9 +221,9 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             )
         )
 
-        # widen centers until if-part criterion satisfied
+        # widen centers until the if-part criterion satisfied
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+            model=_classification_model()
         )
         sofnn.model.fuzz.set_weights(
             [numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()]
@@ -247,7 +252,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         X_train, _, y_train, _ = _get_training_data()
 
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+            model=_classification_model()
         )
         starting_neurons = sofnn.model.neurons
         self.assertTrue(sofnn.add_neuron(X_train, y_train))
@@ -257,7 +262,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         X_train, _, _, _ = _get_training_data()
 
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+            model=_classification_model()
         )
         ck, sk = sofnn.new_neuron_weights(X_train)
         self.assertTrue(
@@ -276,7 +281,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         X_train, _, y_train, _ = _get_training_data()
 
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+            model=_classification_model()
         )
 
         rebuilt = sofnn.rebuild_model(X_train, y_train, sofnn.model.neurons, sofnn.model.get_weights())
@@ -294,23 +299,24 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
         sofnn = FuzzySelfOrganizer(
             model=FuzzyNetwork(**_params(
-                name='OneNeuron',
+                name='One neuron',
                 neurons=1
             ))
         )
         self.assertFalse(sofnn.prune_neurons(X_train, y_train))
 
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+            name='Starting neurons greater than or equal to initial neurons',
+            model=_classification_model()
         )
         sofnn.model.compile()
         starting_neurons = sofnn.model.neurons
         self.assertFalse(sofnn.prune_neurons(X_train, y_train))
         self.assertTrue(starting_neurons >= sofnn.model.neurons)
 
-        # only 1 neuron above threshold to prune
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            name='Only one neuron above the prune threshold',
+            model=_classification_model(),
             prune_threshold=0.99,
             k_rmse=0.4390
         )
@@ -319,9 +325,9 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.prune_neurons(X_train, y_train))
         self.assertTrue(sofnn.model.neurons == starting_neurons - 1)
 
-        # prune all but last neuron
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            name='Prune all but last neuron',
+            model=_classification_model(),
             prune_threshold=0.99,
             k_rmse=5
         )
@@ -337,11 +343,11 @@ class FuzzySelfOrganizerTest(testing.TestCase):
     def test_organize(self):
         X_train, X_test, y_train, y_test = _get_training_data()
 
-        # CASE 1 - NO STRUCTURAL ADJUSTMENT. TRAIN MODEL
-        # ERROR -> GOOD
-        # IF-PART -> GOOD
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras')
+            name='No structural adjustment '
+                 'Error: Pass '
+                 'If-Part: Pass',
+            model=_classification_model(deep=True)
         )
         self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
@@ -350,11 +356,11 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
 
-        # CASE 2 - WIDEN CENTERS
-        # ERROR -> GOOD
-        # IF-PART -> BAD
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras'),
+            name='Widen centers '
+                 'Error: Pass '
+                 'If-Part: Fail',
+            model=_classification_model(deep=True),
             ifpart_threshold=0.9,
             ifpart_samples=0.99,
             error_delta=0.5,
@@ -370,11 +376,11 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         final_weights = sofnn.model.get_weights()
         self.assertFalse(numpy.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
 
-        # CASE 3 - ADD NEURON. RE-TRAIN MODEL
-        # ERROR -> BAD
-        # IF-PART -> GOOD
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+            name='Add neuron and retrain model '
+                 'Error: Fail '
+                 'If-Part: Pass',
+            model=_classification_model()
         )
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
@@ -383,11 +389,11 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         sofnn.organize(x=X_test, y=y_test, epochs=1)
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
-        # CASE 4-A - WIDEN CENTERS AND NO NEED TO ADD NEURON
-        # ERROR -> BAD
-        # IF-PART -> BAD
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            name='Widen centers and no need to add neuron '
+                 'Error: Fail '
+                 'If-Part: Fail',
+            model=_classification_model(),
             ifpart_threshold=0.9,
             ifpart_samples=0.99,
             error_delta=0.1,
@@ -405,11 +411,11 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
 
-        # CASE 4-B - ADD NEURON AFTER WIDENING CENTERS FAILS
-        # ERROR -> BAD
-        # IF-PART -> BAD
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            name='Add neuron after widening centers fails '
+                 'Error: Fail '
+                 'If-Part: Fail',
+            model=_classification_model(),
             ifpart_threshold=0.9,
             ifpart_samples=0.99,
             error_delta=0.1,
@@ -425,11 +431,11 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
 
-        # CASE 5 - PRUNE NEURON
-        # ERROR -> BAD
-        # IF-PART -> BAD
         sofnn = FuzzySelfOrganizer(
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            name='Prune neuron '
+                 'Error: Fail '
+                 'If-Part: Fail',
+            model=_classification_model(),
             ifpart_threshold=0.9,
             ifpart_samples=0.99,
             error_delta=0.1,
@@ -451,8 +457,8 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         X_train, X_test, y_train, y_test = _get_training_data()
 
         sofnn = FuzzySelfOrganizer(
-            name='FailToOrganize',
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            name='Fail to organize',
+            model=_classification_model(),
             max_loops=5,
             epochs=1
         )
@@ -462,8 +468,8 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.model.neurons > starting_neurons)
 
         sofnn = FuzzySelfOrganizer(
-            name='StopAtMaxNeurons',
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras'),
+            name='Stop at max neurons',
+            model=_classification_model(),
             max_loops=5,
             max_neurons=3,
             epochs=1
@@ -474,8 +480,8 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.model.neurons > starting_neurons)
 
         sofnn = FuzzySelfOrganizer(
-            name='SuccessfullyOrganize',
-            model=keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras'),
+            name='Successfully organize',
+            model=_classification_model(deep=True),
             max_loops=3,
             error_delta=0.99,
             epochs=5

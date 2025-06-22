@@ -49,69 +49,69 @@ class FuzzyNetworkTest(testing.TestCase):
     def test_input_validation(self):
         with self.assertRaises(ValueError):
             FuzzyNetwork(**_params(
-                name='Neurons < 1.',
+                name='Neurons < 1',
                 neurons=0
             ))
 
         with self.assertRaises(ValueError):
             FuzzyNetwork(**_params(
-                name='Invalid problem type.',
+                name='Invalid problem type',
                 problem_type='guessing_game'
             ))
 
     def test_inputs_for_classification(self):
         with self.assertRaises(ValueError):
             FuzzyNetwork(**_params(
-                name='No target classes provided.',
+                name='No target classes provided',
                 target_classes=None
             ))
 
         with self.assertRaises(ValueError):
             FuzzyNetwork(**_params(
-                name='Target classes < 2.',
+                name='Target classes < 2',
                 target_classes=1
             ))
 
     def test_init_with_features_and_input_shape(self):
         FuzzyNetwork(**_params(
-            name='Only features provided.',
+            name='Only features provided',
             features=DEFAULTS['features']
         ))
 
         params = _params(
-            name='Only input shape provided.',
+            name='Only input shape provided',
             input_shape=(DEFAULTS['features'],)
         )
         params.pop('features')
         FuzzyNetwork(**params)
 
         FuzzyNetwork(**_params(
-            name='Input shape and feature agree.',
+            name='Input shape and feature agree',
             features=DEFAULTS['features'],
             input_shape=(DEFAULTS['features'],)
         ))
 
         FuzzyNetwork(**_params(
-            name='Input shape and features parameters agree, and samples placeholder added to input shape.',
+            name='Input shape and features parameters agree, and samples placeholder added to input shape',
             features=DEFAULTS['features'],
             input_shape=(None, DEFAULTS['features'])
         ))
 
         with self.assertRaises(ValueError):
-            params = _params(name='Neither input shape or features are provided.')
+            params = _params(name='Neither input shape or features are provided')
             params.pop('features')
             FuzzyNetwork(**params)
 
         with self.assertRaises(ValueError):
             FuzzyNetwork(**_params(
-                name="Input shape and features don't agree.",
+                name="Input shape and features don't agree",
                 features=DEFAULTS['features'],
                 input_shape=(DEFAULTS['features'] + 1,)
             ))
 
         with self.assertRaises(ValueError):
             FuzzyNetwork(**_params(
-                name='Features < 1.',
+                name='Features < 1',
                 features=0,
             ))
 
@@ -139,7 +139,7 @@ class FuzzyNetworkTest(testing.TestCase):
         self.assertEqual(y.shape, (DEFAULTS['samples'], DEFAULTS['target_classes']))
 
     def test_serialization(self):
-        model = FuzzyNetwork(**_params(name='Serialization test.'))
+        model = FuzzyNetwork(**_params(name='Serialization test'))
         revived = self.run_class_serialization_test(
             model,
             custom_objects={
@@ -165,7 +165,7 @@ class FuzzyNetworkTest(testing.TestCase):
             trained_model.save(tmpdirname + 'model.keras')
 
     def test_functional_properties(self):
-        model = FuzzyNetwork(**_params(name='Functional properties test.'))
+        model = FuzzyNetwork(**_params(name='Functional properties test'))
 
         # self.assertEqual(model.inputs, INPUT DATA)
         #self.assertEqual(model.inputs, [FEATURES, NEURONS])
@@ -174,13 +174,12 @@ class FuzzyNetworkTest(testing.TestCase):
         self.assertEqual(model.output_shape, (None, DEFAULTS['target_classes']))
 
     def test_pickleable(self):
-        model = FuzzyNetwork(**_params(name='Pickleable test.'))
+        model = FuzzyNetwork(**_params(name='Pickleable test'))
         result = pickle.loads(pickle.dumps(model))
         assert len(result.layers) == 5
 
     def test_hasattr(self):
-        model = FuzzyNetwork(**_params(name='Attribute test.'))
-        # TODO: add falses to check before/after model is compiled/fitted
+        model = FuzzyNetwork(**_params(name='Attribute test'))
         self.assertTrue(hasattr(model, "features"))
         self.assertTrue(hasattr(model, "input_shape"))
         self.assertTrue(hasattr(model, "output_shape"))
@@ -191,14 +190,14 @@ class FuzzyNetworkTest(testing.TestCase):
 
     def test_compile(self):
         model = FuzzyNetwork(**_params(
-            name='Compile as classification.',
+            name='Compile as classification',
             problem_type='classification'
         ))
         model.compile()
         self.assertFalse(model.built)
 
         model = FuzzyNetwork(**_params(
-            name='Compile as regression.',
+            name='Compile as regression',
             problem_type='regression'
         ))
         model.compile()
@@ -242,7 +241,7 @@ class FuzzyNetworkTest(testing.TestCase):
         ])
 
     def test_summary(self):
-        model = FuzzyNetwork(**_params(name='Summary test.'))
+        model = FuzzyNetwork(**_params(name='Summary test'))
         self.assertFalse(model.built)
         model.summary()
         self.assertFalse(model.built)
