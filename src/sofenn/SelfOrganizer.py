@@ -3,8 +3,8 @@ import logging
 from typing import Tuple, Optional
 
 import numpy
+from keras.api.metrics import MeanSquaredError, MeanAbsoluteError
 from keras.api.models import clone_model, Model
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
 
@@ -127,29 +127,21 @@ class FuzzySelfOrganizer(object):
         self.model.fit(x, y, **kwargs)
 
         # set organization iterations counter
-        org_ints = 1
+        organization_iterations = 1
 
         # run update logic until passes criterion checks
         while not (self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x)):
-            if org_ints > self.max_loops:
+            if organization_iterations > self.max_loops:
                 break
-
-            logger.debug(f'Running self-organize iteration: {org_ints}.')
-
-            # run criterion checks and organize accordingly
+            logger.debug(f'Running self-organize iteration: {organization_iterations}.')
             self.organize(x, y, **kwargs)
-
-            # quit if above max neurons allowed
             if self.model.neurons >= self.max_neurons:
                 logger.info(f'Maximum neurons reached: {self.max_neurons}. Terminating self-organizing process.')
                 break
+            organization_iterations += 1
 
-            # increase counter
-            org_ints += 1
-
-        # print terminal message if successfully organized
-        logger.info('Self-Organization complete!')
-        logger.debug(f'Organization completed after {org_ints} iterations.')
+        logger.info('Self-organization complete!')
+        logger.debug(f'Organization completed after {organization_iterations} iterations.')
         return self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x)
 
     def organize(self, x, y, **kwargs) -> None:
@@ -162,9 +154,6 @@ class FuzzySelfOrganizer(object):
         :param: x: Input data.
         :param: y: Target data.
         """
-        if 'epochs' not in kwargs:
-            kwargs['epochs'] = 10
-
         error_criterion = self.error_criterion(y, self.model.predict(x))
         ifpart_criterion = self.if_part_criterion(x)
         logger.debug(f'Error criterion satisfied: {error_criterion}.')
@@ -208,7 +197,7 @@ class FuzzySelfOrganizer(object):
         :returns: True/False if the error criterion is satisfied.
             If the criterion is not satisfied, then a neuron should be added to the model.
         """
-        return mean_absolute_error(y_true, y_pred) <= self.error_delta
+        return MeanAbsoluteError()(y_true, y_pred) <= self.error_delta
 
     def if_part_criterion(self, x) -> bool:
         """
@@ -415,7 +404,7 @@ class FuzzySelfOrganizer(object):
             return False
 
         # calculate mean absolute error on training data
-        E_rmse = mean_squared_error(y, self.model.predict(x))
+        E_rmse = MeanSquaredError()(y, self.model.predict(x))
 
         # create a duplicate model and get both sets of model weights
         prune_model = self.duplicate_model()
@@ -435,7 +424,7 @@ class FuzzySelfOrganizer(object):
             prune_model.set_weights(w)
 
             # predict values with new zeroed out weights
-            neuron_rmae = mean_absolute_error(y, prune_model.predict(x))
+            neuron_rmae = MeanAbsoluteError()(y, prune_model.predict(x))
 
             # append difference in rmse and new prediction rmse
             delta_E.append(neuron_rmae - E_rmse)
@@ -459,7 +448,7 @@ class FuzzySelfOrganizer(object):
             prune_model.set_weights(w)
 
             # predict values with new zeroed out weights
-            E_rmae_del = mean_absolute_error(y, prune_model.predict(x))
+            E_rmae_del = MeanAbsoluteError()(y, prune_model.predict(x))
 
             # if E_mae_del < E
             # delete neuron
