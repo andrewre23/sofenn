@@ -154,9 +154,6 @@ class CustomLossTest(testing.TestCase):
         rank2_loss = loss_fn(y_true, y_pred, sample_weight=sample_weight)
         self.assertAllClose(rank1_loss, rank2_loss)
 
-    # @testing.parametrize(
-    #     "uprank", ["mask", "sample_weight", "y_true", "y_pred"])
-    # TODO: use parameterization decorator
     @pytest.mark.skipif(
         backend.backend() == "numpy",
         reason="Numpy backend does not support masking.",

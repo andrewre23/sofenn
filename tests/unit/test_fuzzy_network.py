@@ -237,6 +237,8 @@ class FuzzyNetworkTest(testing.TestCase):
         model.summary()
         self.assertFalse(model.built)
 
-    # TODO: create from_config method
-    # def test_from_config(self):
-    #     pass
+    def test_from_config(self):
+        config = _params(name='from_config')
+        model = FuzzyNetwork.from_config(config)
+        for key, value in config.items():
+            assert model.__getattribute__(key) == value

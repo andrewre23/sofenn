@@ -220,6 +220,6 @@ class FuzzyNetwork(Model):
         base_config['target_classes'] = self.target_classes
         return base_config
 
-    # # TODO: create from_config method
-    # def from_config(self, config):
-    #     pass
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return FuzzyNetwork(**config)
