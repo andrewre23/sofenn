@@ -171,8 +171,8 @@ class FuzzySelfOrganizerTest(testing.TestCase):
     def test_widening_centers(self):
         _, X_test, _, _ = _get_training_data()
 
-        # if-part criterion already satisfied and weights unchanged when widening
         sofnn = FuzzySelfOrganizer(
+            name='If-part criterion already satisfied and weights unchanged when widening',
             model=_classification_model()
         )
         starting_weights = sofnn.model.fuzz.get_weights()
@@ -180,8 +180,8 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.widen_centers(X_test))
         self.assertTrue(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
 
-        # do no widening iterations even when the if-part criterion not satisfied
         sofnn = FuzzySelfOrganizer(
+            name='Do no widening iterations, even when the if-part criterion not satisfied',
             model=_classification_model(),
             max_widens=0
         )
@@ -193,8 +193,8 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertFalse(sofnn.widen_centers(X_test))
         self.assertTrue(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
 
-        # widen centers, but terminate before the if-part criterion satisfied
         sofnn = FuzzySelfOrganizer(
+            name='Widen centers, but terminate before the if-part criterion satisfied',
             model=_classification_model(),
             max_widens=5
         )
@@ -221,8 +221,8 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             )
         )
 
-        # widen centers until the if-part criterion satisfied
         sofnn = FuzzySelfOrganizer(
+            name='Widen centers until the if-part criterion satisfied',
             model=_classification_model()
         )
         sofnn.model.fuzz.set_weights(
@@ -371,7 +371,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         starting_neurons = sofnn.model.neurons
         starting_weights = sofnn.model.get_weights()
         sofnn.model.compile()
-        sofnn.organize(x=X_test, y=y_test)
+        sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
         final_weights = sofnn.model.get_weights()
         self.assertFalse(numpy.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
@@ -386,7 +386,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile()
-        sofnn.organize(x=X_test, y=y_test, epochs=1)
+        sofnn.organize(X_test, y_test, epochs=1)
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
         sofnn = FuzzySelfOrganizer(
@@ -404,7 +404,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         starting_neurons = sofnn.model.neurons
         starting_weights = sofnn.model.get_weights()
         sofnn.model.compile()
-        sofnn.organize(x=X_test, y=y_test)
+        sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
         final_weights = sofnn.model.get_weights()
         self.assertFalse(numpy.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
@@ -426,7 +426,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertFalse(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile()
-        sofnn.organize(x=X_test, y=y_test)
+        sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))

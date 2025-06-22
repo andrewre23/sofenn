@@ -167,9 +167,6 @@ class FuzzyNetworkTest(testing.TestCase):
     def test_functional_properties(self):
         model = FuzzyNetwork(**_params(name='Functional properties test'))
 
-        # self.assertEqual(model.inputs, INPUT DATA)
-        #self.assertEqual(model.inputs, [FEATURES, NEURONS])
-        #self.assertEqual(model.outputs, [model.layers[-1].output])
         self.assertEqual(model.input_shape, (None, DEFAULTS['features']))
         self.assertEqual(model.output_shape, (None, DEFAULTS['target_classes']))
 
@@ -211,12 +208,6 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model.compile()
         trained_model.fit(X_train, y_train, epochs=epochs)
         #trained_model.save(DATA_DIR / 'models/iris_classification.keras')
-
-        # loaded_model = FuzzyNetwork(**_params(name='LoadedModel'))
-        # loaded_model.compile()
-        # loaded_model.fit(X_train, y_train, epochs=1)
-        # self.assertTrue(loaded_model.built)
-        # loaded_model.load_weights(DATA_DIR / 'weights/classification.weights.h5')
 
         loaded_model = load_model(DATA_DIR / 'models/iris_classification.keras')
         assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
