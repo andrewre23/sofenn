@@ -236,17 +236,6 @@ class FuzzySelfOrganizer(object):
         # average the minimum distance across samples
         return numpy.abs(aligned_x - aligned_c).mean(axis=0)
 
-    def duplicate_model(self) -> FuzzyNetwork:
-        """
-        Duplicate the fuzzy neural network model with identical weights.
-
-        :returns: Duplicated fuzzy neural network model.
-        """
-        # create duplicate model and update weights
-        dupe_mod = clone_model(self.model)
-        dupe_mod.set_weights(self.model.get_weights())
-        return dupe_mod
-
     def widen_centers(self, x) -> bool:
         """
         Widen the neuron centers to better cover input data.
@@ -399,9 +388,10 @@ class FuzzySelfOrganizer(object):
         # calculate mean absolute error on training data
         E_rmse = MeanSquaredError()(y, self.model.predict(x))
 
-        # create a duplicate model and get both sets of model weights
-        prune_model = self.duplicate_model()
+        # create a duplicate model to use while measuring the effects of pruning
         starting_weights = self.model.get_weights()
+        prune_model = clone_model(self.model)
+        prune_model.set_weights(starting_weights)
 
         # for each neuron, zero it out in the prune model and get change in root mean squared error from removing neuron
         delta_E = []

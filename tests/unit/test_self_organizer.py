@@ -154,20 +154,6 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             )
         )
 
-    def test_duplicated_model(self):
-        _, X_test, _, _ = _get_training_data()
-
-        duplicated_model = FuzzySelfOrganizer(
-            model=_classification_model()
-        ).duplicate_model()
-
-        self.assertTrue(
-            numpy.allclose(
-                _classification_model().predict(X_test),
-                duplicated_model.predict(X_test)
-            )
-        )
-
     def test_widening_centers(self):
         _, X_test, _, _ = _get_training_data()
 
