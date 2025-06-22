@@ -1,4 +1,5 @@
 import copy
+from functools import lru_cache
 from pathlib import Path
 
 import keras
@@ -18,9 +19,9 @@ DEFAULTS = {
     'target_classes': 3,
     'samples': 10
 }
-# TODO: add dict of defaults for self organizer class and add to _params function option to add
 
 
+@lru_cache(maxsize=None)
 def _params(**kwargs):
     params = copy.deepcopy(DEFAULTS)
     params.pop('samples')
@@ -28,7 +29,7 @@ def _params(**kwargs):
         params[key] = value
     return params
 
-
+@lru_cache(maxsize=None)
 def _get_training_data():
     features = pandas.read_csv(DATA_DIR / 'iris/features.csv')
     target = pandas.read_csv(DATA_DIR / 'iris/target.csv')

@@ -1,10 +1,10 @@
 import copy
 import pickle
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 
 import keras.src.backend as K
-# TODO: remove numpy from dependency and replace with Keras functions
 import numpy
 import pandas
 import pytest
@@ -28,6 +28,7 @@ DEFAULTS = {
 }
 
 
+@lru_cache(maxsize=None)
 def _params(**kwargs):
     params = copy.deepcopy(DEFAULTS)
     params.pop('samples')
@@ -35,7 +36,7 @@ def _params(**kwargs):
         params[key] = value
     return params
 
-
+@lru_cache(maxsize=None)
 def _get_training_data():
     features = pandas.read_csv(DATA_DIR / 'iris/features.csv')
     target = pandas.read_csv(DATA_DIR / 'iris/target.csv')
