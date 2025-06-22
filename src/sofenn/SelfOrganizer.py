@@ -359,12 +359,12 @@ class FuzzySelfOrganizer(object):
         print('Neuron successfully added! - {} current neurons...'.format(self.model.neurons))
         return True
 
-    def new_neuron_weights(self, x, dist_thresh: float = 1.0) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    def new_neuron_weights(self, x, distance_threshold: float = 1.0) -> Tuple[numpy.ndarray, numpy.ndarray]:
         """
         Return new centers and widths for new fuzzy neuron.
 
         :param x: Input data.
-        :param dist_thresh: Multiplier of average features values to use as distance thresholds.
+        :param distance_threshold: Multiplier of average features values to use as distance thresholds.
 
         :returns: (ck, sk): Centers and widths for new fuzzy neuron. Shape: (features,)
         """
@@ -372,23 +372,22 @@ class FuzzySelfOrganizer(object):
         c, s = self.model.get_layer('FuzzyRules').get_weights()
 
         # get minimum distance vector
-        min_dist = self.minimum_distance_vector(x)
-        # get minimum distance across neurons
-        # and arg-min for neuron with the lowest distance
-        dist_vec = min_dist.min(axis=-1)
-        min_neurs = min_dist.argmin(axis=-1)
+        minimum_distance = self.minimum_distance_vector(x)
+        # get minimum distance across neurons and arg-min for neuron with the lowest distance
+        distance_vector = minimum_distance.min(axis=-1)
+        minimum_neurons = minimum_distance.argmin(axis=-1)
 
         # get min c and s weights
-        c_min = c[:, min_neurs].diagonal()
-        s_min = s[:, min_neurs].diagonal()
+        c_min = c[:, minimum_neurons].diagonal()
+        s_min = s[:, minimum_neurons].diagonal()
 
         # set threshold distance as a factor of mean
         # value for each feature across samples
-        kd_i = x.mean(axis=0) * dist_thresh
+        kd_i = x.mean(axis=0) * distance_threshold
 
         # get final weight vectors
-        ck = numpy.where(dist_vec <= kd_i, c_min, x.mean(axis=0))
-        sk = numpy.where(dist_vec <= kd_i, s_min, dist_vec)
+        ck = numpy.where(distance_vector <= kd_i, c_min, x.mean(axis=0))
+        sk = numpy.where(distance_vector <= kd_i, s_min, distance_vector)
         return ck, sk
 
     def rebuild_model(self,x, y, new_neurons: int, new_weights: list[numpy.ndarray], **kwargs) -> FuzzyNetwork:
@@ -405,22 +404,7 @@ class FuzzySelfOrganizer(object):
         # get config from current model and update output_dim of neuron layers
         config = self.model.get_config()
         config['neurons'] = new_neurons
-        # TODO: add keras.backend.clear_session() to reuse same name for new model instead of renaming new version
-        config['name'] = config['name'] + '_NEW'
-
-        # for layer in config['layers']:
-        #     if 'output_dim' in layer['config']:
-        #         layer['config']['output_dim'] = new_neurons
-
-        # load new model from custom config data and load new weights
-        # custom_objects = {'FuzzyLayer': FuzzyLayer,
-        #                   'NormalizeLayer': NormalizeLayer,
-        #                   'WeightedLayer': WeightedLayer,
-        #                   'OutputLayer': OutputLayer}
-        # new_model = Model.from_config(config, custom_objects=custom_objects)
-        #
         new_model = FuzzyNetwork(**config)
-        #new_model.set_weights(new_weights)
 
         # recompile model based on current model parameters
         if self.model.problem_type == 'classification':
@@ -439,9 +423,6 @@ class FuzzySelfOrganizer(object):
         loss = kwargs.pop('loss', default_loss)
         optimizer = kwargs.pop('optimizer', default_optimizer)
         metrics = kwargs.pop('metrics', default_metrics)
-        # optimizer = kwargs.pop('optimizer', self.model.optimizer)
-        # loss = kwargs.pop('loss', self.model.loss)
-        # metrics = kwargs.pop('metrics', self.model.metrics)
 
         compile_args = list(inspect.signature(FuzzyNetwork.compile).parameters)
         compile_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in compile_args}
