@@ -254,3 +254,10 @@ class CustomLossTest(testing.TestCase):
         loss_fn = CustomLoss()
         loss = loss_fn(y_true, y_pred)
         self.assertDType(loss, backend.floatx())
+
+    def test_from_config(self):
+        y_true = np.random.random(3)
+        y_pred = np.random.random(3)
+
+        loss_fn = CustomLoss(reduction="sum")
+        self.assertTrue(loss_fn(y_true, y_pred) == CustomLoss.from_config(loss_fn.get_config())(y_true, y_pred))
