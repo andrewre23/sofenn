@@ -10,24 +10,16 @@ from sofenn.callbacks import FuzzyWeightsInitializer
 class FuzzyNetworkTest(testing.TestCase):
 
     def test_fail_on_non_fuzzy_layer(self):
-        x_train = numpy.random.random((10, 4))
-        y_train = numpy.random.random((10, 3))
+        x = numpy.random.random((10, 4))
+        y = numpy.random.random((10, 3))
 
         with (self.assertRaises(ValueError)):
             model = FuzzyNetwork(
-                input_shape=x_train.shape,
-                target_shape=y_train.shape,
-                target_classes=y_train.shape[-1]
+                input_shape=x.shape,
+                target_shape=y.shape,
+                target_classes=y.shape[-1]
             )
             model.compile(run_eagerly=True)
-            model.fit(
-                x_train,
-                y_train,
-                epochs=1,
-                callbacks=[(
-                    FuzzyWeightsInitializer(
-                        sample_data=x_train,
-                        layer_name='NotFuzzyLayer'
-                    )
-                )],
-            )
+            model.fit(x, y, epochs=1, callbacks=[
+                (FuzzyWeightsInitializer(sample_data=x, layer_name='NotFuzzyLayer'))
+            ])
