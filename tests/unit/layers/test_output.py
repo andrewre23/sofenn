@@ -16,6 +16,9 @@ PARAM_COMBOS = [
 
 
 class OutputLayerTest(testing.TestCase):
+    def test_passing_input_dim(self):
+        OutputLayer(input_dim=3)
+
 
     @parameterized.named_parameters(PARAM_COMBOS)
     def test_build_across_shape_dimensions(self, shape):
@@ -26,8 +29,6 @@ class OutputLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(PARAM_COMBOS)
     def test_output_basics(self, shape):
-        # if None in shape:
-        #     fixed_shape = shape[1:]
         self.run_layer_test(
             OutputLayer,
             init_kwargs={},
