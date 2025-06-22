@@ -1,3 +1,4 @@
+import copy
 import logging
 from typing import Optional
 
@@ -158,26 +159,34 @@ class FuzzyNetwork(Model):
 
     # TODO: add get_compile_config and compile_from_config(config)
     def compile(self, **kwargs) -> None:
-        if self.problem_type == 'classification':
-            # TODO: create mapping dictionary of problem type and default loss/optimizer/metrics
-            default_loss = CustomLoss()
-            default_optimizer = Adam()
-            default_metrics = [CategoricalAccuracy()]
-            # if self.y_test.ndim == 2:                       # binary classification
-            #     default_metrics = ['binary_accuracy']
-            # else:                                           # multi-class classification
-            #     default_metrics = ['categorical_accuracy']
-        else:
-            default_loss = MeanSquaredError()
-            default_optimizer = RMSprop()
-            default_metrics = [Accuracy()]
-
-        kwargs['loss'] = kwargs.get('loss', default_loss)
-        kwargs['optimizer'] = kwargs.get('optimizer', default_optimizer)
-        kwargs['metrics'] = kwargs.get('metrics', default_metrics)
+        """Compile fuzzy network."""
+        for key, default_value in self.compile_defaults(self.problem_type).items():
+            if key not in kwargs:
+                kwargs[key] = default_value
         super().compile(**kwargs)
 
+    @staticmethod
+    def compile_defaults(problem_type):
+        """Generate kwargs dictionary with initialized defaults based on the problem type."""
+        defaults = {
+            'classification': {
+                'loss': CustomLoss,
+                'optimizer': Adam,
+                'metrics': [CategoricalAccuracy]
+            },
+            'regression': {
+                'loss': MeanSquaredError,
+                'optimizer': RMSprop,
+                'metrics': [Accuracy]
+            }
+        }
+        return {
+            key: [v() for v in val] if isinstance(val, list) else val()
+            for key, val in copy.deepcopy(defaults[problem_type]).items()
+        }
+
     def fit(self, *args, **kwargs):
+        """Fit fuzzy network to training data."""
         if not self.built:
             logger.debug('FuzzyNetwork cannot be built until seeing training data.')
 
@@ -197,11 +206,13 @@ class FuzzyNetwork(Model):
             self.trained = True
 
     def summary(self, *args, **kwargs):
+        """Show summary of fuzzy network."""
         x = Input(shape=(self.features,), name="InputRow")
         model = Model(inputs=[x], outputs=self.call(x), name=self.name + ' Summary')
         return model.summary(*args, **kwargs)
 
     def get_config(self):
+        """Generate model config."""
         base_config = super().get_config()
         base_config['features'] = self.features
         base_config['neurons'] = self.neurons

@@ -3,15 +3,13 @@ import logging
 from typing import Tuple, Optional
 
 import numpy
-from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
-from keras.api.models import clone_model
-from keras.api.optimizers import Adam, RMSprop
+from keras.api.models import clone_model, Model
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
-from sofenn.losses import CustomLoss
 
 logger = logging.getLogger(__name__)
+
 
 class FuzzySelfOrganizer(object):
     """
@@ -383,31 +381,21 @@ class FuzzySelfOrganizer(object):
         logger.debug(f'Rebuilding model with config: {config}.')
         new_model = FuzzyNetwork(**config)
 
-        # recompile model based on current model parameters
-        if self.model.problem_type == 'classification':
-            # TODO: create mapping dictionary of problem type and default loss/optimizer/metrics
-            default_loss = CustomLoss()
-            default_optimizer = Adam()
-            default_metrics = [CategoricalAccuracy()]
-            # if self.y_test.ndim == 2:                       # binary classification
-            #     default_metrics = ['binary_accuracy']
-            # else:                                           # multi-class classification
-            #     default_metrics = ['categorical_accuracy']
-        else:
-            default_loss = MeanSquaredError()
-            default_optimizer = RMSprop()
-            default_metrics = [Accuracy()]
-        loss = kwargs.pop('loss', default_loss)
-        optimizer = kwargs.pop('optimizer', default_optimizer)
-        metrics = kwargs.pop('metrics', default_metrics)
+        for key, default_value in self.model.compile_defaults(self.model.problem_type).items():
+            if key not in kwargs:
+                kwargs[key] = default_value
 
-        compile_args = list(inspect.signature(FuzzyNetwork.compile).parameters)
+        compile_args = list(inspect.signature(Model.compile).parameters)
         compile_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in compile_args}
-        fit_args = list(inspect.signature(FuzzyNetwork.fit).parameters)
+        fit_args = list(inspect.signature(Model.fit).parameters)
         fit_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in fit_args}
+        if 'epochs' in fit_dict:
+            logger.warning(f'Ignoring provided value for epochs: {fit_dict["epochs"]}. '
+                           f'Will set epochs to 1 for rebuilding.')
+        fit_dict['epochs'] = 1
 
-        new_model.compile(optimizer=optimizer, loss=loss, metrics=metrics, **compile_dict)
-        new_model.fit(x, y, epochs=1, **fit_dict)
+        new_model.compile(**compile_dict)
+        new_model.fit(x, y, **fit_dict)
         new_model.set_weights(new_weights)
         return new_model
 
