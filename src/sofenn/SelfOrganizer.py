@@ -89,7 +89,7 @@ class FuzzySelfOrganizer(object):
         self.ifpart_threshold = ifpart_threshold
 
         if not 0 < ifpart_samples <= 1.0:
-            raise ValueError(f'If-Part Samples must be between between 0 and 1: {ifpart_samples}')
+            raise ValueError(f'If-Part Samples must be between between 0 and 1: {ifpart_samples}.')
         self.ifpart_samples = ifpart_samples
 
         if error_delta < 0:
@@ -97,13 +97,13 @@ class FuzzySelfOrganizer(object):
         self.error_delta = error_delta
 
         if k_sigma <= 1:
-            raise ValueError('Widening factor (k_sigma) must be larger than 1')
+            raise ValueError('Widening factor (k_sigma) must be larger than 1.')
         if max_widens < 0:
-            raise ValueError('Max center widens must be at least 0')
+            raise ValueError('Max center widens must be at least 0.')
         if not 0 < prune_tol < 1:
-            raise ValueError('Prune tolerance must be between 0 and 1')
+            raise ValueError('Prune tolerance must be between 0 and 1.')
         if k_rmse <= 0:
-            raise ValueError('Expected RMSE must be greater than 0')
+            raise ValueError('Expected RMSE must be greater than 0.')
         self.k_sigma = k_sigma
         self.max_widens = max_widens
         self.prune_tol = prune_tol
@@ -125,8 +125,7 @@ class FuzzySelfOrganizer(object):
 
         :return: True if the resulting model after organizing satisfies both error and if-part criteria.
         """
-        # initial training of model - yields predictions
-        print('Beginning model training...')
+        logger.info('Beginning self-organizing process.')
         self.model.fit(x, y, **kwargs)
 
         # set organization iterations counter
@@ -137,22 +136,22 @@ class FuzzySelfOrganizer(object):
             if org_ints > self.max_loops:
                 break
 
-            print('Organization iteration {}...'.format(org_ints))
+            logger.debug(f'Running self-organize iteration: {org_ints}.')
 
             # run criterion checks and organize accordingly
             self.organize(x, y, **kwargs)
 
             # quit if above max neurons allowed
             if self.model.neurons >= self.max_neurons:
-                print('Maximum neurons reached')
-                print('Terminating self-organizing process')
+                logger.info(f'Maximum neurons reached: {self.max_neurons}. Terminating self-organizing process.')
                 break
 
             # increase counter
             org_ints += 1
 
         # print terminal message if successfully organized
-        print('Self-Organization complete!')
+        logger.info('Self-Organization complete!')
+        logger.debug(f'Organization completed after {org_ints} iterations.')
         return self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x)
 
     def organize(self, x, y, **kwargs) -> None:
@@ -168,18 +167,23 @@ class FuzzySelfOrganizer(object):
         if 'epochs' not in kwargs:
             kwargs['epochs'] = 10
 
+        error_criterion = self.error_criterion(y, self.model.predict(x))
+        ifpart_criterion = self.if_part_criterion(x)
+        logger.debug(f'Error criterion satisfied: {error_criterion}.')
+        logger.debug(f'If-Part criterion satisfied: {ifpart_criterion}.')
+
         # no structural adjustment
-        if self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
+        if error_criterion and ifpart_criterion:
             self.model.fit(x, y, **kwargs)
-        # widen MF widths to cover input vector of MF with lowest value
-        elif self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
+        # widen membership function widths to cover the input vector of membership function with the lowest value
+        elif error_criterion and not ifpart_criterion:
             self.widen_centers(x)
         # add neuron and retrain after adding neuron
-        elif not self.error_criterion(y, self.model.predict(x)) and self.if_part_criterion(x):
+        elif not error_criterion and ifpart_criterion:
             self.add_neuron(x, y, **kwargs)
             self.model.fit(x, y, **kwargs)
-        # widen centers until if-part satisfied. if if-else not satisfied, reset widths and add neuron
-        elif not self.error_criterion(y, self.model.predict(x)) and not self.if_part_criterion(x):
+        # widen centers until if-part satisfied. if if-part not satisfied, reset widths and add neuron
+        elif not error_criterion and not ifpart_criterion:
             original_weights = self.model.get_weights()
             self.widen_centers(x)
             if not self.if_part_criterion(x):
@@ -264,49 +268,33 @@ class FuzzySelfOrganizer(object):
 
         :returns: True if centers successfully widened. False otherwise.
         """
-        # print alert of successful widening
-        print('Widening centers...')
+        logger.info('Beginning process to widen centers.')
 
-        # create simple alias for self.network
-        fuzzy_net = self.model
+        c, s = self.model.fuzz.get_weights()
 
-        # get fuzzy layer and output to find max neuron output
-        fuzz_layer = fuzzy_net.fuzz
-
-        # get old weights and create current weight vars
-        c, s = fuzz_layer.get_weights()
-
-        # repeat until if-part criterion satisfied
-        # only perform for max iterations
         counter = 0
         while not self.if_part_criterion(x):
-
             counter += 1
-            # check if max iterations exceeded prior to satisfying if-part-criterion
             if counter > self.max_widens:
-                print(f'Max iterations reached: ({counter - 1})')
+                logger.info(f'Max iterations reached: ({counter - 1}).')
                 break
 
-            # get neuron with max-output for each sample
-            # then select the most common one to update
-            fuzz_out = fuzz_layer(x)
+            # get neuron with max-output for each sample then select the most common one to update
+            fuzz_out = self.model.fuzz(x)
             maxes = numpy.argmax(fuzz_out, axis=-1)
             max_neuron = numpy.argmax(numpy.bincount(maxes.flat))
 
-            # select minimum width to expand
-            # and multiply by factor
+            # select minimum width to expand and multiply by factor
             mf_min = s[:, max_neuron].argmin()
             s[mf_min, max_neuron] = self.k_sigma * s[mf_min, max_neuron]
 
-            # update weights
             new_weights = [c, s]
-            fuzz_layer.set_weights(new_weights)
+            self.model.fuzz.set_weights(new_weights)
 
-        # print alert of successful widening
         if counter == 0:
-            print('Centers not widened')
+            logger.info('Centers not widened because if-part criterion already satisfied.')
         else:
-            print(f'Centers widened after {counter} iterations')
+            logger.info(f'Centers successfully widened after {counter} iterations.')
 
         return self.if_part_criterion(x)
 
@@ -322,11 +310,8 @@ class FuzzySelfOrganizer(object):
 
         :returns: True if a neuron was added. False otherwise.
         """
-        # if self.__debug:
-        #     print('Adding neuron...')
-        #pass
+        logger.info('Adding neuron.')
 
-        # get current weights
         w = self.model.get_weights()
         c_curr, s_curr, a_curr = w[0], w[1], w[2]
 
@@ -348,15 +333,12 @@ class FuzzySelfOrganizer(object):
         a_add = a_curr.mean(axis=0)
         a_new = numpy.row_stack((a_curr, a_add))
 
-        # update weights to include new neurons
         w[0], w[1], w[2] = c_new, s_new, a_new
 
-        # update model and neurons
-        self.model = self.rebuild_model(x=x, y=y, new_neurons=self.model.neurons + 1, new_weights=w, **kwargs)
-        #self.model = self.network.model
+        self.model = self.rebuild_model(x, y, new_neurons=self.model.neurons + 1, new_weights=w, **kwargs)
 
-        #if self.__debug:
-        print('Neuron successfully added! - {} current neurons...'.format(self.model.neurons))
+        logger.info(f'Neuron successfully added!')
+        logger.debug(f'Current neurons: {self.model.neurons}.')
         return True
 
     def new_neuron_weights(self, x, distance_threshold: float = 1.0) -> Tuple[numpy.ndarray, numpy.ndarray]:
@@ -368,24 +350,18 @@ class FuzzySelfOrganizer(object):
 
         :returns: (ck, sk): Centers and widths for new fuzzy neuron. Shape: (features,)
         """
-        # get input values and fuzzy weights
-        c, s = self.model.get_layer('FuzzyRules').get_weights()
+        c, s = self.model.fuzz.get_weights()
 
-        # get minimum distance vector
         minimum_distance = self.minimum_distance_vector(x)
-        # get minimum distance across neurons and arg-min for neuron with the lowest distance
         distance_vector = minimum_distance.min(axis=-1)
         minimum_neurons = minimum_distance.argmin(axis=-1)
 
-        # get min c and s weights
         c_min = c[:, minimum_neurons].diagonal()
         s_min = s[:, minimum_neurons].diagonal()
 
-        # set threshold distance as a factor of mean
-        # value for each feature across samples
+        # set threshold distance as a factor of mean value for each feature across samples
         kd_i = x.mean(axis=0) * distance_threshold
 
-        # get final weight vectors
         ck = numpy.where(distance_vector <= kd_i, c_min, x.mean(axis=0))
         sk = numpy.where(distance_vector <= kd_i, s_min, distance_vector)
         return ck, sk
@@ -404,6 +380,7 @@ class FuzzySelfOrganizer(object):
         # get config from current model and update output_dim of neuron layers
         config = self.model.get_config()
         config['neurons'] = new_neurons
+        logger.debug(f'Rebuilding model with config: {config}.')
         new_model = FuzzyNetwork(**config)
 
         # recompile model based on current model parameters
@@ -426,14 +403,12 @@ class FuzzySelfOrganizer(object):
 
         compile_args = list(inspect.signature(FuzzyNetwork.compile).parameters)
         compile_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in compile_args}
-
         fit_args = list(inspect.signature(FuzzyNetwork.fit).parameters)
         fit_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in fit_args}
 
         new_model.compile(optimizer=optimizer, loss=loss, metrics=metrics, **compile_dict)
         new_model.fit(x, y, epochs=1, **fit_dict)
         new_model.set_weights(new_weights)
-
         return new_model
 
     def prune_neurons(self, x, y, **kwargs) -> bool:
@@ -445,14 +420,12 @@ class FuzzySelfOrganizer(object):
 
         :returns: True if at least one neuron was pruned. False otherwise.
         """
-        print('Pruning neurons...')
+        logger.info('Beginning neuron pruning.')
 
-        # quit if only 1 neuron exists
         if self.model.neurons == 1:
-            print('Skipping pruning steps - only 1 neuron exists')
+            logger.info('Skipping pruning step - only 1 neuron currently exists.')
             return False
 
-        # get current training predictions
         # calculate mean absolute error on training data
         E_rmse = mean_squared_error(y, self.model.predict(x))
 
@@ -460,8 +433,7 @@ class FuzzySelfOrganizer(object):
         prune_model = self.duplicate_model()
         starting_weights = self.model.get_weights()
 
-        # for each neuron, zero it out in the prune model
-        # and get change in mae for dropping neuron
+        # for each neuron, zero it out in the prune model and get change in root mean squared error from removing neuron
         delta_E = []
         for neuron in range(self.model.neurons):
             # reset prune model weights to actual weights
@@ -480,15 +452,13 @@ class FuzzySelfOrganizer(object):
             # append difference in rmse and new prediction rmse
             delta_E.append(neuron_rmae - E_rmse)
 
-        # convert delta_E to numpy array
         delta_E = numpy.array(delta_E)
-        # choose max of tolerance or threshold limit
+        # choose max of pruning tolerance or threshold limit
         E = max(self.prune_tol * E_rmse, self.k_rmse)
 
-        # iterate over each neuron in ascending importance
-        # and prune until hit "important" neuron
+        # iterate over each neuron in ascending importance and prune until hit important neuron
         to_delete = []
-        # for each neuron excluding most important
+        # for each neuron excluding the most important
         for neuron in delta_E.argsort()[:-1]:
             # reset prune model weights to actual weights
             prune_model.set_weights(starting_weights)
@@ -511,12 +481,12 @@ class FuzzySelfOrganizer(object):
             # quit deleting if >= E
             else:
                 break
-        # exit if no neurons to be deleted
+
         if not to_delete:
-            print('No neurons detected for pruning')
+            logger.info('No neurons detected for pruning.')
             return False
         else:
-            print(f'Neurons to be deleted: {to_delete}')
+            logger.info(f'Neurons to be deleted: {to_delete}.')
 
         # reset prune model weights to actual weights
         prune_model.set_weights(starting_weights)
@@ -526,10 +496,9 @@ class FuzzySelfOrganizer(object):
             w[i] = numpy.delete(weight, to_delete, axis=-1)
         w[2] = numpy.delete(w[2], to_delete, axis=0)
 
-        # update model with updated weights
         self.model = self.rebuild_model(x, y, new_neurons=self.model.neurons - len(to_delete), new_weights=w,**kwargs)
-
-        print(f'{len(to_delete)} neurons successfully pruned! - {self.model.neurons} current neurons...')
+        logger.info(f'{len(to_delete)} neurons successfully pruned.')
+        logger.debug(f'Current neurons: {self.model.neurons}.')
         return True
 
     def combine_membership_functions(self, **kwargs) -> None:
