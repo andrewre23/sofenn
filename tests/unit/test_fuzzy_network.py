@@ -4,12 +4,12 @@ import tempfile
 from functools import lru_cache
 from pathlib import Path
 
+import keras
 import keras.src.backend as K
 import numpy
 import pandas
 import pytest
 from keras.api.callbacks import ProgbarLogger
-from keras.api.saving import load_model
 from keras.src import testing
 from sklearn.model_selection import train_test_split
 
@@ -161,8 +161,8 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model.compile()
         trained_model.fit(X_train, y_train, epochs=epochs)
 
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            trained_model.save(tmpdirname + 'model.keras')
+        with tempfile.TemporaryDirectory() as temp_directory:
+            trained_model.save(temp_directory + 'model.keras')
 
     def test_functional_properties(self):
         model = FuzzyNetwork(**_params(name='Functional properties test'))
@@ -209,7 +209,7 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model.fit(X_train, y_train, epochs=epochs)
         #trained_model.save(DATA_DIR / 'models/iris_classification.keras')
 
-        loaded_model = load_model(DATA_DIR / 'models/iris_classification.keras')
+        loaded_model = keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
         assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
 
     def test_fit_callbacks(self):
