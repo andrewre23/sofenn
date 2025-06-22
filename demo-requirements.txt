@@ -1,3 +1,6 @@
+-r requirements.txt
+-r build-requirements.txt
+
 # data i/o
 pandas==2.2.3
 
