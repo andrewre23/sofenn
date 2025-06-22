@@ -211,4 +211,4 @@ class FuzzyNetwork(Model):
 
     # # TODO: create from_config method
     # def from_config(self, config):
-    #     pass
+    #     pass or not
