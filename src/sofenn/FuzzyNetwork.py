@@ -2,8 +2,9 @@ import copy
 import logging
 from typing import Optional
 
-from keras.api.layers import Input, Dense
-from keras.api.metrics import CategoricalAccuracy, MeanSquaredError, Accuracy
+from keras.api.layers import Input
+from keras.api.losses import MeanSquaredError
+from keras.api.metrics import CategoricalAccuracy, Accuracy, BinaryCrossentropy
 from keras.api.models import Model
 from keras.api.optimizers import Adam, RMSprop
 
@@ -37,13 +38,13 @@ class FuzzyNetwork(Model):
             input_shape: Optional[tuple] = None,
             features: Optional[int] = None,
             neurons: int = 1,
-            problem_type: str = 'classification',
-            target_classes: Optional[int] = 1,
+            problem_type: str = 'regression',
+            target_classes: int = 1,
             name: str = 'FuzzyNetwork',
             **kwargs
     ):
         if features is not None and features < 1:
-            raise ValueError('At least 1 input feature required')
+            raise ValueError('At least 1 input feature required if features is specified')
         if features is not None and input_shape is not None:
             if input_shape not in [(features,), (None, features)]:
                 raise ValueError('Input shape must match feature shape if providing both')
@@ -59,7 +60,7 @@ class FuzzyNetwork(Model):
             raise ValueError('Neurons must be a positive integer')
         self.neurons = neurons
 
-        if problem_type.lower() not in ['classification', 'regression']:
+        if problem_type.lower() not in ['classification', 'regression', 'logistic_regression']:
             raise ValueError(f'Invalid problem type provided: {problem_type}')
         self.problem_type = problem_type.lower()
 
@@ -68,7 +69,14 @@ class FuzzyNetwork(Model):
                 raise ValueError("Must provide target_classes parameter if 'problem_type' is 'classification'")
             elif target_classes < 2:
                 raise ValueError("Must specify more than 1 target class if 'problem_type' is 'classification'")
-        self.target_classes = None if self.problem_type == 'regression' else target_classes
+            target_classes = target_classes
+        elif self.problem_type == 'logistic_regression':
+            if target_classes != 2:
+                logger.warning("Target classes provided will be ignored if problem_type is 'logistic_regression'")
+            target_classes = 2
+        elif self.problem_type == 'regression':
+            target_classes = 1
+        self.target_classes = target_classes
 
         kwargs['name'] = kwargs.get('name', name)
 
@@ -76,8 +84,7 @@ class FuzzyNetwork(Model):
         self.fuzz = FuzzyLayer(shape=(self.features,), neurons=self.neurons)
         self.norm = NormalizeLayer(shape=(self.features, self.neurons))
         self.w = WeightedLayer(shape=[(self.features,), (self.neurons,)])
-        self.raw = OutputLayer()
-        self.softmax = Dense(self.target_classes, name='Softmax', activation='softmax')
+        self.final_output = OutputLayer(shape=(self.neurons,), target_classes=self.target_classes, problem_type=self.problem_type)
 
         self.trained = False
 
@@ -139,25 +146,8 @@ class FuzzyNetwork(Model):
         phi = self.fuzz(inputs)
         psi = self.norm(phi)
         f = self.w([inputs, psi])
-        raw_output = self.raw(f)
-        final_out = raw_output
+        return self.final_output(f)
 
-        # add softmax layer for a classification problem
-        if self.problem_type == 'classification':
-            classes = self.softmax(raw_output)
-            final_out = classes
-
-        # TODO: determine logic for activation w/ regression
-        # # extract activation from kwargs
-        # if 'activation' not in kwargs:
-        #     activation = 'sigmoid'
-        # else:
-        #     activation = kwargs['activation']
-        # preds = Activation(name='OutputActivation', activation=activation)(raw_output)
-
-        return final_out
-
-    # TODO: add get_compile_config and compile_from_config(config)
     def compile(self, **kwargs) -> None:
         """Compile fuzzy network."""
         for key, default_value in self.compile_defaults(self.problem_type).items():
@@ -173,6 +163,11 @@ class FuzzyNetwork(Model):
                 'loss': CustomLoss,
                 'optimizer': Adam,
                 'metrics': [CategoricalAccuracy]
+            },
+            'logistic_regression': {
+                'loss': BinaryCrossentropy,
+                'optimizer': RMSprop,
+                'metrics': [Accuracy]
             },
             'regression': {
                 'loss': MeanSquaredError,

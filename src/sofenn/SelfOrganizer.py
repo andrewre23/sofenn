@@ -197,7 +197,7 @@ class FuzzySelfOrganizer(object):
         :returns: True/False if the error criterion is satisfied.
             If the criterion is not satisfied, then a neuron should be added to the model.
         """
-        return MeanAbsoluteError()(y_true, y_pred) <= self.error_delta
+        return MeanAbsoluteError()(y_true, y_pred).numpy() <= self.error_delta
 
     def if_part_criterion(self, x) -> bool:
         """

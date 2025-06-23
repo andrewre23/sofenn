@@ -7,29 +7,33 @@ from keras.api.layers import Layer
 
 class WeightedLayer(Layer):
     """
-    Weighted Layer (3) of SOFNN
-    ===========================
+    Weighted Layer
+    ==============
+    Weighted Layer
 
-    - Weighting of ith MF of each feature
+    Layer (3) of SOFNN Model
 
-    - yields the "consequence" of the jth fuzzy rule of fuzzy model
-    - each neuron has two inputs:
+    Weighting of ith MF of each feature
+
+    Yields the "consequence" of the jth fuzzy rule of fuzzy model
+
+    Each neuron has two inputs:
         - output of previous related neuron j
         - weighted bias w2j
-    - with:
-        r      = number of original input features
 
-        B      = [1, x1, x2, ... xr]
-        Aj     = [aj0, aj1, ... ajr]
+    with:
+      - *r* = number of original input features
+    .. math::
+      - B = [1, x_{1}, x_{2}, ... x_{r}]
 
-        w2j    = Aj * B =
-                 aj0 + aj1x1 + aj2x2 + ... ajrxr
+      - A_{j} = [a_{j0}, a_{j1}, a_{j2}, ... a_{r}]
 
-        psi(j) = output of jth neuron from
-                normalize layer
+      - w_{2j} = Aj * B = a_{j0} + a_{j1}x_{1} + a_{j2}x_{2} + ... + a_{jr}x_{r}
 
-    -output for weighted layer is:
-        fj     = w2j psi(j)
+
+    Output for weighted layer is:
+        .. math::
+            f_{j} = w_{2j} \psi_{(j)}
     """
     def __init__(self,
                  shape: List[tuple],
@@ -51,14 +55,14 @@ class WeightedLayer(Layer):
 
         Parameters
         ==========
-        input_shape : list of tuples
+        input_shape: list of tuples
             - [x shape, psi shape]
             - x shape: (samples, features)
             - psi shape: (samples, neurons)
 
         Attributes
         ==========
-        a : then-part (consequence) of fuzzy rule
+        a: then-part (consequence) of fuzzy rule
             - a(j, i)
             - trainable weight of ith feature of jth neuron
             - shape: (neurons, 1+features)
@@ -79,7 +83,7 @@ class WeightedLayer(Layer):
 
         Parameters
         ==========
-        inputs : list of tensors
+        inputs: list of tensors
             - list of tensor with input data and psi output of previous layer
             - [x, psi]
             - x shape: (samples, features)
@@ -87,11 +91,11 @@ class WeightedLayer(Layer):
 
         Attributes
         ==========
-        aligned_b : tensor
+        aligned_b: tensor
             - input vector with [1.0] prepended for bias weight
             - shape: (samples, 1+features)
 
-        aligned_a : tensor
+        aligned_a: tensor
             - a(i,j)
             - weight parameter of ith feature of jth neuron
             - shape: (neurons, 1+features)
@@ -124,14 +128,14 @@ class WeightedLayer(Layer):
 
         Parameters
         ==========
-        input_shape : list of tuples
+        input_shape: list of tuples
             - [x, psi]
             - x shape: (samples, features)
             - psi shape: (samples, neurons)
 
         Returns
         =======
-        output_shape : tuple
+        output_shape: tuple
             - output shape of weighted layer
             - shape: (samples, neurons)
         """

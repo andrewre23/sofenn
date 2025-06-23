@@ -11,6 +11,8 @@ import pandas
 import pytest
 from keras.api.callbacks import ProgbarLogger
 from keras.src import testing
+from keras.src.losses import MeanSquaredError
+from keras.src.optimizers import RMSprop
 from sklearn.model_selection import train_test_split
 
 from sofenn import FuzzyNetwork
@@ -72,6 +74,21 @@ class FuzzyNetworkTest(testing.TestCase):
                 target_classes=1
             ))
 
+    def test_inputs_for_logistic_regression(self):
+        with self.assertLogs(level='WARNING'):
+            FuzzyNetwork(**_params(
+                name='No target classes provided',
+                target_classes=1,
+                problem_type='logistic_regression'
+            ))
+
+    # def test_inputs_for_regression(self):
+    #     with self.assertRaises(ValueError):
+    #         FuzzyNetwork(**_params(
+    #             name='None Yet',
+    #             problem_type='regression'
+    #         ))
+
     def test_init_with_features_and_input_shape(self):
         FuzzyNetwork(**_params(
             name='Only features provided',
@@ -122,7 +139,7 @@ class FuzzyNetworkTest(testing.TestCase):
             problem_type=DEFAULTS['problem_type'],
             target_classes=DEFAULTS['target_classes']
         )
-        self.assertEqual(len(model.layers), 5)
+        self.assertEqual(len(model.layers), 4)
         # until the model sees example data, then the model will not be built and weights will not be added
         self.assertFalse(model.built)
         self.assertEqual(len(model.weights), 0)
@@ -151,7 +168,7 @@ class FuzzyNetworkTest(testing.TestCase):
                 'FuzzyWeightsInitializer': FuzzyWeightsInitializer
             }
         )
-        self.assertLen(revived.layers, 5)
+        self.assertLen(revived.layers, 4)
 
     def test_saving_model(self):
         epochs = 1
@@ -173,7 +190,7 @@ class FuzzyNetworkTest(testing.TestCase):
     def test_pickleable(self):
         model = FuzzyNetwork(**_params(name='Pickleable test'))
         result = pickle.loads(pickle.dumps(model))
-        assert len(result.layers) == 5
+        assert len(result.layers) == 4
 
     def test_hasattr(self):
         model = FuzzyNetwork(**_params(name='Attribute test'))
@@ -204,12 +221,76 @@ class FuzzyNetworkTest(testing.TestCase):
         epochs = 10
         X_train, X_test, y_train, y_test = _get_training_data()
 
-        trained_model = FuzzyNetwork(**_params(name='ModelFitTest'))
+        trained_model = FuzzyNetwork(**_params(name='ClassificationModelFitTest'))
         trained_model.compile()
         trained_model.fit(X_train, y_train, epochs=epochs)
         #trained_model.save(DATA_DIR / 'models/iris_classification.keras')
-
         loaded_model = keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+
+        # deep trained model
+        #trained_model.fit(X_train, y_train, epochs=250)
+        #trained_model.save(DATA_DIR / 'models/iris_classification-deep.keras')
+        #loaded_model = keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep.keras')
+
+        assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
+
+    # def test_fit_logistic_regression(self):
+    #     epochs = 10
+    #     samples = 25
+    #     features = 4
+    #     #X_train = numpy.linspace(0, 100, 25)
+    #     X_train = numpy.random.random((samples, features))
+    #     noise = numpy.random.normal(0,.5, len(X_train))
+    #     y_train = numpy.dot(X_train, [3, 1, 2, 1]) + noise
+    #
+    #     trained_model = FuzzyNetwork(
+    #         name='LogisticRegressionModelFitTest',
+    #         input_shape=X_train.shape,
+    #         problem_type='logistic_regression',
+    #         neurons=3
+    #     )
+    #     trained_model.compile(
+    #         loss=BinaryCrossentropy(from_logits=False),
+    #     )
+    #     trained_model.fit(X_train, y_train, epochs=epochs)
+    #     #trained_model.save(DATA_DIR / 'models/regression.keras')
+    #
+    #     #loaded_model = keras.saving.load_model(DATA_DIR / 'models/regression.keras')
+    #     #assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
+
+
+    def test_fit_regression(self):
+        samples = 250
+        train_samples = 200
+        features = DEFAULTS['features']
+        x = numpy.random.random((samples, features))
+        noise = numpy.random.normal(0,.5, len(x))
+        y = numpy.dot(x, [8, 1, 3, 2]) + noise
+        X_train, X_test = x[:train_samples], x[train_samples:]
+        y_train, y_test = y[:train_samples], y[train_samples:]
+
+
+        trained_model = FuzzyNetwork(**_params(
+            name='RegressionWithDefaults',
+            problem_type='regression'
+        ))
+        trained_model.compile()
+        trained_model.fit(X_train, y_train, epochs=1)
+
+        trained_model = FuzzyNetwork(
+            name='RegressionModelFitTest',
+            features=features,
+            problem_type='regression',
+            neurons=5
+        )
+        trained_model.compile(
+            loss=MeanSquaredError(),
+            optimizer=RMSprop(learning_rate=0.1),
+        )
+        trained_model.fit(X_train, y_train, epochs=25)
+        #trained_model.save(DATA_DIR / 'models/regression.keras')
+
+        loaded_model = keras.saving.load_model(DATA_DIR / 'models/regression.keras')
         assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
 
     def test_fit_callbacks(self):

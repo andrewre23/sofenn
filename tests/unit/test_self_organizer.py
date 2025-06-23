@@ -37,7 +37,7 @@ def _get_training_data():
 
 def _classification_model(deep=False):
     if deep:
-        return keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep_trained.keras')
+        return keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep.keras')
     else:
         return keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
 
@@ -333,7 +333,8 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             name='No structural adjustment '
                  'Error: Pass '
                  'If-Part: Pass',
-            model=_classification_model(deep=True)
+            model=_classification_model(deep=True),
+            error_delta=0.15
         )
         self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))

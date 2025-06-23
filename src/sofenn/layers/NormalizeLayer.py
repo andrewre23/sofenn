@@ -7,20 +7,24 @@ from keras.api.layers import Layer
 
 class NormalizeLayer(Layer):
     """
-    Normalize Layer (2) of SOFNN
-    =============================
+    Normalize Layer
+    ===============
+    Normalization Layer
 
-    - Normalization Layer
+    Layer (2) of SOFNN Model
 
-    - output of each neuron is normalized by total output from previous layer
-    - number of outputs equal to previous layer (# of neurons)
-    - output for Normalize Layer is:
+    Output of each neuron is normalized by total output from the previous layer
 
-        psi(j) = phi(j) / sum[k=1, u; phi(k)]
-                for u neurons
-        - with:
+    Number of outputs equal to the previous layer (# of neurons)
 
-        psi(j) = output of Fuzzy Layer neuron j
+    with:
+        - *j* = neurons
+        - .. math::
+            j=1,2,...,u;
+
+    Output for Normalize Layer is:
+        .. math::
+            \psi_{(j)} = \phi_{(j)} / \sum_{k=1}^{u} \phi_{(k)}
     """
 
     def __init__(self, shape: tuple, name: Optional[str] = "Normalize", **kwargs):
@@ -36,7 +40,7 @@ class NormalizeLayer(Layer):
 
         Parameters
         ==========
-        input_shape : tuple
+        input_shape: tuple
             - input shape of training data
             - last index will be taken for sizing variables
         """
@@ -48,7 +52,7 @@ class NormalizeLayer(Layer):
 
         Parameters
         ==========
-        inputs : tensor
+        inputs: tensor
             - input tensor
             - tensor with phi output of each neuron
             - phi(j) for j neurons
@@ -56,7 +60,7 @@ class NormalizeLayer(Layer):
 
         Returns
         =======
-        psi : tensor
+        psi: tensor
             - output of each neuron after normalization step
             - divide each output by sum of output of all neurons
             - psi(j) for jth neuron
@@ -73,13 +77,13 @@ class NormalizeLayer(Layer):
 
         Parameters
         ==========
-        input_shape : tuple
+        input_shape: tuple
             - shape of input data
             - shape: (samples, neurons)
 
         Returns
         =======
-        output_shape : tuple
+        output_shape: tuple
             - output shape of normalization layer
             - shape: (samples, neurons)
         """

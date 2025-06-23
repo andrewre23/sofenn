@@ -9,29 +9,41 @@ from sofenn.utils.layers import get_fuzzy_output_shape
 
 class FuzzyLayer(Layer):
     """
-    Fuzzy Layer (1) of SOFNN
-    ========================
+    Fuzzy Layer
+    ===========
+    Radial (Ellipsoidal) Basis Function Layer
 
-    - Radial (Ellipsoidal) Basis Function Layer
+    Layer (1) of SOFNN Model
 
-    - each neuron represents "if-part" or premise of a fuzzy rule
-    - individual Membership Functions (MF) are applied to each feature for each neuron
-    - output is product of Membership Functions
-    - each MF is Gaussian function:
+    Each neuron represents "if-part" or premise of a fuzzy rule
 
-        - mu(i,j) = exp{- [x(i) - c(i,j)]^2 / [2 * sigma(i,j)^2]}
+    Individual Membership Functions are applied to each feature for each neuron
 
-        - for i features and  j neurons:
+    Output is product of Membership Functions
 
-        - mu(i,j)    = ith MF of jth neuron
+    Each **Membership Function (MF)** is Gaussian function:
 
-        - c(i,j)     = center of ith MF of jth neuron
+    .. math::
+        - \mu_{(i,j)} = exp^{- \dfrac{{[x_{(i)} - c_{(i,j)}]}^2}{[2 * \sigma_{(i,j)}^{2}]}}
 
-        - sigma(i,j) = width of ith MF of jth neuron
+    with:
+      - *i* = features
+      - *j* = neurons
+      - .. math::
+        i=1,2,...,r;
+      - .. math::
+        j=1,2,...,u;
+      - center of ith MF of jth neuron
+            .. math::
+                c_{(i,j)}
+      - width of ith MF of jth neuron
+            .. math::
+                \sigma_{(i,j)}
 
-    - output for Fuzzy Layer is:
-        phi(j) = exp{-sum[i=1,r;
-                    [x(i) - c(i,j)]^2 / [2 * sigma(i,j)^2]]}
+    Output for Fuzzy Layer is:
+        .. math::
+            \phi_{(j)} = \sum_{j=1}^{u} \dfrac{{[x_{(i)} - c_{(i,j)}]}^2}{[2 * \sigma_{(i,j)}^{2}]}
+
     """
     def __init__(self,
                  shape: tuple,
@@ -58,19 +70,19 @@ class FuzzyLayer(Layer):
 
         Parameters
         ==========
-        input_shape : tuple
+        input_shape: tuple
             - input shape of training data
             - last index will be taken for sizing variables
 
         Attributes
         ==========
-        c : center
-            - c(i,j)
+        c: center
+            - .. math:: c_{(i,j)}
             - trainable weights for center of ith membership function of jth neuron
             - shape: (features, neurons)
 
-        s : sigma
-            - s(i,j)
+        s: width / sigma
+            - .. math:: \sigma_{(i,j)}
             - trainable weights for width of ith membership function of jth neuron
             - shape: (features, neurons)
         """
@@ -92,23 +104,23 @@ class FuzzyLayer(Layer):
 
         Parameters
         ==========
-        inputs : tensor
+        inputs: tensor
             - input tensor
-            - shape: (samples,features)
+            - shape: (samples, features)
 
         Attributes
         ==========
-        aligned_x : tensor
+        aligned_x: tensor
             - x(i,j)
             - ith feature of jth neuron
             - shape: (samples, features, neurons)
 
-        aligned_c : tensor
+        aligned_c: tensor
             - c(i,j)
             - center of ith membership function of jth neuron
             - shape: (features, neurons)
 
-        aligned_s : tensor
+        aligned_s: tensor
             - s(i,j)
             - sigma of ith membership function of jth neuron
             - shape: (features, neurons)
@@ -140,13 +152,13 @@ class FuzzyLayer(Layer):
 
         Parameters
         ==========
-        input_shape : tuple
+        input_shape: tuple
             - shape of input data
             - shape: (samples, features)
 
         Returns
         =======
-        output_shape : tuple
+        output_shape: tuple
             - output shape of fuzzy layer
             - shape: (samples, neurons)
         """
