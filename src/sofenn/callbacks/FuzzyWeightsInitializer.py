@@ -1,8 +1,8 @@
 import logging
 
-import keras.api.ops as K
+import keras.ops as K
 import numpy
-from keras.api.callbacks import Callback
+from keras.callbacks import Callback
 
 from sofenn.layers import FuzzyLayer
 

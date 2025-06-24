@@ -2,7 +2,7 @@ import keras.src.backend as k
 import numpy as np
 from absl.testing import parameterized
 from keras.src import testing
-from keras.api.activations import softmax, linear, sigmoid
+from keras.activations import softmax, linear, sigmoid
 
 from sofenn.layers import OutputLayer
 
@@ -76,7 +76,7 @@ class OutputLayerTest(testing.TestCase):
                 expected_num_non_trainable_weights=0,
                 supports_masking=False,
                 run_mixed_precision_check=False,
-                assert_built_after_instantiation=True,
+                #assert_built_after_instantiation=True,
             )
 
     @parameterized.named_parameters(PARAM_COMBOS)

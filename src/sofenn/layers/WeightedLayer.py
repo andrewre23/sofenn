@@ -1,10 +1,12 @@
 from typing import List, Optional
 
-import keras.api.ops as K
+import keras
+import keras.ops as K
 import keras.src.backend as k
-from keras.api.layers import Layer
+from keras.layers import Layer
 
 
+@keras.saving.register_keras_serializable()
 class WeightedLayer(Layer):
     """
     Weighted Layer

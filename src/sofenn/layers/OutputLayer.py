@@ -1,11 +1,13 @@
 from typing import Optional
 
-import keras.api.ops as K
+import keras
+import keras.ops as K
 import keras.src.backend as k
-from keras.api.activations import softmax, linear, sigmoid
-from keras.api.layers import Layer, Dense
+from keras.activations import softmax, linear, sigmoid
+from keras.layers import Layer, Dense
 
 
+@keras.saving.register_keras_serializable()
 class OutputLayer(Layer):
     """
     Output Layer

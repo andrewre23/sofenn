@@ -2,11 +2,12 @@ import copy
 import logging
 from typing import Optional
 
-from keras.api.layers import Input
-from keras.api.losses import MeanSquaredError
-from keras.api.metrics import CategoricalAccuracy, Accuracy, BinaryCrossentropy
-from keras.api.models import Model
-from keras.api.optimizers import Adam, RMSprop
+import keras
+from keras.layers import Input
+from keras.losses import MeanSquaredError
+from keras.metrics import CategoricalAccuracy, Accuracy, BinaryCrossentropy
+from keras.models import Model
+from keras.optimizers import Adam, RMSprop
 
 from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
@@ -15,6 +16,7 @@ from sofenn.losses import CustomLoss
 logger = logging.getLogger(__name__)
 
 
+@keras.saving.register_keras_serializable(package='sofenn')
 class FuzzyNetwork(Model):
     """
     Fuzzy Network

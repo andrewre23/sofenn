@@ -1,12 +1,14 @@
 from typing import Optional
 
-import keras.api.ops as K
+import keras
+import keras.ops as K
 import keras.src.backend as k
-from keras.api.layers import Layer
+from keras.layers import Layer
 
 from sofenn.utils.layers import get_fuzzy_output_shape
 
 
+@keras.saving.register_keras_serializable()
 class FuzzyLayer(Layer):
     """
     Fuzzy Layer

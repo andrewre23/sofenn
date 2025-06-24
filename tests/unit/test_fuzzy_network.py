@@ -9,7 +9,7 @@ import keras.src.backend as K
 import numpy
 import pandas
 import pytest
-from keras.api.callbacks import ProgbarLogger
+from keras.callbacks import ProgbarLogger
 from keras.src import testing
 from keras.src.losses import MeanSquaredError
 from keras.src.optimizers import RMSprop
@@ -225,7 +225,7 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model.compile()
         trained_model.fit(X_train, y_train, epochs=epochs)
         #trained_model.save(DATA_DIR / 'models/iris_classification.keras')
-        loaded_model = keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+        loaded_model = keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras', custom_objects={'FuzzyNetwork': FuzzyNetwork})
 
         # deep trained model
         #trained_model.fit(X_train, y_train, epochs=250)
@@ -290,7 +290,7 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model.fit(X_train, y_train, epochs=25)
         #trained_model.save(DATA_DIR / 'models/regression.keras')
 
-        loaded_model = keras.saving.load_model(DATA_DIR / 'models/regression.keras')
+        loaded_model = keras.saving.load_model(DATA_DIR / 'models/regression.keras', custom_objects={'FuzzyNetwork': FuzzyNetwork})
         assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
 
     def test_fit_callbacks(self):

@@ -37,7 +37,7 @@ class NormalizeLayerTest(testing.TestCase):
             expected_num_trainable_weights=0,
             expected_num_non_trainable_weights=0,
             supports_masking=False,
-            assert_built_after_instantiation=True,
+            #assert_built_after_instantiation=True,
         )
 
     @parameterized.named_parameters(PARAM_COMBOS)

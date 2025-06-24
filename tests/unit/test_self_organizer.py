@@ -37,9 +37,9 @@ def _get_training_data():
 
 def _classification_model(deep=False):
     if deep:
-        return keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep.keras')
+        return keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep.keras', custom_objects={'FuzzyNetwork': FuzzyNetwork})
     else:
-        return keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras')
+        return keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras', custom_objects={'FuzzyNetwork': FuzzyNetwork})
 
 
 @pytest.mark.requires_trainable_backend

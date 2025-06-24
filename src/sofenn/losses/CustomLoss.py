@@ -1,6 +1,6 @@
 import logging
 
-import keras.api.ops as K
+import keras.ops as K
 from keras.src.losses import Loss
 
 logger = logging.getLogger(__name__)

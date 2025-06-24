@@ -3,8 +3,8 @@ import logging
 from typing import Tuple, Optional
 
 import numpy
-from keras.api.metrics import MeanSquaredError, MeanAbsoluteError
-from keras.api.models import clone_model, Model
+from keras.metrics import MeanSquaredError, MeanAbsoluteError
+from keras.models import clone_model, Model
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
 

@@ -2,9 +2,9 @@
 -r build-requirements.txt
 
 # data i/o
-pandas==2.2.3
+pandas==2.3.0
 
 # plotting
-matplotlib==3.5.3
+matplotlib==3.9.4
 
 jupyter==1.1.1

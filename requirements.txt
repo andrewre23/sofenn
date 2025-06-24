@@ -1,8 +1,2 @@
-keras==3.6.0
-tensorflow==2.16.2
-
-
-# TODO: update requirements
-#       can we remove tf requirement
-#       can we use tf gpu in separate requirements for different tests?
-#       can we list numpy as explicit package (even though already bundled in keras)
+keras==3.10.0
+tensorflow==2.19.0
