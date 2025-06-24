@@ -4,23 +4,23 @@ from absl.testing import parameterized
 from keras.src import testing
 
 from sofenn.layers import WeightedLayer
+from sofenn.utils.layers import remove_nones
 
-FEATURES_1D = (12,)
-NEURONS_1D = (5,)
-SAMPLES = (100,)
-SHAPE_1D = [FEATURES_1D, NEURONS_1D]
-PARAM_COMBOS = [
-            {"testcase_name": "1D", "shape": SHAPE_1D},
-            {"testcase_name": "2D", "shape": [SAMPLES + features_or_neurons for features_or_neurons in SHAPE_1D]},
-        ]
+DEFAULT_DIM = 3
+SHAPES = [
+            {"testcase_name": "1D", "shape":        [(5,),      (3,)]},
+            {"testcase_name": "1D_w_None", "shape": [(None,),   (None,)]},
+            {"testcase_name": "2D", "shape":        [(4, 5),    (4, 2)]},
+            {"testcase_name": "2D_w_None", "shape": [(None, 5), (None, 2)]},
+]
 
 
 class WeightedLayerTest(testing.TestCase):
 
-    @parameterized.named_parameters(PARAM_COMBOS)
+    @parameterized.named_parameters(SHAPES)
     def test_build_across_shape_dimensions(self, shape):
         init_kwargs = {
-            "shape": shape,
+            "input_shape": shape,
         }
         features_shape, neuron_shape = shape
         values = WeightedLayer(**init_kwargs)([k.KerasTensor(features_shape), k.KerasTensor(neuron_shape)])
@@ -28,15 +28,15 @@ class WeightedLayerTest(testing.TestCase):
         self.assertIsInstance(values, k.KerasTensor)
         self.assertEqual(values.shape, neuron_shape)
 
-    @parameterized.named_parameters(PARAM_COMBOS)
+    @parameterized.named_parameters(SHAPES)
     def test_weighted_basics(self, shape):
         features_shape, neuron_shape = shape
         features_tensor = k.KerasTensor(shape=features_shape)
         neurons_tensor = k.KerasTensor(shape=neuron_shape)
+
         self.run_layer_test(
             WeightedLayer,
             init_kwargs={
-                'shape': shape,
                 'initializer_a': 'uniform',
             },
             call_kwargs={
@@ -49,41 +49,37 @@ class WeightedLayerTest(testing.TestCase):
             assert_built_after_instantiation=False,
         )
 
-    @parameterized.named_parameters(PARAM_COMBOS)
+    @parameterized.named_parameters(SHAPES)
     def testing_input_tensor(self, shape):
+        print(f'shape: {shape}')
         features_shape, neuron_shape = shape
         features_tensor = k.KerasTensor(shape=features_shape)
         neurons_tensor = k.KerasTensor(shape=neuron_shape)
-        values = WeightedLayer(shape=shape)([features_tensor, neurons_tensor])
+        values = WeightedLayer(input_shape=shape)([features_tensor, neurons_tensor])
 
         self.assertIsInstance(values, k.KerasTensor)
         self.assertEqual(values.shape, neurons_tensor.shape)
         self.assertEqual(values.ndim, neurons_tensor.ndim)
 
-    @parameterized.named_parameters(PARAM_COMBOS)
+    @parameterized.named_parameters(SHAPES)
     def test_call_method(self, shape):
         features_shape, neuron_shape = shape
-        features_tensor = k.convert_to_tensor(np.random.random(features_shape))
-        neurons_tensor = k.convert_to_tensor(np.random.random(neuron_shape))
-        layer = WeightedLayer(shape=shape)
+        features_tensor = k.convert_to_tensor(np.random.random(remove_nones(features_shape, DEFAULT_DIM)))
+        neurons_tensor = k.convert_to_tensor(np.random.random(remove_nones(neuron_shape, DEFAULT_DIM)))
+        layer = WeightedLayer(input_shape=shape)
         output = layer.call(inputs=[features_tensor, neurons_tensor])
 
         self.assertIsNotNone(output)
-        self.assertEqual(output.shape, neuron_shape)
+        self.assertEqual(output.shape, remove_nones(neuron_shape, DEFAULT_DIM))
 
     def test_numpy_shape(self):
         # non-python int type shapes should be ok
-        WeightedLayer(
-            shape=[
-                (np.int64(12),),
-                (np.int64(5),)
-            ]
-        )
+        WeightedLayer(input_shape=[(np.int64(12),), (np.int64(5),)])
 
-    def test_get_config(self):
-        config = WeightedLayer(shape=SHAPE_1D).get_config()
+    @parameterized.named_parameters(SHAPES)
+    def test_get_config(self, shape):
+        config = WeightedLayer(input_shape=shape).get_config()
 
         self.assertTrue('name' in config)
-        self.assertTrue(config['shape'] == SHAPE_1D)
         self.assertTrue('initializer_a' in config)
         self.assertTrue(config['trainable'] == True)

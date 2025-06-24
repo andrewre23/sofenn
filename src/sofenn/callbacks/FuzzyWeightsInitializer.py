@@ -60,6 +60,10 @@ class FuzzyWeightsInitializer(Callback):
         :param sample_data: Array of sample data.
         :param random_sample: If True, randomly sample from data. If False, take first n (# neurons) records.
         """
+        # if input data is only 1 sample, then convert the shape to (neuron, features)
+        # so the entire sample will be used as centers across all neurons
+        if sample_data.ndim == 1:
+            sample_data = K.repeat(K.expand_dims(sample_data, axis=-1), self.model.features, -1)
         if random_sample:
             # set centers as random sampled index values
             samples = numpy.random.randint(0, len(sample_data), self.model.neurons)

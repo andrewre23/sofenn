@@ -2,128 +2,116 @@ import keras.src.backend as k
 import numpy as np
 from absl.testing import parameterized
 from keras.src import testing
-from keras.activations import softmax, linear, sigmoid
 
 from sofenn.layers import OutputLayer
+from sofenn.utils.layers import remove_nones, replace_last_dim, make_2d
+from tests.testing_utils import PROBLEM_TYPES, PROBLEM_DEFAULTS
 
-FEATURES = (10,)
-SAMPLES = (100,)
+NEURONS = 10
+DEFAULT_DIM = 2
 TARGET_CLASSES = 3
-PARAM_COMBOS = [
-            {"testcase_name": "1D", "shape": FEATURES},
-            {"testcase_name": "2D", "shape": SAMPLES + FEATURES},
-            {"testcase_name": "with_None", "shape": (None,) + FEATURES},
+SHAPES = [
+            {"testcase_name": "1D", "shape":        (5,)},
+            {"testcase_name": "2D", "shape":        (4, 5)},
+            {"testcase_name": "2D_w_None", "shape": (None, 5)},
 ]
-DEFAULTS = {
-    # 'classification': {
-    #     'activation': softmax,
-    #     'target_classes': TARGET_CLASSES,
-    # },
-    # 'logistic_regression': {
-    #     'activation': sigmoid,
-    #     'target_classes': 1,
-    # },
-    'regression': {
-        'activation': linear,
-        'target_classes': 1,
-    },
-}
+
+# TODO: validate logic
+# TODO: move to central testing or utils location
+def _get_output_shape(shape, last_dim, default_dim):
+    replaced = replace_last_dim(shape, last_dim)
+    no_nones = remove_nones(replaced, default_dim)
+    return make_2d(no_nones)
 
 
 class OutputLayerTest(testing.TestCase):
-    def test_problem_types(self):
-        for problem_type in DEFAULTS.keys():
-            assert OutputLayer(
-                FEATURES,
-                target_classes=DEFAULTS[problem_type]['target_classes'],
-                problem_type=problem_type
-            )
 
-    @parameterized.named_parameters(PARAM_COMBOS)
+    def test_input_validation(self):
+        with self.assertRaises(ValueError):
+            OutputLayer(shape=(1,), target_classes=-1)
+
+        with self.assertRaises(ValueError):
+            OutputLayer(shape=(3, 2, 1), target_classes=1, activation='invalid')
+
+
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_problem_types(self, problem_type):
+        assert OutputLayer(
+            num_classes=PROBLEM_DEFAULTS[problem_type]['num_classes']
+        )
+
+    @parameterized.named_parameters(SHAPES)
     def test_build_across_shape_dimensions(self, shape):
-        for problem_type in DEFAULTS.keys():
-            values = OutputLayer(
-                shape,
-                target_classes=DEFAULTS[problem_type]['target_classes'],
-                problem_type=problem_type
-            )(k.KerasTensor(shape))
+        for problem_type in PROBLEM_DEFAULTS.keys():
+            num_classes = PROBLEM_DEFAULTS[problem_type]['num_classes']
+            init_kwargs = {
+                "num_classes": num_classes,
+            }
+            values = OutputLayer(**init_kwargs)(k.KerasTensor(shape))
 
             self.assertIsInstance(values, k.KerasTensor)
-            self.assertEqual(values.shape[-1], DEFAULTS[problem_type]['target_classes'])
+            self.assertEqual(values.shape[-1], num_classes)
 
-    @parameterized.named_parameters(PARAM_COMBOS)
+    @parameterized.named_parameters(SHAPES)
     def test_output_basics(self, shape):
-        for problem_type in DEFAULTS.keys():
-            if None in shape:
-                fixed_shape = shape[1:]
-            else:
-                fixed_shape = shape
+        for problem_type in PROBLEM_DEFAULTS.keys():
+            num_classes = PROBLEM_DEFAULTS[problem_type]['num_classes']
             self.run_layer_test(
                 OutputLayer,
                 init_kwargs={
-                    'shape': shape,
-                    'target_classes': DEFAULTS[problem_type]['target_classes'],
-                    'problem_type': problem_type
+                    'num_classes': num_classes,
                 },
-                input_shape=fixed_shape,
-                # TODO: fix to work for all cases. currently fails for 2-D input
-                #       Unexpected output shape
-                #       TensorShape([100]) != (100, 1)
-                # expected_output_shape=(DEFAULTS[problem_type]['target_classes'],) if None in shape else shape[:-1] + (DEFAULTS[problem_type]['target_classes'],),
-                # expected_output_shape=(DEFAULTS[problem_type]['target_classes'],) if len(fixed_shape) == 1 \
-                #     else (100, 1),
+                call_kwargs={'inputs': k.KerasTensor(shape=shape)},
+                expected_output_shape=make_2d(replace_last_dim(shape, num_classes)),
                 expected_num_trainable_weights=0,
                 expected_num_non_trainable_weights=0,
                 supports_masking=False,
                 run_mixed_precision_check=False,
-                #assert_built_after_instantiation=True,
+                assert_built_after_instantiation=False,
             )
 
-    @parameterized.named_parameters(PARAM_COMBOS)
+    @parameterized.named_parameters(SHAPES)
     def testing_input_tensor(self, shape):
-        for problem_type in DEFAULTS.keys():
+        for problem_type in PROBLEM_DEFAULTS.keys():
+            num_classes = PROBLEM_DEFAULTS[problem_type]['num_classes']
             input_tensor = k.KerasTensor(shape=shape)
             values = OutputLayer(
-                shape,
-                target_classes=DEFAULTS[problem_type]['target_classes'],
-                problem_type=problem_type
+                num_classes=num_classes,
             )(input_tensor)
 
+            # TODO: check for consistency between self.assert and self.assertEqual and assert
             self.assertIsInstance(values, k.KerasTensor)
-            self.assertEqual(values.shape, input_tensor.shape[:-1] + (DEFAULTS[problem_type]['target_classes'],))
+            self.assertEqual(values.shape,replace_last_dim(shape, num_classes))
             self.assertEqual(values.ndim, input_tensor.ndim)
 
-    @parameterized.named_parameters(PARAM_COMBOS)
+    @parameterized.named_parameters(SHAPES)
     def test_call_method(self, shape):
-        for problem_type in DEFAULTS.keys():
-            if None in shape:
-                fixed_shape = shape[1:]
-            else:
-                fixed_shape = shape
-            input_tensor = k.convert_to_tensor(np.random.random(fixed_shape))
+        for problem_type in PROBLEM_DEFAULTS.keys():
+            num_classes = PROBLEM_DEFAULTS[problem_type]['num_classes']
+            input_shape = remove_nones(shape, DEFAULT_DIM)
+            input_tensor = k.convert_to_tensor(np.random.random(input_shape))
             layer = OutputLayer(
-                shape,
-                target_classes=DEFAULTS[problem_type]['target_classes'],
-                problem_type=problem_type
+                num_classes=num_classes,
+                activation=PROBLEM_DEFAULTS[problem_type]['activation'],
             )
             output = layer.call(inputs=input_tensor)
 
             self.assertIsNotNone(output)
             self.assertEqual(
                 output.shape,
-                (DEFAULTS[problem_type]['target_classes'],) if len(fixed_shape) == 1 else fixed_shape[:-1]
+                make_2d(replace_last_dim(input_shape, num_classes))
             )
 
     def test_get_config(self):
-        for problem_type in DEFAULTS.keys():
+        for problem_type in PROBLEM_DEFAULTS.keys():
+            activation = 'sigmoid'
+            num_classes = PROBLEM_DEFAULTS[problem_type]['num_classes']
             config = OutputLayer(
-                FEATURES,
-                target_classes=DEFAULTS[problem_type]['target_classes'],
-                problem_type=problem_type
+                num_classes=num_classes,
+                activation=activation
             ).get_config()
 
             self.assertTrue('name' in config)
-            self.assertTrue(config['shape'] == FEATURES)
-            self.assertTrue(config['target_classes'] == DEFAULTS[problem_type]['target_classes'])
-            self.assertTrue(config['problem_type'] == problem_type)
+            self.assertTrue(config['num_classes'] == num_classes)
+            self.assertTrue(config['activation'] == 'sigmoid')
             self.assertTrue(config['trainable'] == True)

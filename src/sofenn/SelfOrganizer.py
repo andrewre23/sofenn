@@ -4,7 +4,8 @@ from typing import Tuple, Optional
 
 import numpy
 from keras.metrics import MeanSquaredError, MeanAbsoluteError
-from keras.models import clone_model, Model
+from keras.models import clone_model
+from sofenn.utils.layers import get_fit_and_compile_kwargs
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
 
@@ -77,9 +78,10 @@ class FuzzySelfOrganizer(object):
             raise ValueError(f"Maximum organizing loops cannot be less than 0")
         self.max_loops = max_loops
 
-        initial_neurons = kwargs.get('neurons', inspect.signature(FuzzyNetwork).parameters['neurons'].default)
+        initial_neurons = kwargs.get('neurons', inspect.signature(FuzzyNetwork).parameters['neurons'].default) \
+            if model is None else model.neurons
         if max_neurons < initial_neurons:
-            raise ValueError(f"Maximum neurons cannot be smaller than initialized neurons: {initial_neurons}")
+            raise ValueError("Maximum neurons cannot be smaller than initialized neurons: {max_neurons} < {initial_neurons}")
         self.max_neurons = max_neurons
 
         if ifpart_threshold < 0:
@@ -107,7 +109,13 @@ class FuzzySelfOrganizer(object):
         self.prune_tol = prune_tol
         self.k_rmse = k_rmse
 
-        self.model = FuzzyNetwork(**kwargs) if model is None else model
+        self.weight_index = {
+            'centers': 0,
+            'widths':  1,
+            'weights': 3
+        }
+
+        self.model = model if model is not None else FuzzyNetwork(**kwargs)
 
     def self_organize(self, x, y, **kwargs) -> bool:
         """
@@ -124,7 +132,10 @@ class FuzzySelfOrganizer(object):
         :return: True if the resulting model after organizing satisfies both error and if-part criteria.
         """
         logger.info('Beginning self-organizing process')
-        self.model.fit(x, y, **kwargs)
+
+        fit_kwargs, _ = get_fit_and_compile_kwargs(kwargs)
+
+        self.model.fit(x, y, **fit_kwargs)
 
         # set organization iterations counter
         organization_iterations = 1
@@ -154,34 +165,39 @@ class FuzzySelfOrganizer(object):
         :param: x: Input data.
         :param: y: Target data.
         """
+        fit_kwargs, _ = get_fit_and_compile_kwargs(kwargs)
+
         error_criterion = self.error_criterion(y, self.model.predict(x))
         ifpart_criterion = self.if_part_criterion(x)
         logger.debug(f'Error criterion satisfied: {error_criterion}')
         logger.debug(f'If-Part criterion satisfied: {ifpart_criterion}')
 
         # no structural adjustment
+        # TODO: add testing - condition never true
         if error_criterion and ifpart_criterion:
-            self.model.fit(x, y, **kwargs)
+            self.model.fit(x, y, **fit_kwargs)
         # widen membership function widths to cover the input vector of membership function with the lowest value
+        # TODO: add testing - condition never true
         elif error_criterion and not ifpart_criterion:
             self.widen_centers(x)
         # add neuron and retrain after adding neuron
         elif not error_criterion and ifpart_criterion:
             self.add_neuron(x, y, **kwargs)
-            self.model.fit(x, y, **kwargs)
+            self.model.fit(x, y, **fit_kwargs)
         # widen centers until if-part satisfied. if if-part not satisfied, reset widths and add neuron
+        # TODO: add testing - condition always true
         elif not error_criterion and not ifpart_criterion:
             original_weights = self.model.get_weights()
             self.widen_centers(x)
             if not self.if_part_criterion(x):
                 self.model.set_weights(original_weights)
                 self.add_neuron(x, y, **kwargs)
-                self.model.fit(x, y, **kwargs)
+                self.model.fit(x, y, **fit_kwargs)
 
         # prune neurons and retrain model (if pruned)
         pruned = self.prune_neurons(x, y, **kwargs)
         if pruned:
-            self.model.fit(x, y, **kwargs)
+            self.model.fit(x, y, **fit_kwargs)
 
         # TODO: add combining of membership functions
         #self.combine_membership_functions(**kwargs)
@@ -289,7 +305,9 @@ class FuzzySelfOrganizer(object):
         logger.info('Adding neuron')
 
         w = self.model.get_weights()
-        c_curr, s_curr, a_curr = w[0], w[1], w[2]
+        c_curr = w[self.weight_index['centers']]
+        s_curr = w[self.weight_index['widths']]
+        a_curr = w[self.weight_index['weights']]
 
         # get weights for new neuron
         ck, sk = self.new_neuron_weights(x)
@@ -300,9 +318,11 @@ class FuzzySelfOrganizer(object):
         s_new = numpy.hstack((s_curr, sk))
 
         a_add = a_curr.mean(axis=0)
-        a_new = numpy.row_stack((a_curr, a_add))
+        a_new = numpy.vstack((a_curr, a_add))
 
-        w[0], w[1], w[2] = c_new, s_new, a_new
+        w[self.weight_index['centers']] = c_new
+        w[self.weight_index['widths']] = s_new
+        w[self.weight_index['weights']] = a_new
 
         self.model = self.rebuild_model(x, y, new_neurons=self.model.neurons + 1, new_weights=w, **kwargs)
 
@@ -346,27 +366,21 @@ class FuzzySelfOrganizer(object):
 
         :returns: Rebuilt fuzzy network according to new specifications.
         """
+        fit_kwargs, compile_kwargs = get_fit_and_compile_kwargs(kwargs)
+
         # get config from current model and update output_dim of neuron layers
         config = self.model.get_config()
         config['neurons'] = new_neurons
         logger.debug(f'Rebuilding model with config: {config}')
         new_model = FuzzyNetwork(**config)
 
-        for key, default_value in self.model.compile_defaults(self.model.problem_type).items():
-            if key not in kwargs:
-                kwargs[key] = default_value
-
-        compile_args = list(inspect.signature(Model.compile).parameters)
-        compile_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in compile_args}
-        fit_args = list(inspect.signature(Model.fit).parameters)
-        fit_dict = {k: kwargs.pop(k) for k in dict(kwargs) if k in fit_args}
-        if 'epochs' in fit_dict:
-            logger.warning(f'Ignoring provided value for epochs: {fit_dict["epochs"]}. '
+        if 'epochs' in fit_kwargs:
+            logger.warning(f'Ignoring provided value for epochs: {fit_kwargs["epochs"]}. '
                            f'Will set epochs to 1 for rebuilding')
-        fit_dict['epochs'] = 1
+        fit_kwargs['epochs'] = 1
 
-        new_model.compile(**compile_dict)
-        new_model.fit(x, y, **fit_dict)
+        new_model.compile(**compile_kwargs)
+        new_model.fit(x, y, **fit_kwargs)
         new_model.set_weights(new_weights)
         return new_model
 
@@ -402,7 +416,7 @@ class FuzzySelfOrganizer(object):
             # get current prune weights
             w = prune_model.get_weights()
             # zero our i neuron column in weighted vector
-            a = w[2]
+            a = w[self.weight_index['weights']]
             a[neuron, :] = 0
             prune_model.set_weights(w)
 
@@ -425,7 +439,7 @@ class FuzzySelfOrganizer(object):
 
             # get current prune weights
             w = prune_model.get_weights()
-            a = w[2]
+            a = w[self.weight_index['weights']]
             # zero out previous deleted neurons
             a[neuron, :] = 0
             prune_model.set_weights(w)
@@ -452,11 +466,11 @@ class FuzzySelfOrganizer(object):
         prune_model.set_weights(starting_weights)
         # get current prune weights and remove deleted neurons
         w = prune_model.get_weights()
-        for i, weight in enumerate(w[:2]):
-            w[i] = numpy.delete(weight, to_delete, axis=-1)
-        w[2] = numpy.delete(w[2], to_delete, axis=0)
+        for fuzzy_weight in ['centers', 'widths']:
+            w[self.weight_index[fuzzy_weight]] = numpy.delete(w[self.weight_index[fuzzy_weight]], to_delete, axis=-1)
+        w[self.weight_index['weights']] = numpy.delete(w[self.weight_index['weights']], to_delete, axis=0)
 
-        self.model = self.rebuild_model(x, y, new_neurons=self.model.neurons - len(to_delete), new_weights=w,**kwargs)
+        self.model = self.rebuild_model(x, y, new_neurons=self.model.neurons - len(to_delete), new_weights=w, **kwargs)
         logger.info(f'{len(to_delete)} neurons successfully pruned')
         logger.debug(f'Current neurons: {self.model.neurons}')
         return True

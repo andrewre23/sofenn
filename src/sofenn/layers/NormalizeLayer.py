@@ -8,7 +8,7 @@ from keras.layers import Layer
 
 @keras.saving.register_keras_serializable()
 class NormalizeLayer(Layer):
-    """
+    r"""
     Normalize Layer
     ===============
     Normalization Layer
@@ -28,14 +28,17 @@ class NormalizeLayer(Layer):
         .. math::
             \psi_{(j)} = \phi_{(j)} / \sum_{k=1}^{u} \phi_{(k)}
     """
-
-    def __init__(self, shape: tuple, name: Optional[str] = "Normalize", **kwargs):
+    # TODO: add input validation for if shape exceeds supported value
+    def __init__(self, name: Optional[str] = "Normalize", **kwargs):
         super().__init__(name=name, **kwargs)
-        shape = k.standardize_shape(shape)
-        self.shape = shape
-        self.output_dim = self.shape[-1]
-        self.built = True
+        #shape = k.standardize_shape(shape)
+        #self.shape = shape
+        #self.output_dim = self.shape[-1]
+        self.input_shape = None
+        self.fixed_weight = None
+        self.built = False
 
+    # TODO: remove excessive type hinting for call/build methods on custom layers
     def build(self, input_shape: tuple, **kwargs) -> None:
         """
         Build objects for processing steps
@@ -46,9 +49,15 @@ class NormalizeLayer(Layer):
             - input shape of training data
             - last index will be taken for sizing variables
         """
+        self.input_shape = input_shape
+
+        # add dummy weight that does nothing to suppress warning that layer has no trainable parameters
+        # TODO: validate if this is best way to suppress warning
+        self.fixed_weight = self.add_weight(shape=(1,), initializer='zeros', trainable=False)
         super().build(input_shape=input_shape, **kwargs)
 
-    def call(self, inputs: k.KerasTensor) -> k.KerasTensor:
+    # TODO: remove excessive type hinting for call/build methods on custom layers
+    def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer
 
@@ -58,7 +67,7 @@ class NormalizeLayer(Layer):
             - input tensor
             - tensor with phi output of each neuron
             - phi(j) for j neurons
-            - shape: (samples, neurons)
+            - shape: (*, neurons)
 
         Returns
         =======
@@ -66,12 +75,15 @@ class NormalizeLayer(Layer):
             - output of each neuron after normalization step
             - divide each output by sum of output of all neurons
             - psi(j) for jth neuron
-            - shape: (samples, neurons)
+            - shape: (*, neurons)
         """
-        sums = K.sum(inputs, axis=-1)
-        sums = K.repeat(K.expand_dims(sums, axis=-1), self.output_dim, -1)
+        # TODO: remove forcing build before first call. should be happening automatically
+        if not self.built:
+            self.build(input_shape=inputs.shape, **kwargs)
 
-        return inputs / sums
+        sums = K.sum(inputs, axis=-1)
+        sums_expanded = K.repeat(K.expand_dims(sums, axis=-1), self.input_shape[-1], -1)
+        return inputs / sums_expanded
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
@@ -81,13 +93,13 @@ class NormalizeLayer(Layer):
         ==========
         input_shape: tuple
             - shape of input data
-            - shape: (samples, neurons)
+            - shape: (*, neurons)
 
         Returns
         =======
         output_shape: tuple
             - output shape of normalization layer
-            - shape: (samples, neurons)
+            - shape: (*, neurons)
         """
         return input_shape
 
@@ -95,6 +107,4 @@ class NormalizeLayer(Layer):
         """
         Return config dictionary for custom layer
         """
-        base_config = super(NormalizeLayer, self).get_config()
-        base_config['shape'] = self.shape
-        return base_config
+        return super(NormalizeLayer, self).get_config()

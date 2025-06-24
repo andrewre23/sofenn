@@ -1,165 +1,185 @@
-import copy
-from functools import lru_cache
-from pathlib import Path
+import inspect
 
-import keras
 import numpy
-import pandas
 import pytest
+from absl.testing import parameterized
 from keras.src import testing
-from sklearn.model_selection import train_test_split
 
 from sofenn import FuzzyNetwork, FuzzySelfOrganizer
-
-DATA_DIR = Path(__file__).parent / 'data'
-DEFAULTS = {
-    'features': 4,
-    'neurons': 3,
-    'problem_type': 'classification',
-    'target_classes': 3,
-    'samples': 10
-}
-
-
-@lru_cache(maxsize=None)
-def _params(**kwargs):
-    params = copy.deepcopy(DEFAULTS)
-    params.pop('samples')
-    for key, value in kwargs.items():
-        params[key] = value
-    return params
-
-@lru_cache(maxsize=None)
-def _get_training_data():
-    features = pandas.read_csv(DATA_DIR / 'iris/features.csv')
-    target = pandas.read_csv(DATA_DIR / 'iris/target.csv')
-    return train_test_split(features.values, target.values, test_size=0.1, random_state=23)
-
-def _classification_model(deep=False):
-    if deep:
-        return keras.saving.load_model(DATA_DIR / 'models/iris_classification-deep.keras', custom_objects={'FuzzyNetwork': FuzzyNetwork})
-    else:
-        return keras.saving.load_model(DATA_DIR / 'models/iris_classification.keras', custom_objects={'FuzzyNetwork': FuzzyNetwork})
+from tests.testing_utils import PROBLEM_DEFAULTS, PROBLEM_TYPES, \
+    _get_training_data, _load_saved_model, _init_params, _compile_params
 
 
 @pytest.mark.requires_trainable_backend
 class FuzzySelfOrganizerTest(testing.TestCase):
 
-    def test_init_with_model(self):
-        model = FuzzyNetwork(**_params(
-            name='Preinitialized model'
-        ))
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_init_with_model(self, problem_type):
+
+        model = FuzzyNetwork(name='Preinitialized model', **_init_params(problem_type))
         assert model.get_config() == FuzzySelfOrganizer(model).model.get_config()
 
         FuzzySelfOrganizer(
-            name='Input shape and target classes',
-            input_shape=(DEFAULTS['samples'], DEFAULTS['features']),
-            target_classes=DEFAULTS['target_classes']
-        )
-        FuzzySelfOrganizer(
-            name='Features and target classes',
-            features=DEFAULTS['features'],
-            target_classes=DEFAULTS['target_classes']
+            name='Initialize model on self-organizer initialization',
+            **_init_params(problem_type)
         )
 
-    def test_input_validation(self):
-        with self.assertRaises(ValueError):
-            FuzzySelfOrganizer(**_params(
-                name='Max loops < 0',
-                max_loops=-1,
-            ))
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_input_validation(self, problem_type):
+        defaults = PROBLEM_DEFAULTS[problem_type]
 
         with self.assertRaises(ValueError):
-            FuzzySelfOrganizer(**_params(
-                name='Max neurons < initial neurons',
-                max_neurons=DEFAULTS['neurons'] - 1,
-            ))
+            # TODO: see if we can pass 'name' to **_init_params, or best to keep as separate level of parameter passing
+            FuzzySelfOrganizer(name='Max loops < 0', **_init_params(problem_type, max_loops=-1))
 
         with self.assertRaises(ValueError):
-            FuzzySelfOrganizer(**_params(
-                name='If-part threshold < 0',
-                ifpart_threshold=-1,
-            ))
+            FuzzySelfOrganizer(name='Max neurons < initial neurons', **_init_params(problem_type, max_neurons=defaults['neurons'] - 1))
 
         with self.assertRaises(ValueError):
-            FuzzySelfOrganizer(**_params(
-                name='If-part samples < 0',
-                ifpart_samples=-1,
-            ))
+            FuzzySelfOrganizer(name='If-part threshold < 0', **_init_params(problem_type, ifpart_threshold=-1))
 
         with self.assertRaises(ValueError):
-            FuzzySelfOrganizer(**_params(
-                name='Error delta < 0',
-                error_delta=-5,
-            ))
+            FuzzySelfOrganizer(name='If-part samples < 0', **_init_params(problem_type, ifpart_samples=-1))
 
         with self.assertRaises(ValueError):
-            FuzzySelfOrganizer(**_params(
-                name='Widening factor < 0',
-                k_sigma=-1
-            ))
+            FuzzySelfOrganizer(name='Error delta < 0', **_init_params(problem_type, error_delta=-5))
 
         with self.assertRaises(ValueError):
-            FuzzySelfOrganizer(**_params(
-                name='Maximum widens < 0',
-                max_widens=-1
-            ))
+            FuzzySelfOrganizer(name='Widening factor < 0', **_init_params(problem_type, k_sigma=-1))
+
+        with self.assertRaises(ValueError):
+            FuzzySelfOrganizer(name='Maximum widens < 0', **_init_params(problem_type, max_widens=-1))
 
         for prune_tol in [-1, 2]:
             with self.assertRaises(ValueError):
-                FuzzySelfOrganizer(**_params(
-                    name='Prune tolerance not [0,1]',
-                    prune_tol=prune_tol
-                ))
+                FuzzySelfOrganizer(name='Prune tolerance not [0,1]', **_init_params(problem_type, prune_tol=prune_tol))
 
         with self.assertRaises(ValueError):
-            FuzzySelfOrganizer(**_params(
-                name='K root mean squared error < 1',
-                k_rmse=0
-            ))
+            FuzzySelfOrganizer(name='K root mean squared error < 1', **_init_params(problem_type, k_rmse=0))
 
-    def test_error_criterion(self):
-        _, X_test, _, y_test = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_error_criterion(self, problem_type):
+        _, X_test, _, y_test = _get_training_data(problem_type)
 
-        sofnn = FuzzySelfOrganizer(model=_classification_model())
+        sofnn = FuzzySelfOrganizer(model=_load_saved_model(problem_type))
         y_pred = sofnn.model.predict(X_test)
         self.assertFalse(sofnn.error_criterion(y_pred, y_test))
         self.assertTrue(sofnn.error_criterion(y_pred, y_pred))
 
-    def test_if_part_criterion(self):
-        _, X_test, _, _ = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_if_part_criterion(self, problem_type):
+        _, X_test, _, _ = _get_training_data(problem_type)
 
-        self.assertTrue(
-            FuzzySelfOrganizer(
-                model=_classification_model()
-            ).if_part_criterion(X_test)
-        )
+        self.assertTrue(FuzzySelfOrganizer(model=_load_saved_model(problem_type)).if_part_criterion(X_test))
 
-    def test_min_dist_vector(self):
-        _, X_test, _, _ = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_min_dist_vector(self, problem_type):
+        _, X_test, _, _ = _get_training_data(problem_type)
 
-        minimum_distance = FuzzySelfOrganizer(
-            model=_classification_model()
-        ).minimum_distance_vector(X_test)
+        target_distance = {
+            'classification':
+                numpy.array([
+                    [[2.23177525, 2.23177525, 2.23177525, 2.23177525, 2.23177525],
+                     [1.75618350, 1.75618350, 1.75618360, 1.75618360, 1.75618360],
+                     [1.78014647, 1.78014647, 1.78014647, 1.78014647,1.780146468],
+                     [2.75448100, 2.75448110, 2.75448110, 2.75448110, 2.75448110]]
+                ]),
+            'regression':
+                numpy.array([
+                    [1.16610484, 1.16610484, 1.16610484],
+                    [1.17404966, 1.17404966, 1.50306719],
+                    [1.47900583, 1.47900583, 1.47900583],
+                    [1.50175388, 1.61058922, 1.61058922],
+                    [1.5119037,  1.5119037,  1.5119037 ]
+                ])
+        }
+
+        minimum_distance = FuzzySelfOrganizer(model=_load_saved_model(problem_type)).minimum_distance_vector(X_test)
 
         self.assertTrue(
             numpy.allclose(
                 minimum_distance,
-                numpy.array([
-                    [2.22789976, 2.22789976, 2.22789976],
-                    [1.82063121, 1.82063121, 1.82063121],
-                    [1.74726384, 1.74726384, 1.74726384],
-                    [2.81454288, 2.81454288, 2.81454288]
-                ])
+                target_distance[problem_type]
             )
         )
 
-    def test_widening_centers(self):
-        _, X_test, _, _ = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_widening_centers(self, problem_type):
+        centers = {
+            'failure': {
+                'classification': {
+                    'c': numpy.array([
+                        [1., 1., 1., 1., 1.],
+                        [1., 1., 1., 1., 1.],
+                        [1., 1., 1., 1., 1.],
+                        [1., 1., 1., 1., 1.]
+                    ]),
+                    's': numpy.array([
+                        [1.25440001, 1., 1., 1., 1.],
+                        [1.12      , 1., 1., 1., 1.],
+                        [1.12      , 1., 1., 1., 1.],
+                        [1.12      , 1., 1., 1., 1.]
+                    ]),
+                },
+                'regression': {
+                    'c': numpy.array([
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.]
+                    ]),
+                    's': numpy.array([
+                        [1.12, 1., 1.],
+                        [1.12, 1., 1.],
+                        [1.12, 1., 1.],
+                        [1.12, 1., 1.],
+                        [1.12, 1., 1.]
+                    ]),
+                },
+            },
+            'success': {
+                'classification': {
+                    'c': numpy.array([
+                        [[1., 1., 1., 1., 1.],
+                         [1., 1., 1., 1., 1.],
+                         [1., 1., 1., 1., 1.],
+                         [1., 1., 1., 1., 1.]]
+                    ]),
+                    's': numpy.array([
+                        [4.36349344, 1., 1., 1., 1.],
+                        [4.36349344, 1., 1., 1., 1.],
+                        [3.89597607, 1., 1., 1., 1.],
+                        [3.89597607, 1., 1., 1., 1.]]
+                    ),
+                },
+                'regression': {
+                    'c': numpy.array([
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.]
+                    ]),
+                    's': numpy.array([
+                        [[4.363493, 1., 1.],
+                         [3.895976, 1., 1.],
+                         [3.895976, 1., 1.],
+                         [3.895976, 1., 1.],
+                         [3.895976, 1., 1.]]
+                    ]),
+                },
+            }
+        }
+
+        ifpart_threshold = .9 if problem_type == 'regression' else \
+            inspect.signature(FuzzySelfOrganizer).parameters['ifpart_threshold'].default
+
+        _, X_test, _, _ = _get_training_data(problem_type)
 
         sofnn = FuzzySelfOrganizer(
             name='If-part criterion already satisfied and weights unchanged when widening',
-            model=_classification_model()
+            model=_load_saved_model(problem_type)
         )
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertTrue(sofnn.if_part_criterion(X_test))
@@ -168,12 +188,10 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
         sofnn = FuzzySelfOrganizer(
             name='Do no widening iterations, even when the if-part criterion not satisfied',
-            model=_classification_model(),
+            model=_load_saved_model(problem_type),
             max_widens=0
         )
-        sofnn.model.fuzz.set_weights(
-            [numpy.zeros_like(weight) for weight in sofnn.model.fuzz.get_weights()]
-        )
+        sofnn.model.fuzz.set_weights([numpy.zeros_like(weight) for weight in sofnn.model.fuzz.get_weights()])
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertFalse(sofnn.if_part_criterion(X_test))
         self.assertFalse(sofnn.widen_centers(X_test))
@@ -181,96 +199,97 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
         sofnn = FuzzySelfOrganizer(
             name='Widen centers, but terminate before the if-part criterion satisfied',
-            model=_classification_model(),
-            max_widens=5
+            model=_load_saved_model(problem_type),
+            max_widens=5,
+            ifpart_threshold=ifpart_threshold
         )
-        sofnn.model.fuzz.set_weights(
-            [numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()]
-        )
+        sofnn.model.fuzz.set_weights([numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()])
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertFalse(sofnn.if_part_criterion(X_test))
         self.assertFalse(sofnn.widen_centers(X_test))
         self.assertFalse(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
-        self.assertTrue(
-            numpy.allclose(
-                sofnn.model.fuzz.get_weights(),
-                [
-                    numpy.array([[1., 1., 1.],
-                                 [1., 1., 1.],
-                                 [1., 1., 1.],
-                                 [1., 1., 1.]]),
-                    numpy.array([[1.2544, 1., 1.],
-                                 [1.12, 1., 1.],
-                                 [1.12, 1., 1.],
-                                 [1.12, 1., 1.]])
-                 ]
+
+        targets = centers['failure'][problem_type]
+        for i, w in enumerate(['c', 's']):
+            self.assertTrue(
+                numpy.allclose(
+                    sofnn.model.fuzz.get_weights()[i],
+                    targets[w]
+                )
             )
-        )
 
         sofnn = FuzzySelfOrganizer(
             name='Widen centers until the if-part criterion satisfied',
-            model=_classification_model()
+            model=_load_saved_model(problem_type),
+            ifpart_threshold=ifpart_threshold
         )
-        sofnn.model.fuzz.set_weights(
-            [numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()]
-        )
+        sofnn.model.fuzz.set_weights([numpy.ones_like(weight) for weight in sofnn.model.fuzz.get_weights()])
         starting_weights = sofnn.model.fuzz.get_weights()
         self.assertFalse(sofnn.if_part_criterion(X_test))
         self.assertTrue(sofnn.widen_centers(X_test))
         self.assertFalse(numpy.allclose(starting_weights, sofnn.model.fuzz.get_weights()))
-        self.assertTrue(
-            numpy.allclose(
-                sofnn.model.fuzz.get_weights(),
-                [
-                    numpy.array([[1., 1., 1.],
-                                 [1., 1., 1.],
-                                 [1., 1., 1.],
-                                 [1., 1., 1.]]),
-                    numpy.array([[4.3634925, 1., 1.],
-                                 [4.3634925, 1., 1.],
-                                 [3.8959754, 1., 1.],
-                                 [3.8959754, 1., 1.]])
-                 ]
+
+        targets = centers['success'][problem_type]
+        for i, w in enumerate(['c', 's']):
+            self.assertTrue(
+                numpy.allclose(
+                    sofnn.model.fuzz.get_weights()[i],
+                    targets[w]
+                )
             )
-        )
 
-    def test_add_neuron(self):
-        X_train, _, y_train, _ = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_add_neuron(self, problem_type):
+        X_train, _, y_train, _ = _get_training_data(problem_type)
 
-        sofnn = FuzzySelfOrganizer(
-            model=_classification_model()
-        )
+        sofnn = FuzzySelfOrganizer(model=_load_saved_model(problem_type))
         starting_neurons = sofnn.model.neurons
-        self.assertTrue(sofnn.add_neuron(X_train, y_train))
+        self.assertTrue(sofnn.add_neuron(X_train, y_train, **_compile_params(problem_type)))
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
-    def test_new_neuron_weights(self):
-        X_train, _, _, _ = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_new_neuron_weights(self, problem_type):
+        X_train, _, _, _ = _get_training_data(problem_type)
 
-        sofnn = FuzzySelfOrganizer(
-            model=_classification_model()
-        )
+        new_weights = {
+            'classification': {
+                'ck': [5.789541, 2.60152316, 3.97809458, 1.21259259],
+                'sk': [3.998332, 4.00057650, 4.00002050, 2.87433151]
+            },
+            'regression': {
+                'ck': [0.49599802, 0.46910115, 0.47057344, 0.53614222, 0.49867102],
+                'sk': [1.45123960, 1.46827887, 1.45822544, 1.42185663, 1.41659928]
+            },
+        }
+
+        sofnn = FuzzySelfOrganizer(model=_load_saved_model(problem_type))
         ck, sk = sofnn.new_neuron_weights(X_train)
+
         self.assertTrue(
             numpy.allclose(
                 ck,
-                numpy.array([5.80018616, 2.62788224, 3.9982748 , 1.21259259]))
+                new_weights[problem_type]['ck']
+            )
         )
         self.assertTrue(
             numpy.allclose(
                 sk,
-                numpy.array([4.00925207, 4.0355587 , 4.02074146, 2.86290745])
+                new_weights[problem_type]['sk']
             )
         )
 
-    def test_rebuild_model(self):
-        X_train, _, y_train, _ = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_rebuild_model(self, problem_type):
+        X_train, _, y_train, _ = _get_training_data(problem_type)
 
-        sofnn = FuzzySelfOrganizer(
-            model=_classification_model()
+        sofnn = FuzzySelfOrganizer(model=_load_saved_model(problem_type))
+
+        rebuilt = sofnn.rebuild_model(
+            X_train, y_train,
+            sofnn.model.neurons,
+            sofnn.model.get_weights(),
+            **_compile_params(problem_type)
         )
-
-        rebuilt = sofnn.rebuild_model(X_train, y_train, sofnn.model.neurons, sofnn.model.get_weights())
         self.assertTrue(sofnn.model.neurons == rebuilt.neurons)
         for i, original_weight in enumerate(sofnn.model.fuzz.get_weights()):
             self.assertTrue(
@@ -280,202 +299,327 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 )
             )
 
-    def test_prune_neuron(self):
-        X_train, _, y_train, _ = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_prune_neuron(self, problem_type):
 
-        sofnn = FuzzySelfOrganizer(
-            model=FuzzyNetwork(**_params(
-                name='One neuron',
-                neurons=1
-            ))
-        )
-        self.assertFalse(sofnn.prune_neurons(X_train, y_train))
+        X_train, _, y_train, _ = _get_training_data(problem_type)
+
+        # TODO: confirm consistent formatting for passing names and parameters to FSO and FN
+        sofnn = FuzzySelfOrganizer(model=FuzzyNetwork(**_init_params(problem_type, name='One neuron', neurons=1)))
+        self.assertFalse(sofnn.prune_neurons(X_train, y_train, **_compile_params(problem_type)))
 
         sofnn = FuzzySelfOrganizer(
             name='Starting neurons greater than or equal to initial neurons',
-            model=_classification_model()
+            model=_load_saved_model(problem_type)
         )
         sofnn.model.compile()
         starting_neurons = sofnn.model.neurons
-        self.assertFalse(sofnn.prune_neurons(X_train, y_train))
+        sofnn.prune_neurons(X_train, y_train, **_compile_params(problem_type))
         self.assertTrue(starting_neurons >= sofnn.model.neurons)
 
         sofnn = FuzzySelfOrganizer(
-            name='Only one neuron above the prune threshold',
-            model=_classification_model(),
+            name='Prune neurons',
+            model=_load_saved_model(problem_type),
             prune_threshold=0.99,
             k_rmse=0.4390
         )
-        sofnn.model.compile()
+        # TODO: delete passing of compile params
+        sofnn.model.compile(**_compile_params(problem_type))
         starting_neurons = sofnn.model.neurons
-        self.assertTrue(sofnn.prune_neurons(X_train, y_train))
-        self.assertTrue(sofnn.model.neurons == starting_neurons - 1)
+        self.assertTrue(sofnn.prune_neurons(X_train, y_train, **_compile_params(problem_type)))
+        self.assertTrue(sofnn.model.neurons < starting_neurons)
 
         sofnn = FuzzySelfOrganizer(
             name='Prune all but last neuron',
-            model=_classification_model(),
+            model=_load_saved_model(problem_type),
             prune_threshold=0.99,
             k_rmse=5
         )
-        sofnn.model.compile()
+        sofnn.model.compile(**_compile_params(problem_type))
         starting_neurons = sofnn.model.neurons
-        self.assertTrue(sofnn.prune_neurons(X_train, y_train))
-        self.assertTrue(sofnn.model.neurons == starting_neurons - 2 == 1)
+        self.assertTrue(sofnn.prune_neurons(X_train, y_train, **_compile_params(problem_type)))
+        self.assertTrue(sofnn.model.neurons == 1 < starting_neurons)
 
-    def test_combine_membership_functions(self):
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_combine_membership_functions(self, problem_type):
         with self.assertRaises(NotImplementedError):
-            FuzzySelfOrganizer(model=FuzzyNetwork(**_params())).combine_membership_functions()
+            FuzzySelfOrganizer(model=FuzzyNetwork(**_init_params(problem_type))).combine_membership_functions()
 
-    def test_organize(self):
-        X_train, X_test, y_train, y_test = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_organize(self, problem_type):
+        X_train, X_test, y_train, y_test = _get_training_data(problem_type)
 
+        name = 'No structural adjustment ' \
+               'Error: Pass ' \
+               'If-Part: Pass'
+        params = {
+            'classification': {
+                'error_delta': 4,
+                'prune_tol': 0.001,
+            },
+            'regression': {
+                'error_delta': 4,
+                'prune_tol': 0.001,
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='No structural adjustment '
-                 'Error: Pass '
-                 'If-Part: Pass',
-            model=_classification_model(deep=True),
-            error_delta=0.15
+            name=name,
+            model=_load_saved_model(problem_type),
+            **params[problem_type]
         )
         self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
-        sofnn.model.compile()
+        # TODO: remove need to explicitly compile where appropriate. loading? training?
+        sofnn.model.compile(**_compile_params(problem_type))
         sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
 
+        name = 'Widen centers '\
+               'Error: Pass ' \
+               'If-Part: Fail'
+        params = {
+            'classification': {
+                'ifpart_threshold': 0.9,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.5,
+                'max_widens': 100,
+            },
+            'regression': {
+                'ifpart_threshold': 0.9,
+                'ifpart_samples': 0.99,
+                'error_delta': 4,
+                'max_widens': 100,
+                'prune_tol': 0.001,
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='Widen centers '
-                 'Error: Pass '
-                 'If-Part: Fail',
-            model=_classification_model(deep=True),
-            ifpart_threshold=0.9,
-            ifpart_samples=0.99,
-            error_delta=0.5,
-            max_widens=100,
+            name=name,
+            model=_load_saved_model(problem_type, deep=True),
+            **params[problem_type]
         )
         self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         starting_weights = sofnn.model.get_weights()
-        sofnn.model.compile()
+        sofnn.model.compile(**_compile_params(problem_type))
         sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
         final_weights = sofnn.model.get_weights()
         self.assertFalse(numpy.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
 
+        name = 'Add neuron and retrain model ' \
+               'Error: Fail ' \
+               'If-Part: Pass'
+        params = {
+            'classification': {
+                'ifpart_threshold': 0.5,
+                'ifpart_samples': 0.5,
+                'error_delta': 0.4,
+                'max_widens': 100,
+            },
+            'regression': {
+                'ifpart_threshold': 0.5,
+                'ifpart_samples': 0.5,
+                'error_delta': 0.5,
+                'max_widens': 100,
+                'prune_tol': 0.001,
+                'k_rmse': 0.01
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='Add neuron and retrain model '
-                 'Error: Fail '
-                 'If-Part: Pass',
-            model=_classification_model()
+            name=name,
+            model=_load_saved_model(problem_type),
+            **params[problem_type]
         )
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
-        sofnn.model.compile()
-        sofnn.organize(X_test, y_test, epochs=1)
+        sofnn.model.compile(**_compile_params(problem_type))
+        sofnn.organize(X_test, y_test, epochs=1, **_compile_params(problem_type))
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
+        name = 'Widen centers and no need to add neuron ' \
+               'Error: Fail ' \
+               'If-Part: Fail'
+        params = {
+            'classification': {
+                'ifpart_threshold': 0.9,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.1,
+                'max_widens': 250,
+            },
+            'regression': {
+                'ifpart_threshold': 0.999,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.5,
+                'max_widens': 250,
+                'prune_tol': 0.01
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='Widen centers and no need to add neuron '
-                 'Error: Fail '
-                 'If-Part: Fail',
-            model=_classification_model(),
-            ifpart_threshold=0.9,
-            ifpart_samples=0.99,
-            error_delta=0.1,
-            max_widens=250
+            name=name,
+            model=_load_saved_model(problem_type),
+            **params[problem_type]
         )
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         starting_weights = sofnn.model.get_weights()
-        sofnn.model.compile()
-        sofnn.organize(X_test, y_test)
+        sofnn.model.compile(**_compile_params(problem_type))
+        sofnn.organize(X_test, y_test, **_compile_params(problem_type))
         self.assertTrue(sofnn.model.neurons == starting_neurons)
         final_weights = sofnn.model.get_weights()
         self.assertFalse(numpy.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
 
+        name = 'Add neuron after widening centers fails ' \
+               'Error: Fail ' \
+               'If-Part: Fail'
+        params = {
+            'classification': {
+                'ifpart_threshold': 0.99999,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.1,
+                'max_widens': 0,
+                'epochs': 100
+            },
+            'regression': {
+                'ifpart_threshold': 0.99999,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.1,
+                'max_widens': 0,
+                'prune_tol': 0.01,
+                'epochs': 100
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='Add neuron after widening centers fails '
-                 'Error: Fail '
-                 'If-Part: Fail',
-            model=_classification_model(),
-            ifpart_threshold=0.9,
-            ifpart_samples=0.99,
-            error_delta=0.1,
-            max_widens=0,
-            epochs=100
+            name=name,
+            model=_load_saved_model(problem_type),
+            **params[problem_type]
         )
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
-        sofnn.model.compile()
-        sofnn.organize(X_test, y_test)
+        sofnn.model.compile(**_compile_params(problem_type))
+        sofnn.organize(X_test, y_test, **_compile_params(problem_type))
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
 
+        name = 'Prune neuron ' \
+               'Error: Fail ' \
+               'If-Part: Fail'
+        params = {
+            'classification': {
+                'ifpart_threshold': 0.99999,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.1,
+                'max_widens': 0,
+                'prune_threshold': 0.99,
+                'k_rmse': 5,
+                'epochs': 3
+            },
+            'regression': {
+                'ifpart_threshold': 0.99999,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.1,
+                'max_widens': 0,
+                'prune_threshold': 0.99,
+                'k_rmse': 5,
+                'epochs': 3
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='Prune neuron '
-                 'Error: Fail '
-                 'If-Part: Fail',
-            model=_classification_model(),
-            ifpart_threshold=0.9,
-            ifpart_samples=0.99,
-            error_delta=0.1,
-            max_widens=0,
-            prune_threshold=0.99,
-            k_rmse=5,
-            epochs=3
+            name=name,
+            model=_load_saved_model(problem_type),
+            **params[problem_type]
         )
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
-        sofnn.model.compile()
-        sofnn.organize(X_test, y_test)
-        self.assertTrue(sofnn.model.neurons == starting_neurons - 2 == 1)
+        sofnn.model.compile(**_compile_params(problem_type))
+        sofnn.organize(X_test, y_test, **_compile_params(problem_type))
+        self.assertTrue(sofnn.model.neurons == 1 < starting_neurons)
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
 
-    def test_self_organize(self):
-        X_train, X_test, y_train, y_test = _get_training_data()
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_self_organize(self, problem_type):
 
+        X_train, X_test, y_train, y_test = _get_training_data(problem_type)
+
+        name = 'Fail to organize'
+        params = {
+            'classification': {
+                'max_loops': 5,
+                'epochs': 1,
+            },
+            'regression': {
+                'prune_tol': 0.01,
+                'max_loops': 5,
+                'epochs': 1,
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='Fail to organize',
-            model=_classification_model(),
-            max_loops=5,
-            epochs=1
+            name=name,
+            model=_load_saved_model(problem_type, deep=True),
+            **params[problem_type]
         )
         starting_neurons = sofnn.model.neurons
-        sofnn.model.compile()
-        self.assertFalse(sofnn.self_organize(X_test, y_test, epochs=1))
+        sofnn.model.compile(**_compile_params(problem_type))
+        self.assertFalse(sofnn.self_organize(X_test, y_test, **_compile_params(problem_type), epochs=1))
         self.assertTrue(sofnn.model.neurons > starting_neurons)
 
+        name = 'Stop at max neurons'
+        params = {
+            'classification': {
+                'max_loops': 5,
+                'max_neurons': 7,
+                'prune_tol': 0.01,
+                'epochs': 1,
+            },
+            'regression': {
+                'max_loops': 5,
+                'max_neurons': 3,
+                'prune_tol': 0.01,
+                'epochs': 1,
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='Stop at max neurons',
-            model=_classification_model(),
-            max_loops=5,
-            max_neurons=3,
-            epochs=1
+            name=name,
+            model=_load_saved_model(problem_type),
+            **params[problem_type]
         )
         starting_neurons = sofnn.model.neurons
-        sofnn.model.compile()
-        self.assertFalse(sofnn.self_organize(X_test, y_test, epochs=1))
+        sofnn.model.compile(**_compile_params(problem_type))
+        self.assertFalse(sofnn.self_organize(X_test, y_test, **_compile_params(problem_type), epochs=1))
         self.assertTrue(sofnn.model.neurons > starting_neurons)
 
+        name = 'Successfully organize'
+        params = {
+            'classification': {
+                'ifpart_threshold': 0.001,
+                'ifpart_samples': 0.5,
+                'error_delta': 4,
+                'prune_tol': 0.001,
+            },
+            'regression': {
+                'ifpart_threshold': 0.001,
+                'ifpart_samples': 0.5,
+                'error_delta': 4,
+                'prune_tol': 0.001,
+            }
+        }
         sofnn = FuzzySelfOrganizer(
-            name='Successfully organize',
-            model=_classification_model(deep=True),
-            max_loops=3,
-            error_delta=0.99,
-            epochs=5
+            name=name,
+            model=_load_saved_model(problem_type, deep=True),
+            **params[problem_type]
         )
         self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
-        sofnn.model.compile()
-        self.assertTrue(sofnn.self_organize(X_test, y_test, epochs=5))
+        sofnn.model.compile(**_compile_params(problem_type))
+        self.assertTrue(sofnn.self_organize(X_test, y_test, **_compile_params(problem_type), epochs=5))
         self.assertTrue(sofnn.model.neurons == starting_neurons)

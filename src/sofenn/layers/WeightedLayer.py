@@ -8,7 +8,7 @@ from keras.layers import Layer
 
 @keras.saving.register_keras_serializable()
 class WeightedLayer(Layer):
-    """
+    r"""
     Weighted Layer
     ==============
     Weighted Layer
@@ -37,20 +37,21 @@ class WeightedLayer(Layer):
         .. math::
             f_{j} = w_{2j} \psi_{(j)}
     """
+    # TODO: add input validation for if shape exceeds supported value
     def __init__(self,
-                 shape: List[tuple],
                  initializer_a: Optional[str] = 'uniform',
                  name: Optional[str] = 'Weights',
                  **kwargs):
         super().__init__(name=name, **kwargs)
-        x_shape, psi_shape = shape
-        self.x_shape = k.standardize_shape(x_shape)
-        self.psi_shape = k.standardize_shape(psi_shape)
-        self.output_dim = psi_shape[-1]
+        # x_shape, psi_shape = shape
+        # self.x_shape = k.standardize_shape(x_shape)
+        # self.psi_shape = k.standardize_shape(psi_shape)
+        # self.output_dim = psi_shape[-1]
         self.initializer_a = initializer_a
         self.a = None
         self.built = False
 
+    # TODO: remove excessive type hinting for call/build methods on custom layers
     def build(self, input_shape: List[tuple], **kwargs) -> None:
         """
         Build objects for processing steps.
@@ -59,8 +60,8 @@ class WeightedLayer(Layer):
         ==========
         input_shape: list of tuples
             - [x shape, psi shape]
-            - x shape: (samples, features)
-            - psi shape: (samples, neurons)
+            - x shape: (*, features)
+            - psi shape: (*, neurons)
 
         Attributes
         ==========
@@ -70,15 +71,18 @@ class WeightedLayer(Layer):
             - shape: (neurons, 1+features)
         """
         x_shape, psi_shape = input_shape
+        input_dim = 1 if x_shape[-1] is None else x_shape[-1]
+        output_dim = 1 if psi_shape[-1] is None else psi_shape[-1]
 
         self.a = self.add_weight(name='a',
-                                 shape=(self.output_dim, 1+x_shape[-1]),
+                                 shape=(output_dim, 1+input_dim),
                                  initializer=self.initializer_a if
                                  self.initializer_a is not None else 'uniform',
                                  trainable=True,
                                  **kwargs)
         super().build(input_shape, **kwargs)
 
+    # TODO: remove excessive type hinting for call/build methods on custom layers
     def call(self, inputs: List[k.KerasTensor], **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer.
@@ -109,6 +113,7 @@ class WeightedLayer(Layer):
             - output of each neuron in fuzzy layer
             - shape: (samples, neurons)
         """
+        # TODO: remove forcing build before first call. should be happening automatically
         if not self.built:
             self.build(input_shape=[x_or_psi.shape for x_or_psi in inputs], **kwargs)
 
@@ -119,9 +124,7 @@ class WeightedLayer(Layer):
         b = K.mean(K.ones_like(x), -1, keepdims=True)
         aligned_b = K.concatenate([b, x], axis=-1)
         aligned_a = self.a
-
         w2 = K.dot(aligned_a, K.transpose(aligned_b))
-
         return K.multiply(psi, K.transpose(w2))
 
     def compute_output_shape(self, input_shape: List[tuple]) -> tuple:
@@ -132,24 +135,22 @@ class WeightedLayer(Layer):
         ==========
         input_shape: list of tuples
             - [x, psi]
-            - x shape: (samples, features)
-            - psi shape: (samples, neurons)
+            - x shape: (*, features)
+            - psi shape: (*, neurons)
 
         Returns
         =======
         output_shape: tuple
             - output shape of weighted layer
-            - shape: (samples, neurons)
+            - shape: (*, neurons)
         """
         x_shape, psi_shape = input_shape
-
-        return tuple(x_shape[:-1]) + (self.output_dim,)
+        return tuple(x_shape[:-1]) + (psi_shape[-1],)
 
     def get_config(self) -> dict:
         """
         Return config dictionary for custom layer.
         """
         base_config = super(WeightedLayer, self).get_config()
-        base_config['shape'] = [self.x_shape, self.psi_shape]
         base_config['initializer_a'] = self.initializer_a
         return base_config

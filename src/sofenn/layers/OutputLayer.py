@@ -1,15 +1,18 @@
-from typing import Optional
+from typing import Optional, Union, Callable
 
 import keras
 import keras.ops as K
 import keras.src.backend as k
-from keras.activations import softmax, linear, sigmoid
+from keras.activations import softmax, linear, sigmoid, serialize, deserialize
+from keras.activations import get as get_activation
 from keras.layers import Layer, Dense
+
+from sofenn.utils.layers import replace_last_dim, make_2d, is_valid_activation
 
 
 @keras.saving.register_keras_serializable()
 class OutputLayer(Layer):
-    """
+    r"""
     Output Layer
     ============
     Final output for Fuzzy Neural Network
@@ -32,35 +35,27 @@ class OutputLayer(Layer):
         \sum{k=1}^{u} f_{(k}}
 
 
-
     - shape: (samples,)
     """
-
     def __init__(
             self,
-            shape: tuple,
-            target_classes: int,
-            problem_type: str,
-            name: Optional[str] = "Outputs",
+            num_classes: int = 1,
+            activation: Union[str, Callable] = linear,
+            name: Optional[str] = 'Outputs',
             **kwargs
     ):
-        defaults = {
-                'classification': softmax,
-                'regression': linear,
-                'logistic_regression': sigmoid,
-            }
-
+        if not is_valid_activation(activation):
+            raise ValueError(f"Invalid activation function: '{activation}'")
         super().__init__(name=name, **kwargs)
-        self.shape = k.standardize_shape(shape)
-        self.target_classes = target_classes
-        self.problem_type = problem_type
-        self.activation = Dense(
-            units=self.target_classes,
-            name=defaults[problem_type].__name__.capitalize(),
-            activation=defaults[problem_type],
+        self.num_classes = num_classes
+        self.activation_function = activation
+        self.activation_layer = Dense(
+            # TODO: set activation layer to have no bias vector when activation is linear
+            units=num_classes,
+            name=activation.__name__.capitalize() if callable(activation) else activation,
+            activation=activation,
             dtype='float32'
         )
-        self.output_dim = target_classes
         self.built = True
 
     def build(self, input_shape: tuple, **kwargs) -> None:
@@ -74,7 +69,7 @@ class OutputLayer(Layer):
         """
         super().build(input_shape=input_shape, **kwargs)
 
-    def call(self, inputs: k.KerasTensor) -> k.KerasTensor:
+    def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer.
 
@@ -82,25 +77,23 @@ class OutputLayer(Layer):
         ==========
         inputs: tensor
             - tensor with f as output of previous layer
-            - f shape: (samples, neurons)
+            - f shape: (*, neurons)
 
         Returns
         =======
         output: tensor
             - sum of all f's from previous layer
-            - shape: (samples,)
+            - shape: (*, num_classes)
         """
-        # get raw sum of all neurons for each sample
-        sums = K.sum(inputs, axis=-1)
-        output = K.expand_dims(sums, axis=-1)
+        # TODO: remove forcing build before first call. should be happening automatically
+        if not self.built:
+            self.build(input_shape=inputs.shape, **kwargs)
 
-        final_output = self.activation(K.expand_dims(output, axis=-1) if len(output.shape) == 1 else output)
-        if self.problem_type == 'regression':
-            return K.squeeze(final_output, axis=-1)
-        # elif self.problem_type == 'classification':
-        #     return K.squeeze(final_output, axis=0) if final_output.shape[0] == 1 else final_output
-        else:
-            return final_output
+        # get the raw sum of all neurons for each sample
+        sums = K.sum(inputs, axis=-1, keepdims=True)
+        # ndim > 2 required for passing through activation
+        output = K.expand_dims(sums, 0) if sums.ndim < 2 else sums
+        return self.activation_layer(output)
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         """
@@ -109,22 +102,32 @@ class OutputLayer(Layer):
         Parameters
         ==========
         input_shape: tuple
-            - f shape: (samples, neurons)
+            - f shape: (*, neurons)
 
         Returns
         =======
         output_shape: tuple
             - output shape of final layer
-            - shape: (samples,)
+            - shape: (*, num_classes)
         """
-        return tuple(input_shape[:-1]) + (self.output_dim,)
+        return replace_last_dim(input_shape, self.num_classes)
 
     def get_config(self) -> dict:
         """
         Return config dictionary for custom layer.
         """
         base_config = super(OutputLayer, self).get_config()
-        base_config['shape'] = self.shape
-        base_config['target_classes'] = self.target_classes
-        base_config['problem_type'] = self.problem_type
+        base_config['num_classes'] = self.num_classes
+        base_config.update({
+            'activation': self.activation_function if isinstance(self.activation_function, str) \
+                else serialize(self.activation_function)
+        })
         return base_config
+
+    @classmethod
+    def from_config(cls, config):
+        activation = config.pop('activation')
+        if isinstance(activation, str):
+            # get automatically deserializes to the function
+            activation = get_activation(activation)
+        return cls(activation=activation, **config)

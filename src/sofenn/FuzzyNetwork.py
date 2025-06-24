@@ -1,21 +1,20 @@
-import copy
 import logging
 from typing import Optional
 
+# TODO: delete from keras.src.<module> in favor of kears.<module> imports
 import keras
+from keras.activations import get as get_activation
+from keras.activations import linear
+from keras.activations import serialize
 from keras.layers import Input
-from keras.losses import MeanSquaredError
-from keras.metrics import CategoricalAccuracy, Accuracy, BinaryCrossentropy
 from keras.models import Model
-from keras.optimizers import Adam, RMSprop
 
 from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
-from sofenn.losses import CustomLoss
 
 logger = logging.getLogger(__name__)
 
-
+# TODO: test for minimum level of serializable needed
 @keras.saving.register_keras_serializable(package='sofenn')
 class FuzzyNetwork(Model):
     """
@@ -37,68 +36,36 @@ class FuzzyNetwork(Model):
     """
     def __init__(
             self,
-            input_shape: Optional[tuple] = None,
-            features: Optional[int] = None,
+            # TODO: remove need for specifying features, and only take input_shape
+            input_shape: tuple,
             neurons: int = 1,
-            problem_type: str = 'regression',
-            target_classes: int = 1,
+            num_classes: int = 1,
+            activation: Optional[str] = linear,
             name: str = 'FuzzyNetwork',
             **kwargs
     ):
-        if features is not None and features < 1:
-            raise ValueError('At least 1 input feature required if features is specified')
-        if features is not None and input_shape is not None:
-            if input_shape not in [(features,), (None, features)]:
-                raise ValueError('Input shape must match feature shape if providing both')
-            self.features = features
-        elif features is not None and input_shape is None:
-            self.features = features
-        elif features is None and input_shape is not None:
-            self.features = input_shape[-1]
-        else:
-            raise ValueError('Must provide either features or input_shape')
-
         if neurons < 1:
             raise ValueError('Neurons must be a positive integer')
         self.neurons = neurons
-
-        if problem_type.lower() not in ['classification', 'regression', 'logistic_regression']:
-            raise ValueError(f'Invalid problem type provided: {problem_type}')
-        self.problem_type = problem_type.lower()
-
-        if self.problem_type == 'classification':
-            if target_classes is None:
-                raise ValueError("Must provide target_classes parameter if 'problem_type' is 'classification'")
-            elif target_classes < 2:
-                raise ValueError("Must specify more than 1 target class if 'problem_type' is 'classification'")
-            target_classes = target_classes
-        elif self.problem_type == 'logistic_regression':
-            if target_classes != 2:
-                logger.warning("Target classes provided will be ignored if problem_type is 'logistic_regression'")
-            target_classes = 2
-        elif self.problem_type == 'regression':
-            target_classes = 1
-        self.target_classes = target_classes
+        if num_classes < 1:
+            raise ValueError('Number of classes must be a positive integer')
+        self.num_classes = num_classes
 
         kwargs['name'] = kwargs.get('name', name)
-
-        self.inputs = Input(name='Inputs', shape=(self.features,))
-        self.fuzz = FuzzyLayer(shape=(self.features,), neurons=self.neurons)
-        self.norm = NormalizeLayer(shape=(self.features, self.neurons))
-        self.w = WeightedLayer(shape=[(self.features,), (self.neurons,)])
-        self.final_output = OutputLayer(shape=(self.neurons,), target_classes=self.target_classes, problem_type=self.problem_type)
+        self.inputs = Input(name='Inputs', shape=input_shape)
+        self.fuzz = FuzzyLayer(input_shape=input_shape, neurons=neurons)
+        self.norm = NormalizeLayer(input_shape=input_shape)
+        self.w = WeightedLayer(input_shape=[input_shape, (neurons,)])
+        self.final_output = OutputLayer(input_shape=input_shape, num_classes=num_classes, activation=activation)
+        self.input_shape = input_shape
 
         self.trained = False
 
         super().__init__(**kwargs)
 
     @property
-    def input_shape(self) -> tuple:
-        return None, self.features
-
-    @property
-    def output_shape(self) -> tuple:
-        return None, 1 if self.target_classes is None else self.target_classes
+    def features(self) -> tuple:
+        return self.input_shape[-1]
 
     def call(self, inputs):
         """
@@ -150,37 +117,10 @@ class FuzzyNetwork(Model):
         f = self.w([inputs, psi])
         return self.final_output(f)
 
+    # TODO: try deleting compile so that it's not overriden from original model base class method
     def compile(self, **kwargs) -> None:
         """Compile fuzzy network."""
-        for key, default_value in self.compile_defaults(self.problem_type).items():
-            if key not in kwargs:
-                kwargs[key] = default_value
         super().compile(**kwargs)
-
-    @staticmethod
-    def compile_defaults(problem_type):
-        """Generate kwargs dictionary with initialized defaults based on the problem type."""
-        defaults = {
-            'classification': {
-                'loss': CustomLoss,
-                'optimizer': Adam,
-                'metrics': [CategoricalAccuracy]
-            },
-            'logistic_regression': {
-                'loss': BinaryCrossentropy,
-                'optimizer': RMSprop,
-                'metrics': [Accuracy]
-            },
-            'regression': {
-                'loss': MeanSquaredError,
-                'optimizer': RMSprop,
-                'metrics': [Accuracy]
-            }
-        }
-        return {
-            key: [v() for v in val] if isinstance(val, list) else val()
-            for key, val in copy.deepcopy(defaults[problem_type]).items()
-        }
 
     def fit(self, *args, **kwargs):
         """Fit fuzzy network to training data."""
@@ -211,12 +151,24 @@ class FuzzyNetwork(Model):
     def get_config(self):
         """Generate model config."""
         base_config = super().get_config()
-        base_config['features'] = self.features
+        base_config['input_shape'] = self.input_shape
         base_config['neurons'] = self.neurons
-        base_config['problem_type'] = self.problem_type
-        base_config['target_classes'] = self.target_classes
+        base_config['num_classes'] = self.num_classes
+        activation = self.final_output.activation_function if isinstance(self.final_output.activation_function, str) \
+            else serialize(self.final_output.activation_function)
+        base_config.update({'activation': activation if isinstance(activation, str) else serialize(activation)})
         return base_config
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        return FuzzyNetwork(**config)
+        activation = config.pop('activation')
+        if isinstance(activation, str):
+            # get automatically deserializes to the function
+            activation = get_activation(activation)
+        return cls(activation=activation, **config)
+
+    # TODO: add 'get_comple_config()' and 'compile_from_config(config)' to get rid of warning below:
+    #       UserWarning: `compile()` was not called as part of model loading because the model's `compile()` method is custom.
+    #       All subclassed Models that have `compile()` overridden should also override
+    #       `get_compile_config()` and `compile_from_config(config)`.
+    #       Alternatively, you can call `compile()` manually after loading.

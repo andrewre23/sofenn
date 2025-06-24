@@ -5,12 +5,13 @@ import keras.ops as K
 import keras.src.backend as k
 from keras.layers import Layer
 
-from sofenn.utils.layers import get_fuzzy_output_shape
+# TODO: determine if can replace this for on-the-fly function
+from sofenn.utils.layers import replace_last_dim
 
 
 @keras.saving.register_keras_serializable()
 class FuzzyLayer(Layer):
-    """
+    r"""
     Fuzzy Layer
     ===========
     Radial (Ellipsoidal) Basis Function Layer
@@ -48,26 +49,26 @@ class FuzzyLayer(Layer):
 
     """
     def __init__(self,
-                 shape: tuple,
                  neurons: Optional[int] = 1,
                  initializer_centers: Optional[str] = 'uniform',
+                 # TODO: determine if better to refer to these as 'widths' or 'sigmas'
                  initializer_sigmas: Optional[str] = 'ones',
                  name: Optional[str] = "FuzzyRules",
                  **kwargs):
         super().__init__(name=name, **kwargs)
         if neurons <= 0:
             raise ValueError("Neurons must be a positive integer.")
+        self.input_shape = None
         self.neurons = neurons
-        self.features = shape[-1]
-        self.shape = get_fuzzy_output_shape(shape, neurons)
         self.initializer_centers = initializer_centers
         self.initializer_sigmas = initializer_sigmas
         self.c = None
         self.s = None
         self.built = False
 
+    # TODO: remove excessive type hinting for call/build methods on custom layers
     def build(self, input_shape: tuple, **kwargs) -> None:
-        """
+        r"""
         Build objects for processing steps.
 
         Parameters
@@ -88,18 +89,22 @@ class FuzzyLayer(Layer):
             - trainable weights for width of ith membership function of jth neuron
             - shape: (features, neurons)
         """
+        self.input_shape = input_shape
+        features = input_shape[-1]
+
         self.c = self.add_weight(name='c',
-                                 shape=(self.features, self.neurons),
+                                 shape=(features, self.neurons),
                                  initializer=self.initializer_centers,
                                  trainable=True,
                                  **kwargs)
         self.s = self.add_weight(name='s',
-                                 shape=(self.features, self.neurons),
+                                 shape=(features, self.neurons),
                                  initializer=self.initializer_sigmas,
                                  trainable=True,
                                  **kwargs)
         super().build(input_shape, **kwargs)
 
+    # TODO: remove excessive type hinting for call/build methods on custom layers
     def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer.
@@ -108,14 +113,15 @@ class FuzzyLayer(Layer):
         ==========
         inputs: tensor
             - input tensor
-            - shape: (samples, features)
+            - shape: (*, features)
+        # TODO: update docstrings for layers to replace samples with '*' as shape place holder
 
         Attributes
         ==========
         aligned_x: tensor
             - x(i,j)
             - ith feature of jth neuron
-            - shape: (samples, features, neurons)
+            - shape: (*, features, neurons)
 
         aligned_c: tensor
             - c(i,j)
@@ -132,8 +138,9 @@ class FuzzyLayer(Layer):
         phi: tensor
             - phi(neurons,)
             - output of jth neuron in fuzzy layer
-            - shape: (samples, neurons)
+            - shape: (*, neurons)
         """
+        # TODO: remove forcing build before first call. should be happening automatically
         if not self.built:
             self.build(input_shape=inputs.shape, **kwargs)
 
@@ -156,15 +163,15 @@ class FuzzyLayer(Layer):
         ==========
         input_shape: tuple
             - shape of input data
-            - shape: (samples, features)
+            - shape: (*, features)
 
         Returns
         =======
         output_shape: tuple
             - output shape of fuzzy layer
-            - shape: (samples, neurons)
+            - shape: (*, neurons)
         """
-        return tuple(input_shape[:-1]) + (self.neurons,)
+        return replace_last_dim(input_shape, self.neurons)
 
     def get_config(self) -> dict:
         """
@@ -172,7 +179,6 @@ class FuzzyLayer(Layer):
         """
         base_config = super(FuzzyLayer, self).get_config()
         base_config['neurons'] = self.neurons
-        base_config['shape'] = self.shape
         base_config['initializer_centers'] = self.initializer_centers
         base_config['initializer_sigmas'] = self.initializer_sigmas
         return base_config
