@@ -25,7 +25,7 @@ def is_valid_activation(activation: Union[str, Callable]):
     """Check if the provided activation is valid."""
     if isinstance(activation, str):
         return activation in activations.__dict__
-    elif callable(activation):
+    elif callable(activation) and activation.__name__ in activations.__dict__:
         return True
     return False
 

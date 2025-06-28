@@ -34,6 +34,9 @@ def test_is_valid_activation():
         assert is_valid_activation(activation)
         assert is_valid_activation(activation.__name__)
 
+    assert ~is_valid_activation('invalid activation function')
+    assert ~is_valid_activation(lambda x: x)
+
 def test_separating_fit_and_compile_kwargs():
     starting_kwargs = {
         'name': 'kwargs extraction test',
