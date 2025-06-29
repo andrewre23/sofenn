@@ -3,9 +3,6 @@ from typing import Optional
 
 import keras
 from keras import activations
-#from keras.activations import get as get_activation
-#from keras.activations import linear
-#from keras.activations import serialize
 from keras.layers import Input
 from keras.models import Model
 
@@ -15,7 +12,7 @@ from sofenn.utils.layers import parse_function_kwargs
 
 logger = logging.getLogger(__name__)
 
-# TODO: test for minimum level of serializable needed
+
 @keras.saving.register_keras_serializable(package='sofenn')
 class FuzzyNetwork(Model):
     """
@@ -37,7 +34,6 @@ class FuzzyNetwork(Model):
     """
     def __init__(
             self,
-            # TODO: remove need for specifying features, and only take input_shape
             input_shape: tuple,
             neurons: int = 1,
             num_classes: int = 1,

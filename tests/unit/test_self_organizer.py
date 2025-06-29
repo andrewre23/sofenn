@@ -318,7 +318,6 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             prune_threshold=0.99,
             k_rmse=0.4390
         )
-        # TODO: delete passing of compile params
         sofnn.model.compile(**_compile_params(problem_type))
         starting_neurons = sofnn.model.neurons
         self.assertTrue(sofnn.prune_neurons(X_train, y_train))
