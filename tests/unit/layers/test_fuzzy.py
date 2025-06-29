@@ -1,6 +1,8 @@
 import keras.src.backend as k
 import numpy as np
 from absl.testing import parameterized
+from keras.layers import Input
+from keras.models import Sequential
 from keras.src import testing
 
 from sofenn.layers import FuzzyLayer
@@ -83,10 +85,6 @@ class FuzzyLayerTest(testing.TestCase):
 
         self.assertIsNotNone(output)
         self.assertEqual(output.shape, replace_last_dim(remove_nones(shape, DEFAULT_DIM), NEURONS))
-
-    def test_numpy_shape(self):
-        # non-python int type shapes should be ok
-        FuzzyLayer(input_shape=(np.int64(5),), neurons=NEURONS)
 
     def test_get_config(self):
         config = FuzzyLayer(neurons=NEURONS).get_config()

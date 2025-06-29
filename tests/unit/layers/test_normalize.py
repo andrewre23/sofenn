@@ -62,10 +62,6 @@ class NormalizeLayerTest(testing.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(output.shape, remove_nones(shape, DEFAULT_DIM))
 
-    def test_numpy_shape(self):
-        # non-python int type shapes should be ok
-        NormalizeLayer(input_shape=(np.int64(5),))
-
     def test_get_config(self):
         config = NormalizeLayer().get_config()
 

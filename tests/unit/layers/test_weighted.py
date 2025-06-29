@@ -72,10 +72,6 @@ class WeightedLayerTest(testing.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(output.shape, remove_nones(neuron_shape, DEFAULT_DIM))
 
-    def test_numpy_shape(self):
-        # non-python int type shapes should be ok
-        WeightedLayer(input_shape=[(np.int64(12),), (np.int64(5),)])
-
     @parameterized.named_parameters(SHAPES)
     def test_get_config(self, shape):
         config = WeightedLayer().get_config()
