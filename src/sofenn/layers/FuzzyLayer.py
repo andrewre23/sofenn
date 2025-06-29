@@ -47,6 +47,10 @@ class FuzzyLayer(Layer):
         .. math::
             \phi_{(j)} = \sum_{j=1}^{u} \dfrac{{[x_{(i)} - c_{(i,j)}]}^2}{[2 * \sigma_{(i,j)}^{2}]}
 
+    :param neurons: Number of fuzzy neurons.
+    :param initializer_centers: Initializer for fuzzy centers.
+    :param initializer_sigmas: Initializer for fuzzy widths.
+    :param name: Name for keras Model.
     """
     def __init__(self,
                  neurons: Optional[int] = 1,
@@ -114,7 +118,6 @@ class FuzzyLayer(Layer):
         inputs: tensor
             - input tensor
             - shape: (*, features)
-        # TODO: update docstrings for layers to replace samples with '*' as shape place holder
 
         Attributes
         ==========

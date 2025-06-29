@@ -34,8 +34,11 @@ class OutputLayer(Layer):
     .. math::
         \sum{k=1}^{u} f_{(k}}
 
+    - shape: (*,)
 
-    - shape: (samples,)
+    :param num_classes: Number of classes in output data.
+    :param activation: Activation function to use (default: linear)..
+    :param name:
     """
     def __init__(
             self,
@@ -65,7 +68,7 @@ class OutputLayer(Layer):
         Parameters
         ==========
         input_shape: tuple
-            - f shape: (samples, neurons)
+            - f shape: (*, neurons)
         """
         super().build(input_shape=input_shape, **kwargs)
 

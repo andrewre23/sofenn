@@ -36,6 +36,9 @@ class WeightedLayer(Layer):
     Output for weighted layer is:
         .. math::
             f_{j} = w_{2j} \psi_{(j)}
+
+    :param initializer_a: Initializer for A matrix of weighted layer
+    :param name: Name for keras Model.
     """
     # TODO: add input validation for if shape exceeds supported value
     def __init__(self,
@@ -43,10 +46,6 @@ class WeightedLayer(Layer):
                  name: Optional[str] = 'Weights',
                  **kwargs):
         super().__init__(name=name, **kwargs)
-        # x_shape, psi_shape = shape
-        # self.x_shape = k.standardize_shape(x_shape)
-        # self.psi_shape = k.standardize_shape(psi_shape)
-        # self.output_dim = psi_shape[-1]
         self.initializer_a = initializer_a
         self.a = None
         self.built = False
@@ -92,14 +91,14 @@ class WeightedLayer(Layer):
         inputs: list of tensors
             - list of tensor with input data and psi output of previous layer
             - [x, psi]
-            - x shape: (samples, features)
-            - psi shape: (samples, neurons)
+            - x shape: (*, features)
+            - psi shape: (*, neurons)
 
         Attributes
         ==========
         aligned_b: tensor
             - input vector with [1.0] prepended for bias weight
-            - shape: (samples, 1+features)
+            - shape: (*, 1+features)
 
         aligned_a: tensor
             - a(i,j)
@@ -111,7 +110,7 @@ class WeightedLayer(Layer):
         f: tensor
             - psi(neurons,)
             - output of each neuron in fuzzy layer
-            - shape: (samples, neurons)
+            - shape: (*, neurons)
         """
         # TODO: remove forcing build before first call. should be happening automatically
         if not self.built:
@@ -120,7 +119,7 @@ class WeightedLayer(Layer):
         x, psi = inputs
 
         # align tensors by prepending bias value for input tensor in b
-        # b shape: (samples, 1+features)
+        # b shape: (*, 1+features)
         b = K.mean(K.ones_like(x), -1, keepdims=True)
         aligned_b = K.concatenate([b, x], axis=-1)
         aligned_a = self.a

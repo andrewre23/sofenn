@@ -27,13 +27,12 @@ class NormalizeLayer(Layer):
     Output for Normalize Layer is:
         .. math::
             \psi_{(j)} = \phi_{(j)} / \sum_{k=1}^{u} \phi_{(k)}
+
+    :param name: Name for keras Model.
     """
     # TODO: add input validation for if shape exceeds supported value
     def __init__(self, name: Optional[str] = "Normalize", **kwargs):
         super().__init__(name=name, **kwargs)
-        #shape = k.standardize_shape(shape)
-        #self.shape = shape
-        #self.output_dim = self.shape[-1]
         self.input_shape = None
         self.fixed_weight = None
         self.built = False
