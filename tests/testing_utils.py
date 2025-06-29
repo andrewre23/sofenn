@@ -18,7 +18,6 @@ from sofenn.losses import CustomLoss
 
 DATA_DIR = Path(__file__).parent / 'data'
 
-# TODO: change to activation functions and remove explicitly defining 'problem_type'
 PROBLEM_DEFAULTS = {
     'regression': {
         'samples': 100,
@@ -44,8 +43,8 @@ PROBLEM_DEFAULTS = {
             'metrics': [Accuracy]
         }
     }
-}
 # TODO: add logistic regression
+}
 PROBLEM_TYPES = [
     {'testcase_name': problem_type, 'problem_type': problem_type} for problem_type in PROBLEM_DEFAULTS.keys()
 ]

@@ -108,7 +108,6 @@ class FuzzyNetworkTest(testing.TestCase):
         model.compile()
         self.assertFalse(model.built)
 
-    # TODO: add generator for classification only parameters
     def test_fit_classification(self):
         epochs = 10
         X_train, X_test, y_train, y_test = _get_training_data('classification')
@@ -198,7 +197,6 @@ class FuzzyNetworkTest(testing.TestCase):
         epochs = 1
         X_train, X_test, y_train, y_test = _get_training_data(problem_type)
 
-        # TODO: confirm that features is pulling correctly for all shape sizes
         model = FuzzyNetwork(name='AppendToOtherCallbacks', **_init_params(problem_type))
         model.compile(**_compile_params(problem_type))
         model.fit(X_train, y_train, epochs=epochs, callbacks=[
