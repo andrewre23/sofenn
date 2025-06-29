@@ -1,8 +1,8 @@
 import logging
 
 import keras
-import keras.ops as K
-from keras.src.losses import Loss
+import keras.ops as k
+from keras.losses import Loss
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class CustomLoss(Loss):
         :param y_true: True values.
         :param y_pred: Predicted values.
         """
-        return 1 / 2 * K.square(y_pred - y_true)
+        return 1 / 2 * k.square(y_pred - y_true)
 
     def get_config(self):
         return super().get_config()

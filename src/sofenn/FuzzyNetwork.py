@@ -2,9 +2,10 @@ import logging
 from typing import Optional
 
 import keras
-from keras.activations import get as get_activation
-from keras.activations import linear
-from keras.activations import serialize
+from keras import activations
+#from keras.activations import get as get_activation
+#from keras.activations import linear
+#from keras.activations import serialize
 from keras.layers import Input
 from keras.models import Model
 
@@ -32,7 +33,7 @@ class FuzzyNetwork(Model):
     :param neurons: Number of neurons to use. Each one represents fuzzy neuron (if/then) operator.
     :param problem_type: Either 'classification' or 'regression' problem.
     :param target_classes: Optional number of classes in target data.
-    :param name: Name of network (default: 'FuzzyNetwork').
+    :param name: Name of network Model (default: 'FuzzyNetwork').
     """
     def __init__(
             self,
@@ -40,7 +41,7 @@ class FuzzyNetwork(Model):
             input_shape: tuple,
             neurons: int = 1,
             num_classes: int = 1,
-            activation: Optional[str] = linear,
+            activation: Optional[str] = activations.linear,
             name: str = 'FuzzyNetwork',
             **kwargs
     ):
@@ -153,8 +154,10 @@ class FuzzyNetwork(Model):
         base_config['neurons'] = self.neurons
         base_config['num_classes'] = self.num_classes
         activation = self.final_output.activation_function if isinstance(self.final_output.activation_function, str) \
-            else serialize(self.final_output.activation_function)
-        base_config.update({'activation': activation if isinstance(activation, str) else serialize(activation)})
+            else activations.serialize(self.final_output.activation_function)
+        base_config.update({
+            'activation': activation if isinstance(activation, str) else activations.serialize(activation)
+        })
         return base_config
 
     @classmethod
@@ -162,5 +165,5 @@ class FuzzyNetwork(Model):
         activation = config.pop('activation')
         if isinstance(activation, str):
             # get automatically deserializes to the function
-            activation = get_activation(activation)
+            activation = activations.get(activation)
         return cls(activation=activation, **config)

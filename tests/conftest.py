@@ -16,8 +16,8 @@ def set_random_seed():
     random.seed(seed_value)
 
     # 3. Set the `numpy` pseudo-random generator at a fixed value
-    import numpy as np
-    np.random.seed(seed_value)
+    import numpy
+    numpy.random.seed(seed_value)
 
     # 4. Set the `tensorflow` pseudo-random generator at a fixed value
     import tensorflow as tf

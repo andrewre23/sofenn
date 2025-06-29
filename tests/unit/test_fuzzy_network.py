@@ -7,9 +7,9 @@ import numpy
 import pytest
 from absl.testing import parameterized
 from keras.callbacks import ProgbarLogger
+from keras.losses import MeanSquaredError
+from keras.optimizers import RMSprop
 from keras.src import testing
-from keras.src.losses import MeanSquaredError
-from keras.src.optimizers import RMSprop
 
 from sofenn import FuzzyNetwork
 from sofenn.callbacks import FuzzyWeightsInitializer

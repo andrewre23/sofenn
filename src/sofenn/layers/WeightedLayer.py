@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 import keras
-import keras.ops as K
+import keras.ops as k
 from keras.layers import Layer
 
 
@@ -37,7 +37,7 @@ class WeightedLayer(Layer):
             f_{j} = w_{2j} \psi_{(j)}
 
     :param initializer_a: Initializer for A matrix of weighted layer
-    :param name: Name for keras Model.
+    :param name: Layer name (default: Weights).
     """
     def __init__(self,
                  initializer_a: Optional[str] = 'uniform',
@@ -116,11 +116,11 @@ class WeightedLayer(Layer):
 
         # align tensors by prepending bias value for input tensor in b
         # b shape: (*, 1+features)
-        b = K.mean(K.ones_like(x), -1, keepdims=True)
-        aligned_b = K.concatenate([b, x], axis=-1)
+        b = k.mean(k.ones_like(x), -1, keepdims=True)
+        aligned_b = k.concatenate([b, x], axis=-1)
         aligned_a = self.a
-        w2 = K.dot(aligned_a, K.transpose(aligned_b))
-        return K.multiply(psi, K.transpose(w2))
+        w2 = k.dot(aligned_a, k.transpose(aligned_b))
+        return k.multiply(psi, k.transpose(w2))
 
     def compute_output_shape(self, input_shape: List[tuple]) -> tuple:
         """

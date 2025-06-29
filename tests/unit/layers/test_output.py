@@ -1,6 +1,6 @@
 import keras
-import keras.ops as K
-import numpy as np
+import keras.ops as k
+import numpy
 from absl.testing import parameterized
 from keras.src import testing
 
@@ -82,7 +82,7 @@ class OutputLayerTest(testing.TestCase):
         for problem_type in PROBLEM_DEFAULTS.keys():
             num_classes = PROBLEM_DEFAULTS[problem_type]['num_classes']
             input_shape = remove_nones(shape, DEFAULT_DIM)
-            input_tensor = K.convert_to_tensor(np.random.random(input_shape))
+            input_tensor = k.convert_to_tensor(numpy.random.random(input_shape))
             layer = OutputLayer(
                 num_classes=num_classes,
                 activation=PROBLEM_DEFAULTS[problem_type]['activation'],

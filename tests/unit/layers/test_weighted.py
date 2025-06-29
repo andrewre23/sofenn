@@ -1,6 +1,6 @@
 import keras
 import keras.ops as k
-import numpy as np
+import numpy
 from absl.testing import parameterized
 from keras.src import testing
 
@@ -63,8 +63,8 @@ class WeightedLayerTest(testing.TestCase):
     @parameterized.named_parameters(SHAPES)
     def test_call_method(self, shape):
         features_shape, neuron_shape = shape
-        features_tensor = k.convert_to_tensor(np.random.random(remove_nones(features_shape, DEFAULT_DIM)))
-        neurons_tensor = k.convert_to_tensor(np.random.random(remove_nones(neuron_shape, DEFAULT_DIM)))
+        features_tensor = k.convert_to_tensor(numpy.random.random(remove_nones(features_shape, DEFAULT_DIM)))
+        neurons_tensor = k.convert_to_tensor(numpy.random.random(remove_nones(neuron_shape, DEFAULT_DIM)))
         layer = WeightedLayer()
         output = layer.call(inputs=[features_tensor, neurons_tensor])
 

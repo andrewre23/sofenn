@@ -1,9 +1,8 @@
 from typing import Optional, Union, Callable
 
 import keras
-import keras.ops as K
-from keras.activations import get as get_activation
-from keras.activations import linear, serialize
+import keras.ops as k
+from keras import activations
 from keras.layers import Layer, Dense
 
 from sofenn.utils.layers import replace_last_dim, is_valid_activation
@@ -37,12 +36,12 @@ class OutputLayer(Layer):
 
     :param num_classes: Number of classes in output data.
     :param activation: Activation function to use (default: linear)..
-    :param name:
+    :param name: Layer name (default: Outputs).
     """
     def __init__(
             self,
             num_classes: int = 1,
-            activation: Union[str, Callable] = linear,
+            activation: Union[str, Callable] = activations.linear,
             name: Optional[str] = 'Outputs',
             **kwargs
     ):
@@ -77,9 +76,9 @@ class OutputLayer(Layer):
             - shape: (*, num_classes)
         """
         # get the raw sum of all neurons for each sample
-        sums = K.sum(inputs, axis=-1, keepdims=True)
+        sums = k.sum(inputs, axis=-1, keepdims=True)
         # ndim > 2 required for passing through activation
-        output = K.expand_dims(sums, 0) if sums.ndim < 2 else sums
+        output = k.expand_dims(sums, 0) if sums.ndim < 2 else sums
         return self.activation_layer(output)
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
@@ -107,7 +106,7 @@ class OutputLayer(Layer):
         base_config['num_classes'] = self.num_classes
         base_config.update({
             'activation': self.activation_function if isinstance(self.activation_function, str) \
-                else serialize(self.activation_function)
+                else activations.serialize(self.activation_function)
         })
         return base_config
 
@@ -116,5 +115,5 @@ class OutputLayer(Layer):
         activation = config.pop('activation')
         if isinstance(activation, str):
             # get automatically deserializes to the function
-            activation = get_activation(activation)
+            activation = activations.get(activation)
         return cls(activation=activation, **config)

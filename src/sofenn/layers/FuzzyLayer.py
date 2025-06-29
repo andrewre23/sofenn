@@ -48,7 +48,7 @@ class FuzzyLayer(Layer):
     :param neurons: Number of fuzzy neurons.
     :param initializer_centers: Initializer for fuzzy centers.
     :param initializer_sigmas: Initializer for fuzzy widths.
-    :param name: Name for keras Model.
+    :param name: Layer name (default: FuzzyRules).
     """
     def __init__(self,
                  neurons: Optional[int] = 1,

@@ -1,7 +1,7 @@
 from typing import Optional
 
 import keras
-import keras.ops as K
+import keras.ops as k
 from keras.layers import Layer
 
 
@@ -27,7 +27,7 @@ class NormalizeLayer(Layer):
         .. math::
             \psi_{(j)} = \phi_{(j)} / \sum_{k=1}^{u} \phi_{(k)}
 
-    :param name: Name for keras Model.
+    :param name: Layer name (default: Normalize).
     """
     def __init__(self, name: Optional[str] = "Normalize", **kwargs):
         super().__init__(name=name, **kwargs)
@@ -55,8 +55,8 @@ class NormalizeLayer(Layer):
             - psi(j) for jth neuron
             - shape: (*, neurons)
         """
-        sums = K.sum(inputs, axis=-1)
-        sums_expanded = K.repeat(K.expand_dims(sums, axis=-1), inputs.shape[-1], -1)
+        sums = k.sum(inputs, axis=-1)
+        sums_expanded = k.repeat(k.expand_dims(sums, axis=-1), inputs.shape[-1], -1)
         return inputs / sums_expanded
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:

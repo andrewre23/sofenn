@@ -1,6 +1,6 @@
 import logging
 
-import keras.ops as K
+import keras.ops as k
 import numpy
 from keras.callbacks import Callback
 
@@ -63,7 +63,7 @@ class FuzzyWeightsInitializer(Callback):
         # if input data is only 1 sample, then convert the shape to (neuron, features)
         # so the entire sample will be used as centers across all neurons
         if sample_data.ndim == 1:
-            sample_data = K.repeat(K.expand_dims(sample_data, axis=-1), self.model.features, -1)
+            sample_data = k.repeat(k.expand_dims(sample_data, axis=-1), self.model.features, -1)
         if random_sample:
             # set centers as random sampled index values
             samples = numpy.random.randint(0, len(sample_data), self.model.neurons)
@@ -90,7 +90,7 @@ class FuzzyWeightsInitializer(Callback):
         c, s = self.model.get_layer(self.layer_name).get_weights()
 
         # repeat s_0 value to array shaped like s
-        s_init = K.repeat(s_0, s.size).numpy().reshape(s.shape)
+        s_init = k.repeat(s_0, s.size).numpy().reshape(s.shape)
 
         # set weights
         start_weights = [c, s_init]

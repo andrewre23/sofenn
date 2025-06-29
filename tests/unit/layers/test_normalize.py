@@ -1,6 +1,6 @@
 import keras
-import keras.ops as K
-import numpy as np
+import keras.ops as k
+import numpy
 from absl.testing import parameterized
 from keras.src import testing
 
@@ -54,7 +54,7 @@ class NormalizeLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(SHAPES)
     def test_call_method(self, shape):
-        input_tensor = K.convert_to_tensor(np.random.random(remove_nones(shape, DEFAULT_DIM)))
+        input_tensor = k.convert_to_tensor(numpy.random.random(remove_nones(shape, DEFAULT_DIM)))
         layer = NormalizeLayer()
         output = layer.call(inputs=input_tensor)
 

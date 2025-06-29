@@ -1,11 +1,11 @@
 import pickle
 
-import numpy as np
+import numpy
 import pytest
+from keras import losses as losses_module
+from keras import ops as k
 from keras.src import backend
 from keras.src import dtype_policies
-from keras.src import losses as losses_module
-from keras.src import ops
 from keras.src import testing
 
 from sofenn.losses import CustomLoss
@@ -23,8 +23,8 @@ class CustomLossTest(testing.TestCase):
         return super().tearDown()
 
     def test_reduction(self):
-        y_true = np.array([1.0, 0.0, 1.0, 0.0])
-        y_pred = np.array([0.1, 0.2, 0.3, 0.4])
+        y_true = numpy.array([1.0, 0.0, 1.0, 0.0])
+        y_pred = numpy.array([0.1, 0.2, 0.3, 0.4])
 
         manual_loss = 0.5 * (y_pred - y_true) ** 2
 
@@ -38,13 +38,13 @@ class CustomLossTest(testing.TestCase):
         loss_fn = CustomLoss(reduction="sum")
         loss = loss_fn(y_true, y_pred)
         self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
-        self.assertAllClose(np.sum(manual_loss), loss)
+        self.assertAllClose(numpy.sum(manual_loss), loss)
 
         # sum_over_batch_size or mean
         loss_fn = CustomLoss(reduction="sum_over_batch_size")
         loss = loss_fn(y_true, y_pred)
         self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
-        self.assertAllClose(np.sum(manual_loss) / 4, loss)
+        self.assertAllClose(numpy.sum(manual_loss) / 4, loss)
 
         # bad reduction
         with self.assertRaisesRegex(ValueError, "Invalid value for argument"):
@@ -55,46 +55,46 @@ class CustomLossTest(testing.TestCase):
         reason="Numpy backend does not support masking.",
     )
     def test_mask(self):
-        mask = np.array([True, False, True, True])
-        y_true = np.array([1.0, 0.0, 1.0, 0.0])
-        y_pred = np.array([0.1, 0.2, 0.3, 0.4])
+        mask = numpy.array([True, False, True, True])
+        y_true = numpy.array([1.0, 0.0, 1.0, 0.0])
+        y_pred = numpy.array([0.1, 0.2, 0.3, 0.4])
 
-        masked_y_true = np.array([1.0, 1.0, 0.0])
-        masked_y_pred = np.array([0.1, 0.3, 0.4])
+        masked_y_true = numpy.array([1.0, 1.0, 0.0])
+        masked_y_pred = numpy.array([0.1, 0.3, 0.4])
 
-        mask = ops.convert_to_tensor(mask)
-        y_true = ops.convert_to_tensor(y_true)
-        y_pred = ops.convert_to_tensor(y_pred)
+        mask = k.convert_to_tensor(mask)
+        y_true = k.convert_to_tensor(y_true)
+        y_pred = k.convert_to_tensor(y_pred)
         y_pred._keras_mask = mask
 
         loss_fn = CustomLoss()
         loss = loss_fn(y_true, y_pred)
         self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
         self.assertAllClose(
-            np.sum(0.5 * (masked_y_true - masked_y_pred) ** 2), loss
+            numpy.sum(0.5 * (masked_y_true - masked_y_pred) ** 2), loss
         )
 
         # Test edge case where everything is masked.
-        mask = np.array([False, False, False, False])
+        mask = numpy.array([False, False, False, False])
         y_pred._keras_mask = mask
         loss = loss_fn(y_true, y_pred)
         self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
         self.assertAllClose(loss, 0)  # No NaN.
 
     def test_sample_weight(self):
-        sample_weight = np.array([0.4, 0.3, 0.2, 0.1])
-        y_true = np.array([1.0, 0.0, 1.0, 0.0])
-        y_pred = np.array([0.1, 0.2, 0.3, 0.4])
+        sample_weight = numpy.array([0.4, 0.3, 0.2, 0.1])
+        y_true = numpy.array([1.0, 0.0, 1.0, 0.0])
+        y_pred = numpy.array([0.1, 0.2, 0.3, 0.4])
 
         loss_fn = CustomLoss()
         loss = loss_fn(y_true, y_pred, sample_weight=sample_weight)
         self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
         self.assertAllClose(
-            np.sum(sample_weight * 0.5 * (y_pred - y_true) ** 2), loss
+            numpy.sum(sample_weight * 0.5 * (y_pred - y_true) ** 2), loss
         )
 
         # Test edge case where every weight is 0.
-        sample_weight = np.array([0.0, 0.0, 0.0, 0.0])
+        sample_weight = numpy.array([0.0, 0.0, 0.0, 0.0])
         loss = loss_fn(y_true, y_pred, sample_weight=sample_weight)
         self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
         self.assertAllClose(loss, 0)  # No NaN.
@@ -104,25 +104,25 @@ class CustomLossTest(testing.TestCase):
         reason="Numpy backend does not support masking.",
     )
     def test_mask_and_sample_weight(self):
-        sample_weight = np.array([0.4, 0.3, 0.2, 0.1])
-        y_true = np.array([1.0, 0.0, 1.0, 0.0])
-        y_pred = np.array([0.1, 0.2, 0.3, 0.4])
-        mask = np.array([True, False, True, True])
+        sample_weight = numpy.array([0.4, 0.3, 0.2, 0.1])
+        y_true = numpy.array([1.0, 0.0, 1.0, 0.0])
+        y_pred = numpy.array([0.1, 0.2, 0.3, 0.4])
+        mask = numpy.array([True, False, True, True])
 
-        masked_sample_weight = np.array([0.4, 0.2, 0.1])
-        masked_y_true = np.array([1.0, 1.0, 0.0])
-        masked_y_pred = np.array([0.1, 0.3, 0.4])
+        masked_sample_weight = numpy.array([0.4, 0.2, 0.1])
+        masked_y_true = numpy.array([1.0, 1.0, 0.0])
+        masked_y_pred = numpy.array([0.1, 0.3, 0.4])
 
-        mask = ops.convert_to_tensor(mask)
-        y_true = ops.convert_to_tensor(y_true)
-        y_pred = ops.convert_to_tensor(y_pred)
+        mask = k.convert_to_tensor(mask)
+        y_true = k.convert_to_tensor(y_true)
+        y_pred = k.convert_to_tensor(y_pred)
         y_pred._keras_mask = mask
 
         loss_fn = CustomLoss()
         loss = loss_fn(y_true, y_pred, sample_weight=sample_weight)
         self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
         self.assertAllClose(
-            np.sum(masked_sample_weight * 0.5 * (masked_y_true - masked_y_pred) ** 2),
+            numpy.sum(masked_sample_weight * 0.5 * (masked_y_true - masked_y_pred) ** 2),
             loss,
         )
 
@@ -132,24 +132,24 @@ class CustomLossTest(testing.TestCase):
     )
     def test_mask_and_sample_weight_rank2(self):
         # check loss of inputs with duplicate rows doesn't change
-        sample_weight = np.array([0.4, 0.3, 0.2, 0.1])
-        y_true = np.array([1.0, 0.0, 1.0, 0.0])
-        y_pred = np.array([0.1, 0.2, 0.3, 0.4])
-        mask = np.array([True, False, True, True])
+        sample_weight = numpy.array([0.4, 0.3, 0.2, 0.1])
+        y_true = numpy.array([1.0, 0.0, 1.0, 0.0])
+        y_pred = numpy.array([0.1, 0.2, 0.3, 0.4])
+        mask = numpy.array([True, False, True, True])
 
-        mask = ops.convert_to_tensor(mask)
-        y_true = ops.convert_to_tensor(y_true)
-        y_pred = ops.convert_to_tensor(y_pred)
+        mask = k.convert_to_tensor(mask)
+        y_true = k.convert_to_tensor(y_true)
+        y_pred = k.convert_to_tensor(y_pred)
         y_pred._keras_mask = mask
 
         loss_fn = CustomLoss(reduction="sum_over_batch_size")
         rank1_loss = loss_fn(y_true, y_pred, sample_weight=sample_weight)
 
         # duplicate rows
-        mask = ops.tile(ops.expand_dims(mask, axis=0), (2, 1))
-        y_true = ops.tile(ops.expand_dims(y_true, axis=0), (2, 1))
-        y_pred = ops.tile(ops.expand_dims(y_pred, axis=0), (2, 1))
-        sample_weight = ops.tile(ops.expand_dims(sample_weight, axis=0), (2, 1))
+        mask = k.tile(k.expand_dims(mask, axis=0), (2, 1))
+        y_true = k.tile(k.expand_dims(y_true, axis=0), (2, 1))
+        y_pred = k.tile(k.expand_dims(y_pred, axis=0), (2, 1))
+        sample_weight = k.tile(k.expand_dims(sample_weight, axis=0), (2, 1))
         y_pred._keras_mask = mask
         rank2_loss = loss_fn(y_true, y_pred, sample_weight=sample_weight)
         self.assertAllClose(rank1_loss, rank2_loss)
@@ -160,46 +160,46 @@ class CustomLossTest(testing.TestCase):
     )
     def test_rank_adjustment(self):
         for uprank in ["mask", "sample_weight", "ys"]:
-            sample_weight = np.array([0.4, 0.3, 0.2, 0.1])
-            y_true = np.array([1.0, 0.0, 1.0, 0.0])
-            y_pred = np.array([0.1, 0.2, 0.3, 0.4])
-            mask = np.array([True, False, True, True])
+            sample_weight = numpy.array([0.4, 0.3, 0.2, 0.1])
+            y_true = numpy.array([1.0, 0.0, 1.0, 0.0])
+            y_pred = numpy.array([0.1, 0.2, 0.3, 0.4])
+            mask = numpy.array([True, False, True, True])
 
             if uprank == "mask":
-                mask = np.expand_dims(mask, -1)
+                mask = numpy.expand_dims(mask, -1)
             elif uprank == "sample_weight":
-                sample_weight = np.expand_dims(sample_weight, -1)
+                sample_weight = numpy.expand_dims(sample_weight, -1)
             elif uprank == "ys":
-                y_true = np.expand_dims(y_true, -1)
-                y_pred = np.expand_dims(y_pred, -1)
+                y_true = numpy.expand_dims(y_true, -1)
+                y_pred = numpy.expand_dims(y_pred, -1)
 
-            masked_sample_weight = np.array([0.4, 0.2, 0.1])
-            masked_y_true = np.array([1.0, 1.0, 0.0])
-            masked_y_pred = np.array([0.1, 0.3, 0.4])
+            masked_sample_weight = numpy.array([0.4, 0.2, 0.1])
+            masked_y_true = numpy.array([1.0, 1.0, 0.0])
+            masked_y_pred = numpy.array([0.1, 0.3, 0.4])
 
-            mask = ops.convert_to_tensor(mask)
-            y_true = ops.convert_to_tensor(y_true)
-            y_pred = ops.convert_to_tensor(y_pred)
+            mask = k.convert_to_tensor(mask)
+            y_true = k.convert_to_tensor(y_true)
+            y_pred = k.convert_to_tensor(y_pred)
             y_pred._keras_mask = mask
 
             loss_fn = CustomLoss()
             loss = loss_fn(y_true, y_pred, sample_weight=sample_weight)
             self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
             self.assertAllClose(
-                np.sum(masked_sample_weight * 0.5 * (masked_y_true - masked_y_pred) ** 2),
+                numpy.sum(masked_sample_weight * 0.5 * (masked_y_true - masked_y_pred) ** 2),
                 loss,
             )
 
     def test_mixed_dtypes(self):
-        sample_weight = np.array([0.4, 0.3, 0.2, 0.1], dtype="float64")
-        y_true = np.array([1.0, 0.0, 1.0, 0.0], dtype="int32")
-        y_pred = np.array([0.1, 0.2, 0.3, 0.4], dtype="float32")
+        sample_weight = numpy.array([0.4, 0.3, 0.2, 0.1], dtype="float64")
+        y_true = numpy.array([1.0, 0.0, 1.0, 0.0], dtype="int32")
+        y_pred = numpy.array([0.1, 0.2, 0.3, 0.4], dtype="float32")
 
         loss_fn = CustomLoss()
         loss = loss_fn(y_true, y_pred, sample_weight=sample_weight)
         self.assertEqual(backend.standardize_dtype(loss.dtype), "float32")
         self.assertAllClose(
-            np.sum(sample_weight * 0.5 * (y_pred - y_true) ** 2),
+            numpy.sum(sample_weight * 0.5 * (y_pred - y_true) ** 2),
             loss,
         )
 
@@ -219,8 +219,8 @@ class CustomLossTest(testing.TestCase):
             losses_module.get("typo")
 
     def test_dtype_arg(self):
-        y_true = np.array([1.0, 0.0, 1.0, 0.0], dtype="float32")
-        y_pred = np.array([0.1, 0.2, 0.3, 0.4], dtype="float32")
+        y_true = numpy.array([1.0, 0.0, 1.0, 0.0], dtype="float32")
+        y_pred = numpy.array([0.1, 0.2, 0.3, 0.4], dtype="float32")
 
         # Note: we use float16 and not float64 to test this because
         # JAX will map float64 to float32.
@@ -238,8 +238,8 @@ class CustomLossTest(testing.TestCase):
             loss_fn.dtype = "bfloat16"
 
     def test_default_dtype(self):
-        y_true = np.array([1.0, 0.0, 1.0, 0.0], dtype="float32")
-        y_pred = np.array([0.1, 0.2, 0.3, 0.4], dtype="float32")
+        y_true = numpy.array([1.0, 0.0, 1.0, 0.0], dtype="float32")
+        y_pred = numpy.array([0.1, 0.2, 0.3, 0.4], dtype="float32")
 
         # Defaults to `keras.config.floatx()` not global `dtype_policy`
         dtype_policies.dtype_policy.set_dtype_policy("mixed_float16")
@@ -253,8 +253,8 @@ class CustomLossTest(testing.TestCase):
         self.assertDType(loss, backend.floatx())
 
     def test_from_config(self):
-        y_true = np.random.random(3)
-        y_pred = np.random.random(3)
+        y_true = numpy.random.random(3)
+        y_pred = numpy.random.random(3)
 
         loss_fn = CustomLoss(reduction="sum")
         self.assertTrue(loss_fn(y_true, y_pred) == CustomLoss.from_config(loss_fn.get_config())(y_true, y_pred))
