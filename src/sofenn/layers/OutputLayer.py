@@ -2,12 +2,11 @@ from typing import Optional, Union, Callable
 
 import keras
 import keras.ops as K
-import keras.src.backend as k
-from keras.activations import softmax, linear, sigmoid, serialize, deserialize
 from keras.activations import get as get_activation
+from keras.activations import linear, serialize
 from keras.layers import Layer, Dense
 
-from sofenn.utils.layers import replace_last_dim, make_2d, is_valid_activation
+from sofenn.utils.layers import replace_last_dim, is_valid_activation
 
 
 @keras.saving.register_keras_serializable()
@@ -61,7 +60,7 @@ class OutputLayer(Layer):
         )
         self.built = True
 
-    def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
+    def call(self, inputs: keras.KerasTensor, **kwargs) -> keras.KerasTensor:
         """
         Build processing logic for layer.
 

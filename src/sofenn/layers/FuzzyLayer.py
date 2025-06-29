@@ -1,8 +1,7 @@
 from typing import Optional
 
 import keras
-import keras.ops as K
-import keras.src.backend as k
+import keras.ops as k
 from keras.layers import Layer
 
 from sofenn.utils.layers import replace_last_dim
@@ -106,7 +105,7 @@ class FuzzyLayer(Layer):
                                  **kwargs)
         super().build(input_shape, **kwargs)
 
-    def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
+    def call(self, inputs: keras.KerasTensor, **kwargs) -> keras.KerasTensor:
         """
         Build processing logic for layer.
 
@@ -144,14 +143,14 @@ class FuzzyLayer(Layer):
         if not self.built:
             self.build(input_shape=inputs.shape, **kwargs)
 
-        aligned_x = K.repeat(K.expand_dims(inputs, axis=-1), self.neurons, -1)
+        aligned_x = k.repeat(k.expand_dims(inputs, axis=-1), self.neurons, -1)
         aligned_c = self.c
         aligned_s = self.s
 
         # calculate output of each neuron (fuzzy rule)
-        x_minus_c_squared = K.square(aligned_x - aligned_c)
-        two_sigma = 2 * K.square(aligned_s)
-        phi = K.exp(-K.sum(K.true_divide(x_minus_c_squared, two_sigma),
+        x_minus_c_squared = k.square(aligned_x - aligned_c)
+        two_sigma = 2 * k.square(aligned_s)
+        phi = k.exp(-k.sum(k.true_divide(x_minus_c_squared, two_sigma),
                            axis=-2, keepdims=False))
         return phi
 

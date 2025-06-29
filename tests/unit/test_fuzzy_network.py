@@ -2,7 +2,7 @@ import copy
 import pickle
 import tempfile
 
-import keras.src.backend as K
+import keras
 import numpy
 import pytest
 from absl.testing import parameterized
@@ -16,7 +16,7 @@ from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 from sofenn.losses import CustomLoss
 from sofenn.utils.layers import remove_nones
-from tests.testing_utils import PROBLEM_DEFAULTS, DATA_DIR, PROBLEM_TYPES, SHAPES, \
+from tests.testing_utils import PROBLEM_DEFAULTS, PROBLEM_TYPES, SHAPES, \
     _init_params, _compile_params, _get_training_data, _load_saved_model
 
 
@@ -50,7 +50,7 @@ class FuzzyNetworkTest(testing.TestCase):
         self.assertEqual(y.shape, output_shape)
 
         # Test symbolic call
-        x = K.KerasTensor(input_shape)
+        x = keras.KerasTensor(input_shape)
         y = model(x)
         self.assertEqual(y.shape, output_shape)
 

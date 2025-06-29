@@ -1,4 +1,5 @@
-import keras.src.backend as k
+import keras
+import keras.ops as k
 import numpy as np
 from absl.testing import parameterized
 from keras.src import testing
@@ -21,16 +22,16 @@ class WeightedLayerTest(testing.TestCase):
     def test_build_across_shape_dimensions(self, shape):
         init_kwargs = {}
         features_shape, neuron_shape = shape
-        values = WeightedLayer(**init_kwargs)([k.KerasTensor(features_shape), k.KerasTensor(neuron_shape)])
+        values = WeightedLayer(**init_kwargs)([keras.KerasTensor(features_shape), keras.KerasTensor(neuron_shape)])
 
-        self.assertIsInstance(values, k.KerasTensor)
+        self.assertIsInstance(values, keras.KerasTensor)
         self.assertEqual(values.shape, neuron_shape)
 
     @parameterized.named_parameters(SHAPES)
     def test_weighted_basics(self, shape):
         features_shape, neuron_shape = shape
-        features_tensor = k.KerasTensor(shape=features_shape)
-        neurons_tensor = k.KerasTensor(shape=neuron_shape)
+        features_tensor = keras.KerasTensor(shape=features_shape)
+        neurons_tensor = keras.KerasTensor(shape=neuron_shape)
 
         self.run_layer_test(
             WeightedLayer,
@@ -51,11 +52,11 @@ class WeightedLayerTest(testing.TestCase):
     def testing_input_tensor(self, shape):
         print(f'shape: {shape}')
         features_shape, neuron_shape = shape
-        features_tensor = k.KerasTensor(shape=features_shape)
-        neurons_tensor = k.KerasTensor(shape=neuron_shape)
+        features_tensor = keras.KerasTensor(shape=features_shape)
+        neurons_tensor = keras.KerasTensor(shape=neuron_shape)
         values = WeightedLayer()([features_tensor, neurons_tensor])
 
-        self.assertIsInstance(values, k.KerasTensor)
+        self.assertIsInstance(values, keras.KerasTensor)
         self.assertEqual(values.shape, neurons_tensor.shape)
         self.assertEqual(values.ndim, neurons_tensor.ndim)
 

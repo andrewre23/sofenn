@@ -1,8 +1,7 @@
-import keras.src.backend as k
+import keras
+import keras.ops as K
 import numpy as np
 from absl.testing import parameterized
-from keras.layers import Input
-from keras.models import Sequential
 from keras.src import testing
 
 from sofenn.layers import FuzzyLayer
@@ -23,7 +22,7 @@ class FuzzyLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(SHAPES)
     def test_input_shapes(self, shape):
-        input_tensor = k.convert_to_tensor(np.random.random(remove_nones(shape, DEFAULT_DIM)))
+        input_tensor = K.convert_to_tensor(np.random.random(remove_nones(shape, DEFAULT_DIM)))
         layer = FuzzyLayer(neurons=NEURONS)
         output = layer.call(inputs=input_tensor)
 
@@ -43,9 +42,9 @@ class FuzzyLayerTest(testing.TestCase):
             'initializer_centers': 'uniform',
             'initializer_sigmas': 'ones'
         }
-        values = FuzzyLayer(**init_kwargs)(k.KerasTensor(shape))
+        values = FuzzyLayer(**init_kwargs)(keras.KerasTensor(shape))
 
-        self.assertIsInstance(values, k.KerasTensor)
+        self.assertIsInstance(values, keras.KerasTensor)
         self.assertEqual(values.shape, replace_last_dim(shape, NEURONS))
 
     @parameterized.named_parameters(SHAPES)
@@ -58,7 +57,7 @@ class FuzzyLayerTest(testing.TestCase):
                 'initializer_sigmas': 'ones'
             },
             call_kwargs={
-                'inputs': k.KerasTensor(shape=shape)
+                'inputs': keras.KerasTensor(shape=shape)
             },
             expected_output_shape=replace_last_dim(shape, NEURONS),
             expected_num_trainable_weights=2,
@@ -69,16 +68,16 @@ class FuzzyLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(SHAPES)
     def testing_input_tensor(self, shape):
-        input_tensor = k.KerasTensor(shape=shape)
+        input_tensor = keras.KerasTensor(shape=shape)
         values = FuzzyLayer(neurons=NEURONS)(input_tensor)
 
-        self.assertIsInstance(values, k.KerasTensor)
+        self.assertIsInstance(values, keras.KerasTensor)
         self.assertEqual(values.shape, replace_last_dim(input_tensor.shape, NEURONS))
         self.assertEqual(values.ndim, input_tensor.ndim)
 
     @parameterized.named_parameters(SHAPES)
     def test_call_method(self, shape):
-        input_tensor = k.convert_to_tensor(np.random.random(remove_nones(shape, DEFAULT_DIM)))
+        input_tensor = K.convert_to_tensor(np.random.random(remove_nones(shape, DEFAULT_DIM)))
         layer = FuzzyLayer(neurons=NEURONS)
         output = layer.call(inputs=input_tensor)
 

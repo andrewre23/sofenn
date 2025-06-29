@@ -2,7 +2,6 @@ from typing import Optional
 
 import keras
 import keras.ops as K
-import keras.src.backend as k
 from keras.layers import Layer
 
 
@@ -36,7 +35,7 @@ class NormalizeLayer(Layer):
         self.fixed_weight = None
         self.built = False
 
-    def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
+    def call(self, inputs: keras.KerasTensor, **kwargs) -> keras.KerasTensor:
         """
         Build processing logic for layer
 

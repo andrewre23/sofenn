@@ -2,7 +2,6 @@ import copy
 import inspect
 from typing import Union, Callable
 
-import keras.src.backend as k
 from keras import activations
 
 
@@ -14,7 +13,7 @@ def replace_last_dim(shape: tuple, value: int):
     """Replace the last dimension of input shape."""
     new_shape = list(shape)
     new_shape[-1] = value
-    return k.standardize_shape(tuple(new_shape))
+    return tuple(new_shape)
 
 def make_2d(shape: tuple):
     """Prepend 1 dimension for batch size 1 to input shape if input is 1D."""

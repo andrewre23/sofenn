@@ -2,7 +2,6 @@ from typing import List, Optional
 
 import keras
 import keras.ops as K
-import keras.src.backend as k
 from keras.layers import Layer
 
 
@@ -79,7 +78,7 @@ class WeightedLayer(Layer):
                                  **kwargs)
         super().build(input_shape, **kwargs)
 
-    def call(self, inputs: List[k.KerasTensor], **kwargs) -> k.KerasTensor:
+    def call(self, inputs: List[keras.KerasTensor], **kwargs) -> keras.KerasTensor:
         """
         Build processing logic for layer.
 

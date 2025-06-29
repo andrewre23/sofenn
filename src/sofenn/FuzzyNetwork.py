@@ -1,11 +1,10 @@
 import logging
 from typing import Optional
 
-# TODO: delete from keras.src.<module> in favor of kears.<module> imports
 import keras
 from keras.activations import get as get_activation
 from keras.activations import linear
-from keras.activations import serialize, deserialize
+from keras.activations import serialize
 from keras.layers import Input
 from keras.models import Model
 

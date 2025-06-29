@@ -1,4 +1,5 @@
-import keras.src.backend as k
+import keras
+import keras.ops as K
 import numpy as np
 from absl.testing import parameterized
 from keras.src import testing
@@ -40,9 +41,9 @@ class OutputLayerTest(testing.TestCase):
             init_kwargs = {
                 "num_classes": num_classes,
             }
-            values = OutputLayer(**init_kwargs)(k.KerasTensor(shape))
+            values = OutputLayer(**init_kwargs)(keras.KerasTensor(shape))
 
-            self.assertIsInstance(values, k.KerasTensor)
+            self.assertIsInstance(values, keras.KerasTensor)
             self.assertEqual(values.shape[-1], num_classes)
 
     @parameterized.named_parameters(SHAPES)
@@ -54,7 +55,7 @@ class OutputLayerTest(testing.TestCase):
                 init_kwargs={
                     'num_classes': num_classes,
                 },
-                call_kwargs={'inputs': k.KerasTensor(shape=shape)},
+                call_kwargs={'inputs': keras.KerasTensor(shape=shape)},
                 expected_output_shape=make_2d(replace_last_dim(shape, num_classes)),
                 expected_num_trainable_weights=0,
                 expected_num_non_trainable_weights=0,
@@ -67,12 +68,12 @@ class OutputLayerTest(testing.TestCase):
     def testing_input_tensor(self, shape):
         for problem_type in PROBLEM_DEFAULTS.keys():
             num_classes = PROBLEM_DEFAULTS[problem_type]['num_classes']
-            input_tensor = k.KerasTensor(shape=shape)
+            input_tensor = keras.KerasTensor(shape=shape)
             values = OutputLayer(
                 num_classes=num_classes,
             )(input_tensor)
 
-            self.assertIsInstance(values, k.KerasTensor)
+            self.assertIsInstance(values, keras.KerasTensor)
             self.assertEqual(values.shape,replace_last_dim(shape, num_classes))
             self.assertEqual(values.ndim, input_tensor.ndim)
 
@@ -81,7 +82,7 @@ class OutputLayerTest(testing.TestCase):
         for problem_type in PROBLEM_DEFAULTS.keys():
             num_classes = PROBLEM_DEFAULTS[problem_type]['num_classes']
             input_shape = remove_nones(shape, DEFAULT_DIM)
-            input_tensor = k.convert_to_tensor(np.random.random(input_shape))
+            input_tensor = K.convert_to_tensor(np.random.random(input_shape))
             layer = OutputLayer(
                 num_classes=num_classes,
                 activation=PROBLEM_DEFAULTS[problem_type]['activation'],
