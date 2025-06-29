@@ -307,9 +307,9 @@ class FuzzySelfOrganizerTest(testing.TestCase):
             name='Starting neurons greater than or equal to initial neurons',
             model=_load_saved_model(problem_type)
         )
-        sofnn.model.compile()
+        sofnn.model.compile(**_compile_params(problem_type))
         starting_neurons = sofnn.model.neurons
-        sofnn.prune_neurons(X_train, y_train, **_compile_params(problem_type))
+        sofnn.prune_neurons(X_train, y_train)
         self.assertTrue(starting_neurons >= sofnn.model.neurons)
 
         sofnn = FuzzySelfOrganizer(
@@ -321,7 +321,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         # TODO: delete passing of compile params
         sofnn.model.compile(**_compile_params(problem_type))
         starting_neurons = sofnn.model.neurons
-        self.assertTrue(sofnn.prune_neurons(X_train, y_train, **_compile_params(problem_type)))
+        self.assertTrue(sofnn.prune_neurons(X_train, y_train))
         self.assertTrue(sofnn.model.neurons < starting_neurons)
 
         sofnn = FuzzySelfOrganizer(
@@ -332,7 +332,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         )
         sofnn.model.compile(**_compile_params(problem_type))
         starting_neurons = sofnn.model.neurons
-        self.assertTrue(sofnn.prune_neurons(X_train, y_train, **_compile_params(problem_type)))
+        self.assertTrue(sofnn.prune_neurons(X_train, y_train))
         self.assertTrue(sofnn.model.neurons == 1 < starting_neurons)
 
     @parameterized.named_parameters(PROBLEM_TYPES)
@@ -431,7 +431,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile(**_compile_params(problem_type))
-        sofnn.organize(X_test, y_test, **_compile_params(problem_type, epochs=1))
+        sofnn.organize(X_test, y_test, epochs=1)
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
         name = 'Widen centers and no need to add neuron ' \
@@ -462,7 +462,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         starting_neurons = sofnn.model.neurons
         starting_weights = sofnn.model.get_weights()
         sofnn.model.compile(**_compile_params(problem_type))
-        sofnn.organize(X_test, y_test, **_compile_params(problem_type))
+        sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)
         final_weights = sofnn.model.get_weights()
         self.assertFalse(numpy.allclose(starting_weights[1], final_weights[1])) # confirm center weights are different
@@ -498,7 +498,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertFalse(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile(**_compile_params(problem_type))
-        sofnn.organize(X_test, y_test, **_compile_params(problem_type))
+        sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
@@ -535,7 +535,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertFalse(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile(**_compile_params(problem_type))
-        sofnn.organize(X_test, y_test, **_compile_params(problem_type))
+        sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == 1 < starting_neurons)
         self.assertFalse(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertFalse(sofnn.if_part_criterion(X_test))
@@ -564,7 +564,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         )
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile(**_compile_params(problem_type))
-        self.assertFalse(sofnn.self_organize(X_test, y_test, **_compile_params(problem_type), epochs=1))
+        self.assertFalse(sofnn.self_organize(X_test, y_test, epochs=1))
         self.assertTrue(sofnn.model.neurons > starting_neurons)
 
         name = 'Stop at max neurons'
@@ -589,7 +589,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         )
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile(**_compile_params(problem_type))
-        self.assertFalse(sofnn.self_organize(X_test, y_test, **_compile_params(problem_type), epochs=1))
+        self.assertFalse(sofnn.self_organize(X_test, y_test, epochs=1))
         self.assertTrue(sofnn.model.neurons > starting_neurons)
 
         name = 'Successfully organize'
@@ -616,5 +616,5 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile(**_compile_params(problem_type))
-        self.assertTrue(sofnn.self_organize(X_test, y_test, **_compile_params(problem_type), epochs=5))
+        self.assertTrue(sofnn.self_organize(X_test, y_test, epochs=5))
         self.assertTrue(sofnn.model.neurons == starting_neurons)

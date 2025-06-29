@@ -367,23 +367,24 @@ class FuzzySelfOrganizer(object):
 
         :returns: Rebuilt fuzzy network according to new specifications.
         """
-
-        fit_kwargs = parse_function_kwargs(kwargs, Model.fit)
-        compile_kwargs = parse_function_kwargs(kwargs, Model.compile)
-
         # get config from current model and update output_dim of neuron layers
-        config = self.model.get_config()
-        config['neurons'] = new_neurons
-        logger.debug(f'Rebuilding model with config: {config}')
-        new_model = FuzzyNetwork(**config)
+        new_model_config = self.model.get_config()
+        new_model_config['neurons'] = new_neurons
+        logger.debug(f'Rebuilding model with config: {new_model_config}')
+        new_model = FuzzyNetwork.from_config(new_model_config)
 
+        compile_config = self.model.get_compile_config()
+        logger.debug(f'Rebuilding model with config: {compile_config}')
+        new_model.compile_from_config(compile_config)
+
+        # run training for 1 interval so that model weights are re-initialized to accommodate new neuron
+        fit_kwargs = parse_function_kwargs(kwargs, Model.fit)
         if 'epochs' in fit_kwargs:
             logger.warning(f'Ignoring provided value for epochs: {fit_kwargs["epochs"]}. '
                            f'Will set epochs to 1 for rebuilding')
         fit_kwargs['epochs'] = 1
-
-        new_model.compile(**compile_kwargs)
         new_model.fit(x, y, **fit_kwargs)
+
         new_model.set_weights(new_weights)
         return new_model
 

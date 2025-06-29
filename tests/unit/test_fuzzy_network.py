@@ -105,7 +105,7 @@ class FuzzyNetworkTest(testing.TestCase):
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_compile(self, problem_type):
         model = FuzzyNetwork(name=f'Compile as {problem_type}', **_init_params(problem_type))
-        model.compile()
+        model.compile(**_compile_params(problem_type))
         self.assertFalse(model.built)
 
     def test_fit_classification(self):
@@ -182,7 +182,7 @@ class FuzzyNetworkTest(testing.TestCase):
             )
         )
         trained_model.fit(X_train, y_train, epochs=25)
-        trained_model.save(DATA_DIR / f'models/regression_{name}.keras')
+        #trained_model.save(DATA_DIR / f'models/regression_{name}.keras')
         loaded_model = _load_saved_model('regression', deep=False, name=name)
 
         # deep trained model
