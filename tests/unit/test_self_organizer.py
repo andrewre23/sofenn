@@ -17,7 +17,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
     def test_init_with_model(self, problem_type):
 
         model = FuzzyNetwork(name='Preinitialized model', **_init_params(problem_type))
-        assert model.get_config() == FuzzySelfOrganizer(model).model.get_config()
+        self.assertEqual(model.get_config(), FuzzySelfOrganizer(model).model.get_config())
 
         FuzzySelfOrganizer(name='Initialize model on self-organizer initialization', **_init_params(problem_type))
 

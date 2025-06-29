@@ -16,13 +16,6 @@ SHAPES = [
             {"testcase_name": "2D_w_None", "shape": (None, 5)},
 ]
 
-# TODO: validate logic
-# TODO: move to central testing or utils location
-def _get_output_shape(shape, last_dim, default_dim):
-    replaced = replace_last_dim(shape, last_dim)
-    no_nones = remove_nones(replaced, default_dim)
-    return make_2d(no_nones)
-
 
 class OutputLayerTest(testing.TestCase):
 
@@ -36,9 +29,9 @@ class OutputLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_problem_types(self, problem_type):
-        assert OutputLayer(
+        self.assertTrue(OutputLayer(
             num_classes=PROBLEM_DEFAULTS[problem_type]['num_classes']
-        )
+        ))
 
     @parameterized.named_parameters(SHAPES)
     def test_build_across_shape_dimensions(self, shape):
@@ -79,7 +72,6 @@ class OutputLayerTest(testing.TestCase):
                 num_classes=num_classes,
             )(input_tensor)
 
-            # TODO: check for consistency between self.assert and self.assertEqual and assert
             self.assertIsInstance(values, k.KerasTensor)
             self.assertEqual(values.shape,replace_last_dim(shape, num_classes))
             self.assertEqual(values.ndim, input_tensor.ndim)

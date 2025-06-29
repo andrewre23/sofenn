@@ -92,7 +92,7 @@ class FuzzyNetworkTest(testing.TestCase):
     def test_pickleable(self, problem_type):
         model = FuzzyNetwork(**_init_params(problem_type))
         result = pickle.loads(pickle.dumps(model))
-        assert len(result.layers) == 4
+        self.assertEqual(len(result.layers), 4)
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_hasattr(self, problem_type):
@@ -123,7 +123,7 @@ class FuzzyNetworkTest(testing.TestCase):
         #trained_model.save(DATA_DIR / 'models/iris_classification-deep.keras')
         #loaded_model = _load_saved_model('classification', deep=True)
 
-        assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
+        self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
 
     # # def test_fit_logistic_regression(self):
     # #     epochs = 10
@@ -147,7 +147,7 @@ class FuzzyNetworkTest(testing.TestCase):
     # #     #trained_model.save(DATA_DIR / 'models/regression.keras')
     # #
     # #     #loaded_model = keras.saving.load_model(DATA_DIR / 'models/regression.keras')
-    # #     #assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
+    # #     #self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
     #
     @parameterized.named_parameters(SHAPES)
     def test_fit_regression(self, name, shape):
@@ -190,7 +190,7 @@ class FuzzyNetworkTest(testing.TestCase):
         #trained_model.save(DATA_DIR / f'models/regression_{name}-deep.keras')
         #loaded_model = _load_saved_model('regression', deep=True, name=name)
 
-        assert numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test))
+        self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_fit_callbacks(self, problem_type):
@@ -224,4 +224,4 @@ class FuzzyNetworkTest(testing.TestCase):
         config = _init_params(problem_type, name='From config')
         model = FuzzyNetwork.from_config(config)
         for key, value in config.items():
-            assert model.__getattribute__(key) == value
+            self.assertEqual(model.__getattribute__(key), value)
