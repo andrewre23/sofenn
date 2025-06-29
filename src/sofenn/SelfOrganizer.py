@@ -4,10 +4,11 @@ from typing import Tuple, Optional
 
 import numpy
 from keras.metrics import MeanSquaredError, MeanAbsoluteError
+from keras.models import Model
 from keras.models import clone_model
-from sofenn.utils.layers import get_fit_and_compile_kwargs
 
 from sofenn.FuzzyNetwork import FuzzyNetwork
+from sofenn.utils.layers import parse_function_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +134,7 @@ class FuzzySelfOrganizer(object):
         """
         logger.info('Beginning self-organizing process')
 
-        fit_kwargs, _ = get_fit_and_compile_kwargs(kwargs)
+        fit_kwargs = parse_function_kwargs(kwargs, Model.fit)
 
         self.model.fit(x, y, **fit_kwargs)
 
@@ -165,7 +166,7 @@ class FuzzySelfOrganizer(object):
         :param: x: Input data.
         :param: y: Target data.
         """
-        fit_kwargs, _ = get_fit_and_compile_kwargs(kwargs)
+        fit_kwargs = parse_function_kwargs(kwargs, Model.fit)
 
         error_criterion = self.error_criterion(y, self.model.predict(x))
         ifpart_criterion = self.if_part_criterion(x)
@@ -366,7 +367,9 @@ class FuzzySelfOrganizer(object):
 
         :returns: Rebuilt fuzzy network according to new specifications.
         """
-        fit_kwargs, compile_kwargs = get_fit_and_compile_kwargs(kwargs)
+
+        fit_kwargs = parse_function_kwargs(kwargs, Model.fit)
+        compile_kwargs = parse_function_kwargs(kwargs, Model.compile)
 
         # get config from current model and update output_dim of neuron layers
         config = self.model.get_config()

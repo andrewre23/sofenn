@@ -11,6 +11,7 @@ from keras.models import Model
 
 from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
+from sofenn.utils.layers import parse_function_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -127,24 +128,26 @@ class FuzzyNetwork(Model):
         if not self.built:
             logger.debug('FuzzyNetwork cannot be built until seeing training data')
 
+        kwargs['sample_data'] = kwargs.get('sample_data', args[0])
+        fuzzy_initializer_kwargs = parse_function_kwargs(kwargs, FuzzyWeightsInitializer.__init__)
+
         # add callback to instantiate fuzzy weights unless already provided
-        x = kwargs['x'] if 'x' in kwargs else args[0]
         if 'callbacks' in kwargs:
             if any([isinstance(cb, FuzzyWeightsInitializer) for cb in kwargs['callbacks']]):
                 logger.warning('User already provided Fuzzy Weight Initializer callback. '
                                'Will use existing Fuzzy Weight Initializer in kwargs')
             else:
-                kwargs['callbacks'].append(FuzzyWeightsInitializer(sample_data=x))
+                kwargs['callbacks'].append(FuzzyWeightsInitializer(**fuzzy_initializer_kwargs))
         else:
-            kwargs['callbacks'] = [FuzzyWeightsInitializer(sample_data=x)]
+            kwargs['callbacks'] = [FuzzyWeightsInitializer(**fuzzy_initializer_kwargs)]
 
-        super().fit(*args, **kwargs)
+        super().fit(*args, **parse_function_kwargs(kwargs, Model.fit))
         if not self.trained:
             self.trained = True
 
     def summary(self, *args, **kwargs):
         """Show summary of fuzzy network."""
-        x = Input(shape=(self.features,), name="InputRow")
+        x = Input(shape=self.input_shape, name="InputRow")
         model = Model(inputs=[x], outputs=self.call(x), name=self.name + ' Summary')
         return model.summary(*args, **kwargs)
 

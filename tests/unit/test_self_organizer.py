@@ -436,7 +436,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
         sofnn.model.compile(**_compile_params(problem_type))
-        sofnn.organize(X_test, y_test, epochs=1, **_compile_params(problem_type))
+        sofnn.organize(X_test, y_test, **_compile_params(problem_type, epochs=1))
         self.assertTrue(sofnn.model.neurons == starting_neurons + 1)
 
         name = 'Widen centers and no need to add neuron ' \

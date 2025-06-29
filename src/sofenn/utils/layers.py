@@ -1,10 +1,9 @@
 import copy
+import inspect
 from typing import Union, Callable
 
-import inspect
 import keras.src.backend as k
 from keras import activations
-from keras.models import Model
 
 
 def remove_nones(shape: tuple, value):
@@ -29,11 +28,8 @@ def is_valid_activation(activation: Union[str, Callable]):
         return True
     return False
 
-def get_fit_and_compile_kwargs(kwargs) -> tuple[dict, dict]:
-    """Parse kwargs and return separate dictionaries for fit and compile kwargs separately."""
+def parse_function_kwargs(kwargs: dict, f: Callable) -> dict:
+    """Parse kwargs and return separate dictionaries for function kwargs separately."""
     kwargs = copy.deepcopy(kwargs)
-    compile_args = list(inspect.signature(Model.compile).parameters)
-    compile_kwargs = {k: kwargs.pop(k) for k in dict(kwargs) if k in compile_args}
-    fit_args = list(inspect.signature(Model.fit).parameters)
-    fit_kwargs = {k: kwargs.pop(k) for k in dict(kwargs) if k in fit_args}
-    return fit_kwargs, compile_kwargs
+    args = list(inspect.signature(f).parameters)
+    return {k: kwargs.pop(k) for k in dict(kwargs) if k in args}

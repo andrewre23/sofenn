@@ -1,4 +1,7 @@
-from sofenn.utils.layers import remove_nones, replace_last_dim, make_2d, is_valid_activation, get_fit_and_compile_kwargs
+from keras.models import Model
+
+from sofenn.utils.layers import remove_nones, replace_last_dim, make_2d, is_valid_activation, parse_function_kwargs
+
 
 def test_remove_nones():
     default_dim = 2
@@ -51,9 +54,10 @@ def test_separating_fit_and_compile_kwargs():
 
     }
     target_fit_kwargs = {k: v for k,v in starting_kwargs.items() if k in ['epochs', 'verbose', 'batch_size']}
-
     target_compile_kwargs = {k: v for k,v in starting_kwargs.items() if k in ['optimizer', 'loss', 'metrics']}
-    fit_kwargs, compile_kwargs = get_fit_and_compile_kwargs(starting_kwargs)
+
+    fit_kwargs = parse_function_kwargs(starting_kwargs, Model.fit)
+    compile_kwargs = parse_function_kwargs(starting_kwargs, Model.compile)
 
     assert fit_kwargs == target_fit_kwargs
     assert compile_kwargs == target_compile_kwargs
