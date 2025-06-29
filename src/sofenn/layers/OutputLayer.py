@@ -77,9 +77,10 @@ class OutputLayer(Layer):
         """
         # get the raw sum of all neurons for each sample
         sums = k.sum(inputs, axis=-1, keepdims=True)
-        # ndim > 2 required for passing through activation
-        output = k.expand_dims(sums, 0) if sums.ndim < 2 else sums
-        return self.activation_layer(output)
+        # ndim > 2 required for passing through activation. expand dim and then squeeze out extra axis
+        expand = sums.ndim < 2
+        layer_output = self.activation_layer(k.expand_dims(sums, 0)) if expand else self.activation_layer(sums)
+        return k.squeeze(layer_output, [0]) if expand else layer_output
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:
         """

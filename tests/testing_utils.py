@@ -7,8 +7,8 @@ import keras
 import numpy
 import pandas
 from keras import activations
-from keras.losses import MeanSquaredError
-from keras.metrics import CategoricalAccuracy, Accuracy, BinaryCrossentropy
+from keras.losses import MeanSquaredError, BinaryCrossentropy
+from keras.metrics import CategoricalAccuracy, Accuracy
 from keras.optimizers import Adam, RMSprop
 from sklearn.model_selection import train_test_split
 
@@ -82,10 +82,8 @@ def _compile_params(problem_type='regression', **kwargs):
 def _get_training_data(problem_type):
     if problem_type == 'classification':
         return _get_classification_data()
-    elif problem_type == 'regression':
-        return _get_regression_data()
-    # elif problem_type == 'logistic_regression':
-    #     return _get_logistic_regression_data()
+    elif 'regression' in problem_type:
+        return _get_regression_data(problem_type)
 
 @lru_cache(maxsize=None)
 def _get_classification_data():
@@ -95,42 +93,23 @@ def _get_classification_data():
     return train_test_split(features.values, target.values, test_size=0.1, random_state=23)
 
 @lru_cache(maxsize=None)
-def _get_regression_data():
+def _get_regression_data(problem_type):
     """Generate data for a regression based on input shape provided."""
-    defaults = PROBLEM_DEFAULTS['regression']
+    defaults = PROBLEM_DEFAULTS[problem_type]
 
     x = numpy.random.random((defaults['samples'], defaults['features']))
     noise = numpy.random.normal(0, .5, (defaults['samples'], defaults['num_classes']))
     W = numpy.random.randint(0, 10, (defaults['features'], defaults['num_classes']))
     y = numpy.dot(x, W) + noise
 
+    def sigmoid(inputs):
+        return 1 / (1 + numpy.exp(-inputs))
+    y = sigmoid(y) if problem_type == 'logistic_regression' else y
+
     train_samples = int(0.75 * len(x))
     X_train, X_test = x[:train_samples], x[train_samples:]
     y_train, y_test = y[:train_samples], y[train_samples:]
     return X_train, X_test, y_train, y_test
-
-# @lru_cache(maxsize=None)
-# def _get_logistic_regression_data(shape=None):
-#     """Generate data for a logistic regression based on input shape provided."""
-#     defaults = PROBLEM_DEFAULTS['logistic_regression']
-#     if shape is None or len(shape) == 2:
-#         shape = (defaults['samples'], defaults['features'])
-#     elif len(shape) == 1:
-#         shape = (defaults['samples'], 1)
-#
-#     def sigmoid(inputs):
-#         return 1 / (1 + numpy.exp(-inputs))
-#
-#     x = numpy.random.random(shape)
-#     noise = numpy.random.normal(0, .5, len(x))
-#     W = numpy.random.randint(0, 10, shape)
-#     y = numpy.dot(W, x.T) + noise
-#     y = sigmoid(y)
-#
-#     train_samples = int(0.75 * len(x))
-#     X_train, X_test = x[:train_samples], x[train_samples:]
-#     y_train, y_test = y[:train_samples], y[train_samples:]
-#     return X_train, X_test, y_train, y_test
 
 @lru_cache(maxsize=None)
 def _load_saved_model(problem_type, deep=False):
@@ -138,6 +117,6 @@ def _load_saved_model(problem_type, deep=False):
     deep = "-deep" if deep else ""
     if problem_type == 'classification':
         model =  f'models/iris_classification{deep}.keras'
-    elif problem_type == 'regression':
+    elif 'regression' in problem_type:
         model = f'models/{problem_type}{deep}.keras'
     return keras.saving.load_model(DATA_DIR / model, custom_objects={'FuzzyNetwork': FuzzyNetwork})

@@ -123,29 +123,19 @@ class FuzzyNetworkTest(testing.TestCase):
 
         self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
 
-    # @parameterized.named_parameters(SHAPES)
-    # def test_fit_logistic_regression(self, name, shape):
-    #     defaults = copy.deepcopy(PROBLEM_DEFAULTS['logistic_regression'])
-    #     shape = remove_nones(shape, defaults.pop('features', None))
-    #
-    #     X_train, X_test, y_train, y_test = _get_training_data('logistic_regression', shape)
+    # def test_fit_logistic_regression(self):
+    #     X_train, X_test, y_train, y_test = _get_training_data('logistic_regression')
     #
     #     trained_model = FuzzyNetwork(
     #         name='LogisticRegressionWithDefaults',
-    #         **_init_params(
-    #             'logistic_regression',
-    #             input_shape=shape
-    #         )
+    #         **_init_params('logistic_regression')
     #     )
     #     trained_model.compile(**_compile_params('logistic_regression'))
     #     trained_model.fit(X_train, y_train, epochs=1)
     #
     #     trained_model = FuzzyNetwork(
     #         name='LogisticRegressionModelFitTest',
-    #         **_init_params(
-    #             'logistic_regression',
-    #             input_shape=shape
-    #         )
+    #         **_init_params('logistic_regression')
     #     )
     #     trained_model.compile(
     #         **_compile_params(
@@ -155,13 +145,13 @@ class FuzzyNetworkTest(testing.TestCase):
     #         )
     #     )
     #     trained_model.fit(X_train, y_train, epochs=25)
-    #     trained_model.save(DATA_DIR / f'models/logistic_regression_{name}.keras')
-    #     loaded_model = _load_saved_model('logistic_regression', deep=False, name=name)
+    #     #trained_model.save(DATA_DIR / f'models/logistic_regression.keras')
+    #     loaded_model = _load_saved_model('logistic_regression', deep=False)
     #
     #     # deep trained model
-    #     # trained_model.fit(X_train, y_train, epochs=250)
-    #     # trained_model.save(DATA_DIR / f'models/logistic_regression_{name}-deep.keras')
-    #     # loaded_model = _load_saved_model('logistic_regression', deep=True, name=name)
+    #     #trained_model.fit(X_train, y_train, epochs=250)
+    #     #trained_model.save(DATA_DIR / f'models/logistic_regression-deep.keras')
+    #     #loaded_model = _load_saved_model('logistic_regression', deep=True)
     #
     #     self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
 

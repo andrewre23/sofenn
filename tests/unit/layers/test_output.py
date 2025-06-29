@@ -92,7 +92,7 @@ class OutputLayerTest(testing.TestCase):
             self.assertIsNotNone(output)
             self.assertEqual(
                 output.shape,
-                make_2d(replace_last_dim(input_shape, num_classes))
+                replace_last_dim(input_shape, num_classes)
             )
 
     def test_get_config(self):
