@@ -5,7 +5,6 @@ import keras.ops as K
 import keras.src.backend as k
 from keras.layers import Layer
 
-# TODO: determine if can replace this for on-the-fly function
 from sofenn.utils.layers import replace_last_dim
 
 
@@ -70,7 +69,6 @@ class FuzzyLayer(Layer):
         self.s = None
         self.built = False
 
-    # TODO: remove excessive type hinting for call/build methods on custom layers
     def build(self, input_shape: tuple, **kwargs) -> None:
         r"""
         Build objects for processing steps.
@@ -108,7 +106,6 @@ class FuzzyLayer(Layer):
                                  **kwargs)
         super().build(input_shape, **kwargs)
 
-    # TODO: remove excessive type hinting for call/build methods on custom layers
     def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer.

@@ -365,7 +365,6 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         self.assertTrue(sofnn.error_criterion(y_test, sofnn.model.predict(X_test)))
         self.assertTrue(sofnn.if_part_criterion(X_test))
         starting_neurons = sofnn.model.neurons
-        # TODO: remove need to explicitly compile where appropriate. loading? training?
         sofnn.model.compile(**_compile_params(problem_type))
         sofnn.organize(X_test, y_test)
         self.assertTrue(sofnn.model.neurons == starting_neurons)

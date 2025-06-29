@@ -174,11 +174,9 @@ class FuzzySelfOrganizer(object):
         logger.debug(f'If-Part criterion satisfied: {ifpart_criterion}')
 
         # no structural adjustment
-        # TODO: add testing - condition never true
         if error_criterion and ifpart_criterion:
             self.model.fit(x, y, **fit_kwargs)
         # widen membership function widths to cover the input vector of membership function with the lowest value
-        # TODO: add testing - condition never true
         elif error_criterion and not ifpart_criterion:
             self.widen_centers(x)
         # add neuron and retrain after adding neuron
@@ -186,7 +184,6 @@ class FuzzySelfOrganizer(object):
             self.add_neuron(x, y, **kwargs)
             self.model.fit(x, y, **fit_kwargs)
         # widen centers until if-part satisfied. if if-part not satisfied, reset widths and add neuron
-        # TODO: add testing - condition always true
         elif not error_criterion and not ifpart_criterion:
             original_weights = self.model.get_weights()
             self.widen_centers(x)

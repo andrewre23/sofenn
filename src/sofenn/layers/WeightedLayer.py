@@ -40,7 +40,6 @@ class WeightedLayer(Layer):
     :param initializer_a: Initializer for A matrix of weighted layer
     :param name: Name for keras Model.
     """
-    # TODO: add input validation for if shape exceeds supported value
     def __init__(self,
                  initializer_a: Optional[str] = 'uniform',
                  name: Optional[str] = 'Weights',
@@ -50,7 +49,6 @@ class WeightedLayer(Layer):
         self.a = None
         self.built = False
 
-    # TODO: remove excessive type hinting for call/build methods on custom layers
     def build(self, input_shape: List[tuple], **kwargs) -> None:
         """
         Build objects for processing steps.
@@ -81,7 +79,6 @@ class WeightedLayer(Layer):
                                  **kwargs)
         super().build(input_shape, **kwargs)
 
-    # TODO: remove excessive type hinting for call/build methods on custom layers
     def call(self, inputs: List[k.KerasTensor], **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer.

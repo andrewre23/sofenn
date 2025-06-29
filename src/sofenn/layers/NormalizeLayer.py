@@ -30,14 +30,12 @@ class NormalizeLayer(Layer):
 
     :param name: Name for keras Model.
     """
-    # TODO: add input validation for if shape exceeds supported value
     def __init__(self, name: Optional[str] = "Normalize", **kwargs):
         super().__init__(name=name, **kwargs)
         self.input_shape = None
         self.fixed_weight = None
         self.built = False
 
-    # TODO: remove excessive type hinting for call/build methods on custom layers
     def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer
