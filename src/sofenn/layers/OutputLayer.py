@@ -51,13 +51,13 @@ class OutputLayer(Layer):
         self.num_classes = num_classes
         self.activation_function = activation
         self.activation_layer = Dense(
-            # TODO: set activation layer to have no bias vector when activation is linear
             units=num_classes,
             name=activation.__name__.capitalize() if callable(activation) else activation,
             activation=activation,
+            use_bias=activation not in ['linear', activations.linear], # simplify the model by dropping bias when linear
             dtype='float32'
         )
-        self.built = True
+        self.built = False
 
     def call(self, inputs: keras.KerasTensor, **kwargs) -> keras.KerasTensor:
         """

@@ -16,7 +16,7 @@ from sofenn.callbacks import FuzzyWeightsInitializer
 from sofenn.layers import FuzzyLayer, NormalizeLayer, WeightedLayer, OutputLayer
 from sofenn.losses import CustomLoss
 from sofenn.utils.layers import remove_nones
-from tests.testing_utils import PROBLEM_DEFAULTS, PROBLEM_TYPES, SHAPES, \
+from tests.testing_utils import PROBLEM_DEFAULTS, PROBLEM_TYPES, SHAPES, DATA_DIR, \
     _init_params, _compile_params, _get_training_data, _load_saved_model
 
 

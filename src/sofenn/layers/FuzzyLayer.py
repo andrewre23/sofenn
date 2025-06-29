@@ -47,14 +47,13 @@ class FuzzyLayer(Layer):
 
     :param neurons: Number of fuzzy neurons.
     :param initializer_centers: Initializer for fuzzy centers.
-    :param initializer_sigmas: Initializer for fuzzy widths.
+    :param initializer_widths: Initializer for fuzzy widths.
     :param name: Layer name (default: FuzzyRules).
     """
     def __init__(self,
                  neurons: Optional[int] = 1,
                  initializer_centers: Optional[str] = 'uniform',
-                 # TODO: determine if better to refer to these as 'widths' or 'sigmas'
-                 initializer_sigmas: Optional[str] = 'ones',
+                 initializer_widths: Optional[str] = 'ones',
                  name: Optional[str] = "FuzzyRules",
                  **kwargs):
         super().__init__(name=name, **kwargs)
@@ -63,7 +62,7 @@ class FuzzyLayer(Layer):
         self.input_shape = None
         self.neurons = neurons
         self.initializer_centers = initializer_centers
-        self.initializer_sigmas = initializer_sigmas
+        self.initializer_widths = initializer_widths
         self.c = None
         self.s = None
         self.built = False
@@ -100,7 +99,7 @@ class FuzzyLayer(Layer):
                                  **kwargs)
         self.s = self.add_weight(name='s',
                                  shape=(features, self.neurons),
-                                 initializer=self.initializer_sigmas,
+                                 initializer=self.initializer_widths,
                                  trainable=True,
                                  **kwargs)
         super().build(input_shape, **kwargs)
@@ -179,5 +178,5 @@ class FuzzyLayer(Layer):
         base_config = super(FuzzyLayer, self).get_config()
         base_config['neurons'] = self.neurons
         base_config['initializer_centers'] = self.initializer_centers
-        base_config['initializer_sigmas'] = self.initializer_sigmas
+        base_config['initializer_widths'] = self.initializer_widths
         return base_config

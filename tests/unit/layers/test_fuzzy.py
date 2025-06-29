@@ -40,7 +40,7 @@ class FuzzyLayerTest(testing.TestCase):
         init_kwargs = {
             'neurons': NEURONS,
             'initializer_centers': 'uniform',
-            'initializer_sigmas': 'ones'
+            'initializer_widths': 'ones'
         }
         values = FuzzyLayer(**init_kwargs)(keras.KerasTensor(shape))
 
@@ -54,7 +54,7 @@ class FuzzyLayerTest(testing.TestCase):
             init_kwargs={
                 'neurons': NEURONS,
                 'initializer_centers': 'uniform',
-                'initializer_sigmas': 'ones'
+                'initializer_widths': 'ones'
             },
             call_kwargs={
                 'inputs': keras.KerasTensor(shape=shape)
@@ -91,5 +91,5 @@ class FuzzyLayerTest(testing.TestCase):
         self.assertTrue(config['neurons'] == NEURONS)
         self.assertTrue('features' not in config)
         self.assertTrue('initializer_centers' in config)
-        self.assertTrue('initializer_sigmas' in config)
+        self.assertTrue('initializer_widths' in config)
         self.assertTrue(config['trainable'] == True)
