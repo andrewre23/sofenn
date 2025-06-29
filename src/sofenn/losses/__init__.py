@@ -1,1 +1,1 @@
-from .CustomLoss import CustomLoss
+from sofenn.losses.CustomLoss import CustomLoss

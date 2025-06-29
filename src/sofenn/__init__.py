@@ -1,2 +1,2 @@
-from .FuzzyNetwork import FuzzyNetwork
-from .SelfOrganizer import FuzzySelfOrganizer
+from sofenn.FuzzyNetwork import FuzzyNetwork
+from sofenn.SelfOrganizer import FuzzySelfOrganizer
