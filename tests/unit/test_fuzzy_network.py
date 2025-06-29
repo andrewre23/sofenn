@@ -123,37 +123,37 @@ class FuzzyNetworkTest(testing.TestCase):
 
         self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
 
-    # def test_fit_logistic_regression(self):
-    #     X_train, X_test, y_train, y_test = _get_training_data('logistic_regression')
-    #
-    #     trained_model = FuzzyNetwork(
-    #         name='LogisticRegressionWithDefaults',
-    #         **_init_params('logistic_regression')
-    #     )
-    #     trained_model.compile(**_compile_params('logistic_regression'))
-    #     trained_model.fit(X_train, y_train, epochs=1)
-    #
-    #     trained_model = FuzzyNetwork(
-    #         name='LogisticRegressionModelFitTest',
-    #         **_init_params('logistic_regression')
-    #     )
-    #     trained_model.compile(
-    #         **_compile_params(
-    #             'logistic_regression',
-    #             loss=BinaryCrossentropy(),
-    #             optimizer=Adam(learning_rate=0.1)
-    #         )
-    #     )
-    #     trained_model.fit(X_train, y_train, epochs=25)
-    #     #trained_model.save(DATA_DIR / f'models/logistic_regression.keras')
-    #     loaded_model = _load_saved_model('logistic_regression', deep=False)
-    #
-    #     # deep trained model
-    #     #trained_model.fit(X_train, y_train, epochs=250)
-    #     #trained_model.save(DATA_DIR / f'models/logistic_regression-deep.keras')
-    #     #loaded_model = _load_saved_model('logistic_regression', deep=True)
-    #
-    #     self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
+    def test_fit_logistic_regression(self):
+        X_train, X_test, y_train, y_test = _get_training_data('logistic_regression')
+
+        trained_model = FuzzyNetwork(
+            name='LogisticRegressionWithDefaults',
+            **_init_params('logistic_regression')
+        )
+        trained_model.compile(**_compile_params('logistic_regression'))
+        trained_model.fit(X_train, y_train, epochs=1)
+
+        trained_model = FuzzyNetwork(
+            name='LogisticRegressionModelFitTest',
+            **_init_params('logistic_regression')
+        )
+        trained_model.compile(
+            **_compile_params(
+                'logistic_regression',
+                loss=BinaryCrossentropy(),
+                optimizer=Adam(learning_rate=0.1)
+            )
+        )
+        trained_model.fit(X_train, y_train, epochs=25)
+        #trained_model.save(DATA_DIR / f'models/logistic_regression.keras')
+        loaded_model = _load_saved_model('logistic_regression', deep=False)
+
+        # deep trained model
+        #trained_model.fit(X_train, y_train, epochs=250)
+        #trained_model.save(DATA_DIR / f'models/logistic_regression-deep.keras')
+        #loaded_model = _load_saved_model('logistic_regression', deep=True)
+
+        self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
 
     def test_fit_regression(self):
         X_train, X_test, y_train, y_test = _get_training_data('regression')

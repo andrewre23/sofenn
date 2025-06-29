@@ -15,7 +15,6 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_init_with_model(self, problem_type):
-
         model = FuzzyNetwork(name='Preinitialized model', **_init_params(problem_type))
         self.assertEqual(model.get_config(), FuzzySelfOrganizer(model).model.get_config())
 
@@ -87,6 +86,13 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                     [1.59994938, 1.59994938, 1.59994938],
                     [1.56460146, 1.70250731, 1.70250731],
                     [1.79722778, 1.79722778, 1.79722778]
+                ]),
+            'logistic_regression':
+                numpy.array([
+                    [1.05512045, 1.06369393, 1.13601222],
+                    [1.16698671, 1.09404596, 1.08443328],
+                    [1.09581854, 1.06519718, 1.14546990],
+                    [1.15546672, 1.15725210, 1.00102590]
                 ])
         }
 
@@ -133,6 +139,20 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                         [1.12, 1., 1.]
                     ]),
                 },
+                'logistic_regression': {
+                    'c': numpy.array([
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                    ]),
+                    's': numpy.array([
+                        [1.2544, 1., 1.],
+                        [1.12, 1., 1.],
+                        [1.12, 1., 1.],
+                        [1.12, 1., 1.]
+                    ]),
+                },
             },
             'success': {
                 'classification': {
@@ -165,10 +185,24 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                          [3.895976, 1., 1.]]
                     ]),
                 },
+                'logistic_regression': {
+                    'c': numpy.array([
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                        [1., 1., 1.],
+                    ]),
+                    's': numpy.array([
+                        [3.47854948, 1., 1.],
+                        [3.47854948, 1., 1.],
+                        [3.47854948, 1., 1.],
+                        [3.10584784, 1., 1.]
+                    ]),
+                },
             }
         }
 
-        ifpart_threshold = .9 if problem_type == 'regression' else \
+        ifpart_threshold = .9 if 'regression' in problem_type else \
             inspect.signature(FuzzySelfOrganizer).parameters['ifpart_threshold'].default
 
         _, X_test, _, _ = _get_training_data(problem_type)
@@ -256,6 +290,10 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'ck': [0.49599802, 0.46910115, 0.47057344, 0.53614222, 0.49867102],
                 'sk': [1.53013950, 1.50711755, 1.46553802, 1.52817046, 1.54014584]
             },
+            'logistic_regression': {
+                'ck': [0.53455486, 0.48952825, 0.51355233, 0.48477153],
+                'sk': [1.05721809, 1.10248880, 1.01857113, 1.11328107]
+            },
         }
 
         sofnn = FuzzySelfOrganizer(model=_load_saved_model(problem_type))
@@ -297,7 +335,6 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_prune_neuron(self, problem_type):
-
         X_train, _, y_train, _ = _get_training_data(problem_type)
 
         sofnn = FuzzySelfOrganizer(model=FuzzyNetwork(name='One neuron', **_init_params(problem_type, neurons=1)))
@@ -343,6 +380,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
     def test_organize(self, problem_type):
         X_train, X_test, y_train, y_test = _get_training_data(problem_type)
 
+        # TODO: consolidate params across problem types
         name = 'No structural adjustment ' \
                'Error: Pass ' \
                'If-Part: Pass'
@@ -352,6 +390,10 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'prune_tol': 0.001,
             },
             'regression': {
+                'error_delta': 4,
+                'prune_tol': 0.001,
+            },
+            'logistic_regression': {
                 'error_delta': 4,
                 'prune_tol': 0.001,
             }
@@ -384,6 +426,14 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'error_delta': 4,
                 'max_widens': 100,
                 'prune_tol': 0.001,
+            },
+            'logistic_regression': {
+                'ifpart_threshold': 0.9,
+                'ifpart_samples': 0.99,
+                'error_delta': 4,
+                'max_widens': 100,
+                'prune_tol': 0.00001,
+                'k_rmse': 0.0001
             }
         }
         sofnn = FuzzySelfOrganizer(
@@ -418,6 +468,14 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'max_widens': 100,
                 'prune_tol': 0.001,
                 'k_rmse': 0.01
+            },
+            'logistic_regression': {
+                'ifpart_threshold': 0.5,
+                'ifpart_samples': 0.5,
+                'error_delta': 0.05,
+                'max_widens': 100,
+                'prune_tol': 0.001,
+                'k_rmse': 0.01
             }
         }
         sofnn = FuzzySelfOrganizer(
@@ -446,6 +504,13 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'ifpart_threshold': 0.999,
                 'ifpart_samples': 0.99,
                 'error_delta': 0.5,
+                'max_widens': 250,
+                'prune_tol': 0.01
+            },
+            'logistic_regression': {
+                'ifpart_threshold': 0.999,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.05,
                 'max_widens': 250,
                 'prune_tol': 0.01
             }
@@ -479,6 +544,14 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'epochs': 100
             },
             'regression': {
+                'ifpart_threshold': 0.99999,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.1,
+                'max_widens': 0,
+                'prune_tol': 0.01,
+                'epochs': 100
+            },
+            'logistic_regression': {
                 'ifpart_threshold': 0.99999,
                 'ifpart_samples': 0.99,
                 'error_delta': 0.1,
@@ -522,6 +595,15 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'prune_threshold': 0.99,
                 'k_rmse': 5,
                 'epochs': 3
+            },
+            'logistic_regression': {
+                'ifpart_threshold': 0.99999,
+                'ifpart_samples': 0.99,
+                'error_delta': 0.1,
+                'max_widens': 0,
+                'prune_threshold': 0.99,
+                'k_rmse': 5,
+                'epochs': 3
             }
         }
         sofnn = FuzzySelfOrganizer(
@@ -540,9 +622,9 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_self_organize(self, problem_type):
-
         X_train, X_test, y_train, y_test = _get_training_data(problem_type)
 
+        # TODO: consolidate parameters across problem types
         name = 'Fail to organize'
         params = {
             'classification': {
@@ -553,8 +635,18 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'prune_tol': 0.01,
                 'max_loops': 5,
                 'epochs': 1,
+            },
+            'logistic_regression': {
+                'ifpart_threshold': 0.99999,
+                'ifpart_samples': 0.99,
+                'prune_tol': 0.00001,
+                'k_rmse': 0.0001,
+                'error_delta': 0.005,
+                'max_loops': 3,
+                'max_widens': 1,
             }
         }
+
         sofnn = FuzzySelfOrganizer(
             name=name,
             model=_load_saved_model(problem_type, deep=True),
@@ -574,6 +666,12 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'epochs': 1,
             },
             'regression': {
+                'max_loops': 5,
+                'max_neurons': 3,
+                'prune_tol': 0.01,
+                'epochs': 1,
+            },
+            'logistic_regression': {
                 'max_loops': 5,
                 'max_neurons': 3,
                 'prune_tol': 0.01,
@@ -599,6 +697,12 @@ class FuzzySelfOrganizerTest(testing.TestCase):
                 'prune_tol': 0.001,
             },
             'regression': {
+                'ifpart_threshold': 0.001,
+                'ifpart_samples': 0.5,
+                'error_delta': 4,
+                'prune_tol': 0.001,
+            },
+            'logistic_regression': {
                 'ifpart_threshold': 0.001,
                 'ifpart_samples': 0.5,
                 'error_delta': 4,

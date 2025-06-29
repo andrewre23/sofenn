@@ -30,18 +30,18 @@ PROBLEM_DEFAULTS = {
             'metrics': [CategoricalAccuracy]
         }
     },
-    # 'logistic_regression': {
-    #     'samples': 50,
-    #     'features': 4,
-    #     'neurons': 3,
-    #     'num_classes': 1,
-    #     'activation': activations.sigmoid,
-    #     'compile': {
-    #         'loss': BinaryCrossentropy,
-    #         'optimizer': Adam,
-    #         'metrics': [Accuracy]
-    #     }
-    # },
+    'logistic_regression': {
+        'samples': 50,
+        'features': 4,
+        'neurons': 3,
+        'num_classes': 1,
+        'activation': activations.sigmoid,
+        'compile': {
+            'loss': BinaryCrossentropy,
+            'optimizer': Adam,
+            'metrics': [Accuracy]
+        }
+    },
     'classification': {
         'samples': 50,
         'features': 4,
@@ -99,7 +99,7 @@ def _get_regression_data(problem_type):
 
     x = numpy.random.random((defaults['samples'], defaults['features']))
     noise = numpy.random.normal(0, .5, (defaults['samples'], defaults['num_classes']))
-    W = numpy.random.randint(0, 10, (defaults['features'], defaults['num_classes']))
+    W = numpy.random.randint(0, 10 if problem_type == 'regression' else 1, (defaults['features'], defaults['num_classes']))
     y = numpy.dot(x, W) + noise
 
     def sigmoid(inputs):
