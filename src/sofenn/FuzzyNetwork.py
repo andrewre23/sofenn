@@ -53,11 +53,12 @@ class FuzzyNetwork(Model):
         self.num_classes = num_classes
 
         kwargs['name'] = kwargs.get('name', name)
+        # TODO: add passing of layer parameters via kwargs
         self.inputs = Input(name='Inputs', shape=input_shape)
-        self.fuzz = FuzzyLayer(input_shape=input_shape, neurons=neurons)
-        self.norm = NormalizeLayer(input_shape=input_shape)
-        self.w = WeightedLayer(input_shape=[input_shape, (neurons,)])
-        self.final_output = OutputLayer(input_shape=input_shape, num_classes=num_classes, activation=activation)
+        self.fuzz = FuzzyLayer(neurons=neurons)
+        self.norm = NormalizeLayer()
+        self.w = WeightedLayer()
+        self.final_output = OutputLayer(num_classes=num_classes, activation=activation)
         self.input_shape = input_shape
 
         self.trained = False
