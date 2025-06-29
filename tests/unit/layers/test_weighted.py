@@ -19,9 +19,7 @@ class WeightedLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(SHAPES)
     def test_build_across_shape_dimensions(self, shape):
-        init_kwargs = {
-            "input_shape": shape,
-        }
+        init_kwargs = {}
         features_shape, neuron_shape = shape
         values = WeightedLayer(**init_kwargs)([k.KerasTensor(features_shape), k.KerasTensor(neuron_shape)])
 

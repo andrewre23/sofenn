@@ -39,7 +39,6 @@ class FuzzyLayerTest(testing.TestCase):
     @parameterized.named_parameters(SHAPES)
     def test_build_across_shape_dimensions(self, shape):
         init_kwargs = {
-            'input_shape': shape,
             'neurons': NEURONS,
             'initializer_centers': 'uniform',
             'initializer_sigmas': 'ones'
