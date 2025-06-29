@@ -5,7 +5,7 @@ from typing import Optional
 import keras
 from keras.activations import get as get_activation
 from keras.activations import linear
-from keras.activations import serialize
+from keras.activations import serialize, deserialize
 from keras.layers import Input
 from keras.models import Model
 
@@ -119,11 +119,6 @@ class FuzzyNetwork(Model):
         f = self.w([inputs, psi])
         return self.final_output(f)
 
-    # TODO: try deleting compile so that it's not overriden from original model base class method
-    def compile(self, **kwargs) -> None:
-        """Compile fuzzy network."""
-        super().compile(**kwargs)
-
     def fit(self, *args, **kwargs):
         """Fit fuzzy network to training data."""
         if not self.built:
@@ -170,9 +165,3 @@ class FuzzyNetwork(Model):
             # get automatically deserializes to the function
             activation = get_activation(activation)
         return cls(activation=activation, **config)
-
-    # TODO: add 'get_comple_config()' and 'compile_from_config(config)' to get rid of warning below:
-    #       UserWarning: `compile()` was not called as part of model loading because the model's `compile()` method is custom.
-    #       All subclassed Models that have `compile()` overridden should also override
-    #       `get_compile_config()` and `compile_from_config(config)`.
-    #       Alternatively, you can call `compile()` manually after loading.
