@@ -55,7 +55,7 @@ class WeightedLayerTest(testing.TestCase):
         features_shape, neuron_shape = shape
         features_tensor = k.KerasTensor(shape=features_shape)
         neurons_tensor = k.KerasTensor(shape=neuron_shape)
-        values = WeightedLayer(input_shape=shape)([features_tensor, neurons_tensor])
+        values = WeightedLayer()([features_tensor, neurons_tensor])
 
         self.assertIsInstance(values, k.KerasTensor)
         self.assertEqual(values.shape, neurons_tensor.shape)
@@ -66,7 +66,7 @@ class WeightedLayerTest(testing.TestCase):
         features_shape, neuron_shape = shape
         features_tensor = k.convert_to_tensor(np.random.random(remove_nones(features_shape, DEFAULT_DIM)))
         neurons_tensor = k.convert_to_tensor(np.random.random(remove_nones(neuron_shape, DEFAULT_DIM)))
-        layer = WeightedLayer(input_shape=shape)
+        layer = WeightedLayer()
         output = layer.call(inputs=[features_tensor, neurons_tensor])
 
         self.assertIsNotNone(output)
@@ -78,7 +78,7 @@ class WeightedLayerTest(testing.TestCase):
 
     @parameterized.named_parameters(SHAPES)
     def test_get_config(self, shape):
-        config = WeightedLayer(input_shape=shape).get_config()
+        config = WeightedLayer().get_config()
 
         self.assertTrue('name' in config)
         self.assertTrue('initializer_a' in config)

@@ -22,7 +22,7 @@ class FuzzyLayerTest(testing.TestCase):
     @parameterized.named_parameters(SHAPES)
     def test_input_shapes(self, shape):
         input_tensor = k.convert_to_tensor(np.random.random(remove_nones(shape, DEFAULT_DIM)))
-        layer = FuzzyLayer(input_shape=shape, neurons=NEURONS)
+        layer = FuzzyLayer(neurons=NEURONS)
         output = layer.call(inputs=input_tensor)
 
         self.assertIsNotNone(output)
@@ -32,7 +32,7 @@ class FuzzyLayerTest(testing.TestCase):
     def test_invalid_neurons(self):
         for invalid_neuron in [0, -1]:
             with self.assertRaises(ValueError):
-                FuzzyLayer(input_shape=(DEFAULT_DIM,), neurons=invalid_neuron)
+                FuzzyLayer(neurons=invalid_neuron)
 
     @parameterized.named_parameters(SHAPES)
     def test_build_across_shape_dimensions(self, shape):
@@ -69,7 +69,7 @@ class FuzzyLayerTest(testing.TestCase):
     @parameterized.named_parameters(SHAPES)
     def testing_input_tensor(self, shape):
         input_tensor = k.KerasTensor(shape=shape)
-        values = FuzzyLayer(input_shape=shape, neurons=NEURONS)(input_tensor)
+        values = FuzzyLayer(neurons=NEURONS)(input_tensor)
 
         self.assertIsInstance(values, k.KerasTensor)
         self.assertEqual(values.shape, replace_last_dim(input_tensor.shape, NEURONS))
@@ -78,7 +78,7 @@ class FuzzyLayerTest(testing.TestCase):
     @parameterized.named_parameters(SHAPES)
     def test_call_method(self, shape):
         input_tensor = k.convert_to_tensor(np.random.random(remove_nones(shape, DEFAULT_DIM)))
-        layer = FuzzyLayer(input_shape=shape, neurons=NEURONS)
+        layer = FuzzyLayer(neurons=NEURONS)
         output = layer.call(inputs=input_tensor)
 
         self.assertIsNotNone(output)
@@ -88,9 +88,8 @@ class FuzzyLayerTest(testing.TestCase):
         # non-python int type shapes should be ok
         FuzzyLayer(input_shape=(np.int64(5),), neurons=NEURONS)
 
-    @parameterized.named_parameters(SHAPES)
-    def test_get_config(self, shape):
-        config = FuzzyLayer(input_shape=shape, neurons=NEURONS).get_config()
+    def test_get_config(self):
+        config = FuzzyLayer(neurons=NEURONS).get_config()
 
         self.assertTrue('name' in config)
         self.assertTrue(config['neurons'] == NEURONS)

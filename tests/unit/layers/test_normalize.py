@@ -47,7 +47,7 @@ class NormalizeLayerTest(testing.TestCase):
     @parameterized.named_parameters(SHAPES)
     def testing_input_tensor(self, shape):
         input_tensor = k.KerasTensor(shape=shape)
-        values = NormalizeLayer(input_shape=shape)(input_tensor)
+        values = NormalizeLayer()(input_tensor)
 
         self.assertIsInstance(values, k.KerasTensor)
         self.assertEqual(values.shape, input_tensor.shape)
@@ -56,7 +56,7 @@ class NormalizeLayerTest(testing.TestCase):
     @parameterized.named_parameters(SHAPES)
     def test_call_method(self, shape):
         input_tensor = k.convert_to_tensor(np.random.random(remove_nones(shape, DEFAULT_DIM)))
-        layer = NormalizeLayer(input_shape=shape)
+        layer = NormalizeLayer()
         output = layer.call(inputs=input_tensor)
 
         self.assertIsNotNone(output)
@@ -67,7 +67,7 @@ class NormalizeLayerTest(testing.TestCase):
         NormalizeLayer(input_shape=(np.int64(5),))
 
     def test_get_config(self):
-        config = NormalizeLayer(input_shape=(DEFAULT_DIM,)).get_config()
+        config = NormalizeLayer().get_config()
 
         self.assertTrue('name' in config)
         self.assertTrue(config['trainable'] == True)
