@@ -38,24 +38,6 @@ class NormalizeLayer(Layer):
         self.built = False
 
     # TODO: remove excessive type hinting for call/build methods on custom layers
-    def build(self, input_shape: tuple, **kwargs) -> None:
-        """
-        Build objects for processing steps
-
-        Parameters
-        ==========
-        input_shape: tuple
-            - input shape of training data
-            - last index will be taken for sizing variables
-        """
-        self.input_shape = input_shape
-
-        # add dummy weight that does nothing to suppress warning that layer has no trainable parameters
-        # TODO: validate if this is best way to suppress warning
-        self.fixed_weight = self.add_weight(shape=(1,), initializer='zeros', trainable=False)
-        super().build(input_shape=input_shape, **kwargs)
-
-    # TODO: remove excessive type hinting for call/build methods on custom layers
     def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer
@@ -76,12 +58,8 @@ class NormalizeLayer(Layer):
             - psi(j) for jth neuron
             - shape: (*, neurons)
         """
-        # TODO: remove forcing build before first call. should be happening automatically
-        if not self.built:
-            self.build(input_shape=inputs.shape, **kwargs)
-
         sums = K.sum(inputs, axis=-1)
-        sums_expanded = K.repeat(K.expand_dims(sums, axis=-1), self.input_shape[-1], -1)
+        sums_expanded = K.repeat(K.expand_dims(sums, axis=-1), inputs.shape[-1], -1)
         return inputs / sums_expanded
 
     def compute_output_shape(self, input_shape: tuple) -> tuple:

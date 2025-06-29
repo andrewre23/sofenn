@@ -182,7 +182,7 @@ class FuzzyNetworkTest(testing.TestCase):
             )
         )
         trained_model.fit(X_train, y_train, epochs=25)
-        #trained_model.save(DATA_DIR / f'models/regression_{name}.keras')
+        trained_model.save(DATA_DIR / f'models/regression_{name}.keras')
         loaded_model = _load_saved_model('regression', deep=False, name=name)
 
         # deep trained model

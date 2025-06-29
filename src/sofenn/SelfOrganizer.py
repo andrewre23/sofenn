@@ -113,7 +113,7 @@ class FuzzySelfOrganizer(object):
         self.weight_index = {
             'centers': 0,
             'widths':  1,
-            'weights': 3
+            'weights': 2
         }
 
         self.model = model if model is not None else FuzzyNetwork(**kwargs)
