@@ -61,17 +61,6 @@ class OutputLayer(Layer):
         )
         self.built = True
 
-    def build(self, input_shape: tuple, **kwargs) -> None:
-        """
-        Build objects for processing steps.
-
-        Parameters
-        ==========
-        input_shape: tuple
-            - f shape: (*, neurons)
-        """
-        super().build(input_shape=input_shape, **kwargs)
-
     def call(self, inputs: k.KerasTensor, **kwargs) -> k.KerasTensor:
         """
         Build processing logic for layer.
