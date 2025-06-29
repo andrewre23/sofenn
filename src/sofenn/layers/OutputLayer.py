@@ -88,10 +88,6 @@ class OutputLayer(Layer):
             - sum of all f's from previous layer
             - shape: (*, num_classes)
         """
-        # TODO: remove forcing build before first call. should be happening automatically
-        if not self.built:
-            self.build(input_shape=inputs.shape, **kwargs)
-
         # get the raw sum of all neurons for each sample
         sums = K.sum(inputs, axis=-1, keepdims=True)
         # ndim > 2 required for passing through activation
