@@ -96,7 +96,7 @@ class FuzzyNetworkTest(testing.TestCase):
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_hasattr(self, problem_type):
-        model = FuzzyNetwork(**_init_params(problem_type, name='Attribute test'))
+        model = FuzzyNetwork(name='Attribute test', **_init_params(problem_type))
         self.assertTrue(hasattr(model, 'input_shape'))
         self.assertTrue(hasattr(model, 'neurons'))
         self.assertTrue(hasattr(model, 'num_classes'))

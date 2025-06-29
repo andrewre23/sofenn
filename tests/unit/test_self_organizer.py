@@ -19,17 +19,13 @@ class FuzzySelfOrganizerTest(testing.TestCase):
         model = FuzzyNetwork(name='Preinitialized model', **_init_params(problem_type))
         assert model.get_config() == FuzzySelfOrganizer(model).model.get_config()
 
-        FuzzySelfOrganizer(
-            name='Initialize model on self-organizer initialization',
-            **_init_params(problem_type)
-        )
+        FuzzySelfOrganizer(name='Initialize model on self-organizer initialization', **_init_params(problem_type))
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_input_validation(self, problem_type):
         defaults = PROBLEM_DEFAULTS[problem_type]
 
         with self.assertRaises(ValueError):
-            # TODO: see if we can pass 'name' to **_init_params, or best to keep as separate level of parameter passing
             FuzzySelfOrganizer(name='Max loops < 0', **_init_params(problem_type, max_loops=-1))
 
         with self.assertRaises(ValueError):
@@ -304,8 +300,7 @@ class FuzzySelfOrganizerTest(testing.TestCase):
 
         X_train, _, y_train, _ = _get_training_data(problem_type)
 
-        # TODO: confirm consistent formatting for passing names and parameters to FSO and FN
-        sofnn = FuzzySelfOrganizer(model=FuzzyNetwork(**_init_params(problem_type, name='One neuron', neurons=1)))
+        sofnn = FuzzySelfOrganizer(model=FuzzyNetwork(name='One neuron', **_init_params(problem_type, neurons=1)))
         self.assertFalse(sofnn.prune_neurons(X_train, y_train, **_compile_params(problem_type)))
 
         sofnn = FuzzySelfOrganizer(
