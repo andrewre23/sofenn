@@ -102,18 +102,17 @@ jobs:
       - attach_workspace:
           at: .
       - run:
+          name: Configure Git
+          command: |
+            git config --global user.email "andrewre23@gmail.com"
+            git config --global user.name "Andrew Edmonds"
+            git remote set-url origin git@github.com:andrewre23/sofenn.git  # Use SSH URL
+      - run:
           name: Bump version
           command: |
             . venv/bin/activate
             pip install bumpversion
             bumpversion $VERSION_BUMP_TYPE  # major/minor/patch
-      - run:
-          name: Create a new tag
-          command: |
-            git config --global user.email "andrewre23@gmail.com"
-            git config --global user.name "Andrew Edmonds"
-            git tag -a v$(python setup.py --version) -m "Version bump to v$(python setup.py --version)"
-            git push origin --tags  # Push the new tag to the remote repository
 
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
 workflows:
@@ -127,7 +126,7 @@ workflows:
           requires:
             - Build package
       - hold:
-          name: Begin bump version
+          name: Begin publish and bump version
           requires:
             - Run tests
           filters:
@@ -137,15 +136,11 @@ workflows:
       - bump-version:
           name: Bump version
           requires:
-            - Begin bump version
-      - hold:
-          name: Begin publish to PyPI
-          requires:
-            - Bump version
+            - Begin publish and bump version
       - publish:
           name: Publish to PyPI
           requires:
-            - Begin publish to PyPI
+            - Bump version
           filters: # only run when merges to master have the release tag: release/vX.X.X
             branches:
               only:
