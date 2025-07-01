@@ -16,37 +16,61 @@ orbs:
 
 # See: https://circleci.com/docs/jobs-steps/#jobs-overview & https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  build-and-test:
+  build:
     executor: my-executor
     # See: https://circleci.com/docs/jobs-steps/#steps-overview & https://circleci.com/docs/configuration-reference/#steps
     steps:
       - checkout
-      - python/install-packages:
-          pkg-manager: pip
-          pip-dependency-file: requirements.txt
-      - python/install-packages:
-          pkg-manager: pip
-          pip-dependency-file: build-requirements.txt
+      - run:
+          name: Create adn activate virtual environment
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt   # core requirements
       - run:
           name: Build the package
           command: |
-            python setup.py bdist_wheel
+            . venv/bin/activate
+            python setup.py sdist bdist_wheel # build package
+      - persist_to_workspace:
+          root: .
+          paths:
+            - venv
+            - dist
+            - sofenn.egg-info
+  test:
+    executor: my-executor
+    # See: https://circleci.com/docs/jobs-steps/#steps-overview & https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
       - run:
-          name: Install the package
+          name: Install the package from .whl
           command: |
             pip install dist/*.whl
       - run:
+          name: Install test requirements
+          command: |
+            . venv/bin/activate
+            pip install -r build-requirements.txt
+      - run:
           name: Run tests
           command: |
+            . venv/bin/activate
             coverage run -m pytest --junitxml=test_results
       - store_test_results:
           path: test_results
       - run:
           name: Coverage report
-          command: coverage report
+          command: |
+            . venv/bin/activate
+            coverage report
       - run:
           name: Coverage HTML
-          command: coverage html
+          command: |
+            . venv/bin/activate
+            coverage html
       - store_artifacts:
           path: coverage_report
   publish:
@@ -71,20 +95,50 @@ jobs:
       - run:
           name: Manual Approval
           command: echo "Waiting for manual approval to proceed with publishing."
+  bump-my-version:
+    executor: my-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Bump version
+          command: |
+            . venv/bin/activate
+            pip install bumpversion
+            bumpversion $VERSION_BUMP_TYPE  # major/minor/patch
+      - run:
+          name: Create a new tag
+          command: |
+            git tag -a v$(python setup.py --version) -m "Version bump to v$(python setup.py --version)"
+            git push origin --tags  # Push the new tag to the remote repository
 
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   version: 2
   build_and_release:
     jobs:
-      - build-and-test
-      - hold:
+      - build
+      - test:
           requires:
-            - build-and-test
-      - publish:
+            - build
+      - bump-my-version:
           requires:
-            - hold
+            - test
           filters:
             branches:
               only:
-                - /^release\/v\d+\.\d+\.\d+$/
+                - master
+      - hold:
+          requires:
+            - bump-my-version
+      - publish:
+          requires:
+            - hold
+          filters: # only run when merges to master have the release tag: release/vX.X.X
+            branches:
+              only:
+                - master
+            tags:
+              only:
+                - /^release\/v\d+\.\d+\.\d+$/  # e.g., release/v1.2.3
