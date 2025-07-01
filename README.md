@@ -10,8 +10,33 @@ consists of two models:
 ## FuzzyNetwork
 Underlying neural network model that contains parameters to be optimized during training
 
-## SelfOrganizer
+## FuzzySelfOrganizer
 Metamodel to optimize the architecture of underlying fuzzy network
+
+## Installation
+
+You can install the package using pip:
+
+```bash
+pip install sofenn
+```
+
+## Usage
+[Demo notebooks](https://github.com/andrewre23/sofenn/tree/master/demos) available on Github.
+
+Importing the model and self-organizer:
+```python
+from sofenn import FuzzyNetwork, FuzzySelfOrganizer
+
+# initialize model separate, and attach to self-organizer
+model = FuzzyNetwork(input_shape, **_init_params)
+sofnn = FuzzySelfOrganizer(model=model)
+sofnn.self_organize(x, y)
+
+# initialize sofnn directly
+sofnn = FuzzySelfOrganizer(input_shape, **_init_params)
+sofnn.self_organize(x, y)
+```
 
 ## Model Description
 The model is implemented per the description in:
