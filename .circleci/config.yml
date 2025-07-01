@@ -1,32 +1,33 @@
-# See: https://circleci.com/docs/configuration-reference
-# https://circleci.com/docs/language-python/ for more details
 version: 2.1
 
-# See: https://circleci.com/docs/executor-intro/ & https://circleci.com/docs/configuration-reference/#executor-job
 executors:
   my-executor:
     docker:
-      # See:https://circleci.com/developer/images/image/cimg/python
       - image: cimg/python:3.9
+        environment:
+          CIRCLECI_DOCKER_LAYERS: true
 
-# See: https://circleci.com/docs/orb-intro/
 orbs:
-  # See : https://circleci.com/developer/orbs/orb/circleci/python
   python: circleci/python@2.1.1
 
-# See: https://circleci.com/docs/jobs-steps/#jobs-overview & https://circleci.com/docs/configuration-reference/#jobs
 jobs:
   build:
     executor: my-executor
-    # See: https://circleci.com/docs/jobs-steps/#steps-overview & https://circleci.com/docs/configuration-reference/#steps
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-venv-{{ checksum "requirements.txt" }}
       - run:
-          name: Create adn activate virtual environment
+          name: Create and activate virtual environment
           command: |
             python -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt   # core requirements
+      - save_cache:
+          paths:
+            - venv/
+          key: v1-venv-{{ checksum "requirements.txt" }}
       - run:
           name: Build the package
           command: |
@@ -38,9 +39,13 @@ jobs:
             - venv
             - dist
             - sofenn.egg-info
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf venv  # Clean up after build
+
   test:
     executor: my-executor
-    # See: https://circleci.com/docs/jobs-steps/#steps-overview & https://circleci.com/docs/configuration-reference/#steps
     steps:
       - checkout
       - attach_workspace:
@@ -48,7 +53,7 @@ jobs:
       - run:
           name: Install the package from .whl
           command: |
-            pip install dist/*.whl
+            pip install --no-cache-dir dist/*.whl
       - run:
           name: Install test requirements
           command: |
@@ -73,28 +78,32 @@ jobs:
             coverage html
       - store_artifacts:
           path: coverage_report
+          expire_in: 1 week  # Set expiration for artifacts
+
   publish:
-      executor: my-executor
-      steps:
-        - checkout
-        - run:
-            name: Install Twine
-            command: |
-              python -m pip install --upgrade pip
-              pip install setuptools wheel twine
-        - run:
-            name: Build the Package
-            command: python setup.py sdist bdist_wheel
-        - run:
-            name: Publish to PyPI
-            command: |
-              twine upload dist/* -u __token__ -p $PYPI_TOKEN
+    executor: my-executor
+    steps:
+      - checkout
+      - run:
+          name: Install Twine
+          command: |
+            python -m pip install --upgrade pip
+            pip install setuptools wheel twine
+      - run:
+          name: Build the Package
+          command: python setup.py sdist bdist_wheel
+      - run:
+          name: Publish to PyPI
+          command: |
+            twine upload dist/* -u __token__ -p $PYPI_TOKEN
+
   hold:
     type: approval  # This job will require manual approval
     steps:
       - run:
           name: Manual Approval
           command: echo "Waiting for manual approval to proceed with publishing."
+
   bump-version:
     executor: my-executor
     steps:
@@ -111,24 +120,23 @@ jobs:
           name: Bump version
           command: |
             . venv/bin/activate
-            pip install bumpversion
-            bumpversion $VERSION_BUMP_TYPE  # major/minor/patch
+            pip install bump2version
+            bump2version $VERSION_BUMP_TYPE --verbose  # major/minor/patch
       - run:
           name: Commit changes
           command: |
             git add setup.py
             git commit -m "Bump version to v$(python setup.py --version)"
       - run:
-          name: Create a new tag
+          name: Check setup.py version
           command: |
-            git tag -a v$(python setup.py --version) -m "Version bump to v$(python setup.py --version)"
+            cat setup.py
       - run:
           name: Push changes and tags
           command: |
-            git push origin main  # or the appropriate branch name
+            git push origin master    # or the appropriate branch name
             git push origin --tags  # Push the new tag to the remote repository
 
-# See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   version: 2
   build_and_release:
@@ -139,18 +147,14 @@ workflows:
           name: Run tests
           requires:
             - Build package
-      - hold:
-          name: Begin publish and bump version
+      - bump-version:
+          name: Bump version
           requires:
             - Run tests
           filters:
             branches:
               only:
                 - master
-      - bump-version:
-          name: Bump version
-          requires:
-            - Begin publish and bump version
       - publish:
           name: Publish to PyPI
           requires:
