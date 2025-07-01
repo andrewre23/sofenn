@@ -155,7 +155,7 @@ workflows:
           name: Publish to PyPI
           requires:
             - Bump version
-          filters: # only run when merges to master have the release tag: release/vX.X.X
+          filters:           # only run when merges to master have the release tag: release/vX.X.X
             branches:
               only:
                 - master
