@@ -95,7 +95,7 @@ jobs:
       - run:
           name: Manual Approval
           command: echo "Waiting for manual approval to proceed with publishing."
-  bump-my-version:
+  bump-version:
     executor: my-executor
     steps:
       - checkout
@@ -110,6 +110,8 @@ jobs:
       - run:
           name: Create a new tag
           command: |
+            git config --global user.email "andrewre23@gmail.com"
+            git config --global user.name "Andrew Edmonds"
             git tag -a v$(python setup.py --version) -m "Version bump to v$(python setup.py --version)"
             git push origin --tags  # Push the new tag to the remote repository
 
@@ -118,23 +120,32 @@ workflows:
   version: 2
   build_and_release:
     jobs:
-      - build
+      - build:
+          name: Build package
       - test:
+          name: Run tests
           requires:
-            - build
-      - bump-my-version:
+            - Build package
+      - hold:
+          name: Begin bump version
           requires:
-            - test
+            - Run tests
           filters:
             branches:
               only:
                 - master
+      - bump-version:
+          name: Bump version
+          requires:
+            - Begin bump version
       - hold:
+          name: Begin publish to PyPI
           requires:
-            - bump-my-version
+            - Bump version
       - publish:
+          name: Publish to PyPI
           requires:
-            - hold
+            - Begin publish to PyPI
           filters: # only run when merges to master have the release tag: release/vX.X.X
             branches:
               only:
