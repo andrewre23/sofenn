@@ -23,9 +23,9 @@ setup(
     packages=find_packages(),
     classifiers=[
         'Programming Language :: Python :: 3.9',
-        'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
+    license='MIT',
     python_requires='>=3.9',
     install_requires=core_requirements, # core
     extras_require={
