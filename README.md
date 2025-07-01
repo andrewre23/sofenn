@@ -2,16 +2,16 @@
 
 Welcome to sofenn (sounds like soften)! 
 
-This package is a Keras/TensorFlow implementation of a Self-Organizing Fuzzy Neural Network. The sofenn framework 
+This package is a Keras/TensorFlow implementation of a Self-Organizing Fuzzy Neural Network. The **sofenn** framework 
 consists of two models:
 <br /> (1) **Fuzzy Network** - Underlying fuzzy network whose parameters are optimized during training
-<br /> (2) **Self-Organizer** - Meta-model that optimizes the architecture of the Fuzzy Network
+<br /> (2) **Self-Organizer** - Metamodel that optimizes the architecture of the Fuzzy Network
 
 ## FuzzyNetwork
 Underlying neural network model that contains parameters to be optimized during training
 
 ## SelfOrganizer
-Meta-model to optimize architecture of underlying fuzzy network
+Metamodel to optimize the architecture of underlying fuzzy network
 
 ## Model Description
 The model is implemented per the description in:
@@ -34,14 +34,14 @@ Credit: Leng, Prasad, McGinnity (2004)
 **Input layer of network**
 
 - **input** : <a href="https://www.codecogs.com/eqnedit.php?latex=input" target="_blank"><img src="https://latex.codecogs.com/gif.latex?input" title="input" /></a>
-    - shape  : (*, features)
+    - shape: (*, features)
 
 ### Fuzzy Layer (1)
 **Radial (Ellipsoidal) Basis Function Layer**
-- each neuron represents "if-part" or premise of a fuzzy rule
-- individual Membership Functions (MF) are applied to each feature for each neuron
-- output is product of Membership Functions
-- each MF is Gaussian function:
+- Each neuron represents "if-part" or premise of a fuzzy rule
+- Individual Membership Functions (MF) are applied to each feature for each neuron
+- Output is product of Membership Functions
+- Each MF is a Gaussian function:
 
     <a href="https://www.codecogs.com/eqnedit.php?latex=\mu_{ij}&space;=&space;\exp([-\frac{(x_i&space;-&space;c_{ij})^2}{2\sigma^2_{ij}}])" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mu_{ij}&space;=&space;\exp([-\frac{(x_i&space;-&space;c_{ij})^2}{2\sigma^2_{ij}}])" title="\mu_{ij} = \exp([-\frac{(x_i - c_{ij})^2}{2\sigma^2_{ij}}])" /></a>
     - for i features and j neurons:
@@ -59,20 +59,20 @@ Credit: Leng, Prasad, McGinnity (2004)
 - **input** : <a href="https://www.codecogs.com/eqnedit.php?latex=x" target="_blank"><img src="https://latex.codecogs.com/gif.latex?x" title="x" /></a>
     - shape: (*, features)
 - **output** : <a href="https://www.codecogs.com/eqnedit.php?latex=\Phi" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Phi" title="\Phi" /></a>
-    - shape : (*, neurons)
+    - shape: (*, neurons)
 
 ![alt text](https://raw.githubusercontent.com/andrewre23/sofenn/images/images/neuron.png)
 
-*Information flow of r features within neuron j*
+*Information flow of* **r** *features within neuron* **j**
 
 Credit: Leng, Prasad, McGinnity (2004)
 
-### Normalized Layer (2)
+### Normalize Layer (2)
 **Normalization Layer**
 
-- output of each neuron is normalized by total output from previous layer
-- number of outputs equal to previous layer (# of neurons)
-- output for Normalized Layer is:
+- Output of each neuron is normalized by total output from the previous layer
+- Number of outputs equal to the previous layer (# of neurons)
+- Output for Normalize Layer is:
 
     <a href="https://www.codecogs.com/eqnedit.php?latex=\Psi_j&space;=&space;\frac{\Phi_j}{\sum_{k=1}^{u}&space;\Phi_k}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Psi_j&space;=&space;\frac{\Phi_j}{\sum_{k=1}^{u}&space;\Phi_k}" title="\Psi_j = \frac{\Phi_j}{\sum_{k=1}^{u} \Phi_k}" /></a>
 
@@ -86,8 +86,8 @@ Credit: Leng, Prasad, McGinnity (2004)
 ### Weighted Layer (3)
 **Weighting of ith MF of each feature**
 
-- yields the "consequence" of the jth fuzzy rule of fuzzy model
-- each neuron has two inputs:
+- Yields the "consequence" of the *j*th fuzzy rule of the fuzzy model
+- Each neuron has two inputs:
     - <a href="https://www.codecogs.com/eqnedit.php?latex=j" target="_blank"><img src="https://latex.codecogs.com/gif.latex?j" title="j" /></a> = output of previous related neuron
     - <a href="https://www.codecogs.com/eqnedit.php?latex=w_2j" target="_blank"><img src="https://latex.codecogs.com/gif.latex?w_2j" title="w_2j" /></a> = weighted bias 
 - with:
@@ -100,41 +100,43 @@ Credit: Leng, Prasad, McGinnity (2004)
     <a href="https://www.codecogs.com/eqnedit.php?latex=w_2j&space;=&space;A_j&space;*&space;B&space;=&space;a_{j0}&space;&plus;&space;a_{j1x_1}&space;&plus;&space;a_{j2x_2}&space;&plus;&space;...&space;&plus;&space;a_{jr}x_r" target="_blank"><img src="https://latex.codecogs.com/gif.latex?w_2j&space;=&space;A_j&space;*&space;B&space;=&space;a_{j0}&space;&plus;&space;a_{j1x_1}&space;&plus;&space;a_{j2x_2}&space;&plus;&space;...&space;&plus;&space;a_{jr}x_r" title="w_2j = A_j * B = a_{j0} + a_{j1x_1} + a_{j2x_2} + ... + a_{jr}x_r" /></a>
 
     <a href="https://www.codecogs.com/eqnedit.php?latex=\Psi_j" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\Psi_j" title="\Psi_j" /></a> = output of jth neuron from
-            normalized layer
+            normalize layer
 
--output for weighted layer is:
+- output for weighted layer is:
     <a href="https://www.codecogs.com/eqnedit.php?latex=f_j&space;=&space;w_{2j}\Psi_j" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f_j&space;=&space;w_{2j}\Psi_j" title="f_j = w_{2j}\Psi_j" /></a>
 
 - **inputs** : <a href="https://www.codecogs.com/eqnedit.php?latex=[x,&space;\Psi]" target="_blank"><img src="https://latex.codecogs.com/gif.latex?[x,&space;\Psi]" title="[x, \Psi]" /></a>
-    - shape  : \[(\*, 1+features), (*, neurons)]
+    - shape: \[(\*, 1+features), (*, neurons)]
 - **output** : <a href="https://www.codecogs.com/eqnedit.php?latex=f" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f" title="f" /></a>
-    - shape : (*, neurons)
+    - shape: (*, neurons)
 
 
 ### Output Layer (4)
 **Final Output**
 
-- Unweighted sum of each output of previous layer (<a href="https://www.codecogs.com/eqnedit.php?latex=f" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f" title="f" /></a>)
-
-- output for fuzzy layer is:
+- Unweighted sum of each output of the previous layer (<a href="https://www.codecogs.com/eqnedit.php?latex=f" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f" title="f" /></a>)
+- Provide activation function to layer
+- Function choice determines output shape (e.g., linear vs. softmax)
+- Output for fuzzy layer is:
 
     <a href="https://www.codecogs.com/eqnedit.php?latex=\sum_{k=1}^{u}&space;f(k)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\sum_{k=1}^{u}&space;f(k)" title="\sum_{k=1}^{u} f(k)" /></a>
             
-    for u neurons
+    for *u* neurons
     
-- final layer for regression problems
-    
+- Provide activation function to layer (default: linear)
+- Activation function determines output dimensions
+
+### Examples
+
+Regression output:
 - **input** : <a href="https://www.codecogs.com/eqnedit.php?latex=f" target="_blank"><img src="https://latex.codecogs.com/gif.latex?f" title="f" /></a>
-    - shape  : (*, neurons)
+    - shape: (*, neurons)
 - **output** : <a href="https://www.codecogs.com/eqnedit.php?latex=output" target="_blank"><img src="https://latex.codecogs.com/gif.latex?output" title="output" /></a>
-    - shape : (*,)
+    - shape: (*,)
 
-### Softmax Layer (5)
-**Classification Output**
 
-- (Optional) Softmax layer for classification problems
-    
+Softmax classification output:
 - **input** : <a href="https://www.codecogs.com/eqnedit.php?latex=output" target="_blank"><img src="https://latex.codecogs.com/gif.latex?output" title="output" /></a>
-    - shape  : (*, )
+    - shape: (*, )
 - **output** : <a href="https://www.codecogs.com/eqnedit.php?latex=softmax" target="_blank"><img src="https://latex.codecogs.com/gif.latex?softmax" title="softmax" /></a>
-    - shape : (*, classes)
+    - shape: (*, classes)

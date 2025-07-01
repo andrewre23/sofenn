@@ -1,0 +1,7 @@
+-r requirements.txt
+-r build-requirements.txt
+
+# plotting
+matplotlib==3.9.4
+
+jupyter==1.1.1
