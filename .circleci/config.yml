@@ -57,7 +57,10 @@ jobs:
             name: Install Twine
             command: |
               python -m pip install --upgrade pip
-              pip install twine
+              pip install setuptools wheel twine
+        - run:
+            name: Build the Package
+            command: python setup.py sdist bdist_wheel
         - run:
             name: Publish to PyPI
             command: |
@@ -84,4 +87,4 @@ workflows:
           filters:
             branches:
               only:
-                - /^v\d+\.\d+\.\d+$/
+                - /^release\/v\d+\.\d+\.\d+$/

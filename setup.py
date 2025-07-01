@@ -13,7 +13,7 @@ build_requirements = read_requirements('build-requirements.txt')
 
 setup(
     name='sofenn',
-    version='0.1.0',
+    version='0.1.1',
     author='Andrew Edmonds',
     author_email='andrewre23@gmail.com',
     description='Keras model of a Self-Organizing Fuzzy Network',
