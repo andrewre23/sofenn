@@ -113,6 +113,20 @@ jobs:
             . venv/bin/activate
             pip install bumpversion
             bumpversion $VERSION_BUMP_TYPE  # major/minor/patch
+      - run:
+          name: Commit changes
+          command: |
+            git add setup.py
+            git commit -m "Bump version to v$(python setup.py --version)"
+      - run:
+          name: Create a new tag
+          command: |
+            git tag -a v$(python setup.py --version) -m "Version bump to v$(python setup.py --version)"
+      - run:
+          name: Push changes and tags
+          command: |
+            git push origin main  # or the appropriate branch name
+            git push origin --tags  # Push the new tag to the remote repository
 
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
 workflows:
