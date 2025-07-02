@@ -107,7 +107,7 @@ jobs:
           command: |
             VERSION=$(python setup.py --version)
             git add setup.py .bumpversion.cfg
-            git commit -m "Version bump to v$VERSION"
+            git commit -m "Version bump to v$VERSION [skip ci]"
             git tag -a "release/v$VERSION" -m "Version bump to v$VERSION"
             git push origin master      # or the appropriate branch name
             git push origin --tags      # Push the new tag to the remote repository
