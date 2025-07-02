@@ -90,6 +90,12 @@ jobs:
             python -m pip install --upgrade pip
             pip install setuptools wheel twine
       - run:
+          name: Cleanup
+          command: |
+            rm -rf venv  # Clean up after build
+            rm -rf dist
+            rm -rf sofenn.egg-info
+      - run:
           name: Build the Package
           command: python setup.py sdist bdist_wheel
       - run:
