@@ -130,11 +130,6 @@ jobs:
             pip install bump2version
             bump2version $VERSION_BUMP_TYPE --verbose  # major/minor/patch
       - run:
-          name: Commit changes
-          command: |
-            git add setup.py
-            git commit -m "Bump version to v$(python setup.py --version)"
-      - run:
           name: Check setup.py version
           command: |
             cat setup.py
@@ -142,7 +137,7 @@ jobs:
           name: Push changes and tags
           command: |
             git push origin master    # or the appropriate branch name
-            git push origin --tags  # Push the new tag to the remote repository
+            git push origin --tags    # Push the new tag to the remote repository
 
 workflows:
   version: 2
