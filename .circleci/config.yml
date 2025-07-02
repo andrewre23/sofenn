@@ -134,8 +134,10 @@ jobs:
           command: |
             cat setup.py
       - run:
-          name: Tag and push changes
+          name: Commit, tag, and push changes
           command: |
+            git add setup.py
+            git commit -m "Version bump to v$(python setup.py --version)"
             git tag -a v$(python setup.py --version) -m "Version bump to v$(python setup.py --version)"
             git push origin master      # or the appropriate branch name
             git push origin --tags      # Push the new tag to the remote repository
