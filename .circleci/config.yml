@@ -79,7 +79,6 @@ jobs:
       - store_artifacts:
           path: coverage_report
           expire_in: 1 week  # Set expiration for artifacts
-
   publish:
     executor: my-executor
     steps:
@@ -96,20 +95,22 @@ jobs:
             rm -rf dist
             rm -rf sofenn.egg-info
       - run:
+          name: Push changes and tags
+          command: |
+            git pull  # incorporate changes post-bumpversion
+      - run:
           name: Build the Package
           command: python setup.py sdist bdist_wheel
       - run:
           name: Publish to PyPI
           command: |
             twine upload dist/* -u __token__ -p $PYPI_TOKEN
-
   hold:
     type: approval  # This job will require manual approval
     steps:
       - run:
           name: Manual Approval
           command: echo "Waiting for manual approval to proceed with publishing."
-
   bump-version:
     executor: my-executor
     steps:
