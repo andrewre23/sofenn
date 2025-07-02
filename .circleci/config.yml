@@ -108,7 +108,7 @@ jobs:
             VERSION=$(python setup.py --version)
             git add setup.py .bumpversion.cfg
             git commit -m "Version bump to v$VERSION"
-            git tag -a v$VERSION -m "Version bump to v$VERSION"
+            git tag -a "release/v$VERSION" -m "Version bump to v$VERSION"
             git push origin master      # or the appropriate branch name
             git push origin --tags      # Push the new tag to the remote repository
 
@@ -125,9 +125,6 @@ jobs:
           name: Cleanup
           command: |
             rm -rf venv dist sofenn.egg-info
-      - run:
-          name: Push changes and tags
-          command: git pull  # incorporate changes post-bumpversion
       - run:
           name: Build the Package
           command: python setup.py sdist bdist_wheel
@@ -162,6 +159,8 @@ workflows:
           filters:
             branches:
               only: master
+            tags:
+              ignore: /.*/
       - test:
           name: Run tests
           requires:
@@ -169,6 +168,8 @@ workflows:
           filters:
             branches:
               only: master
+            tags:
+              ignore: /.*/
       - hold:
           name: Approve version bump
           type: approval
@@ -177,6 +178,8 @@ workflows:
           filters:
             branches:
               only: master
+            tags:
+              ignore: /.*/
       - bump-version:
           name: Bump version
           requires:
@@ -184,6 +187,8 @@ workflows:
           filters:
             branches:
               only: master
+            tags:
+              ignore: /.*/
 
   # Workflow triggered by version tags
   publish_on_tag:
@@ -195,4 +200,4 @@ workflows:
               ignore: /.*/
             tags:
               only:
-                - /^v\d+\.\d+\.\d+$/
+              - /^release\/v\d+\.\d+\.\d+$/  # matches tags like release/v1.2.3
