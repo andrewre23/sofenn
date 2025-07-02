@@ -52,8 +52,7 @@ jobs:
           at: .
       - run:
           name: Install the package from .whl
-          command: |
-            pip install --no-cache-dir dist/*.whl
+          command: pip install --no-cache-dir dist/*.whl
       - run:
           name: Install test requirements
           command: |
@@ -79,32 +78,6 @@ jobs:
       - store_artifacts:
           path: coverage_report
           expire_in: 1 week  # Set expiration for artifacts
-  publish:
-    executor: my-executor
-    steps:
-      - checkout
-      - run:
-          name: Install Twine
-          command: |
-            python -m pip install --upgrade pip
-            pip install setuptools wheel twine
-      - run:
-          name: Cleanup
-          command: |
-            rm -rf venv  # Clean up after build
-            rm -rf dist
-            rm -rf sofenn.egg-info
-      - run:
-          name: Push changes and tags
-          command: |
-            git pull  # incorporate changes post-bumpversion
-      - run:
-          name: Build the Package
-          command: python setup.py sdist bdist_wheel
-      - run:
-          name: Publish to PyPI
-          command: |
-            twine upload dist/* -u __token__ -p $PYPI_TOKEN
   hold:
     type: approval  # This job will require manual approval
     steps:
@@ -130,49 +103,96 @@ jobs:
             pip install bump2version
             bump2version $VERSION_BUMP_TYPE --verbose  # major/minor/patch
       - run:
-          name: Check setup.py version
-          command: |
-            cat setup.py
-      - run:
           name: Commit, tag, and push changes
           command: |
-            git add setup.py
-            git add .bumpversion.cfg
-            git commit -m "Version bump to v$(python setup.py --version)"
-            git tag -a v$(python setup.py --version) -m "Version bump to v$(python setup.py --version)"
+            VERSION=$(python setup.py --version)
+            git add setup.py .bumpversion.cfg
+            git commit -m "Version bump to v$VERSION"
+            git tag -a v$VERSION -m "Version bump to v$VERSION"
             git push origin master      # or the appropriate branch name
             git push origin --tags      # Push the new tag to the remote repository
 
+  publish:
+    executor: my-executor
+    steps:
+      - checkout
+      - run:
+          name: Install Twine
+          command: |
+            python -m pip install --upgrade pip
+            pip install setuptools wheel twine
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf venv dist sofenn.egg-info
+      - run:
+          name: Push changes and tags
+          command: git pull  # incorporate changes post-bumpversion
+      - run:
+          name: Build the Package
+          command: python setup.py sdist bdist_wheel
+      - run:
+          name: Publish to PyPI
+          command: twine upload dist/* -u __token__ -p $PYPI_TOKEN
+
 workflows:
   version: 2
-  build_and_release:
+
+  # general case
+  build_test:
     jobs:
       - build:
           name: Build package
+          filters:
+            branches:
+              ignore: master
       - test:
           name: Run tests
           requires:
             - Build package
+          filters:
+            branches:
+              ignore: master
+
+  # Workflow for master branch
+  build_test_and_bump:
+    jobs:
+      - build:
+          name: Build package
+          filters:
+            branches:
+              only: master
+      - test:
+          name: Run tests
+          requires:
+            - Build package
+          filters:
+            branches:
+              only: master
       - hold:
-          name: Bump version and publish to PyPI
+          name: Approve version bump
+          type: approval
           requires:
             - Run tests
           filters:
             branches:
-              only:
-                - master
+              only: master
       - bump-version:
           name: Bump version
           requires:
-            - Bump version and publish to PyPI
+            - Approve version bump
+          filters:
+            branches:
+              only: master
+
+  # Workflow triggered by version tags
+  publish_on_tag:
+    jobs:
       - publish:
           name: Publish to PyPI
-          requires:
-            - Bump version
-          filters:           # only run when merges to master have the release tag: release/vX.X.X
+          filters:
             branches:
-              only:
-                - master
+              ignore: /.*/
             tags:
               only:
-                - /^release\/v\d+\.\d+\.\d+$/  # e.g., release/v1.2.3
+                - /^v\d+\.\d+\.\d+$/
