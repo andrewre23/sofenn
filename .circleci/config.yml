@@ -137,6 +137,7 @@ jobs:
           name: Commit, tag, and push changes
           command: |
             git add setup.py
+            git add .bumpversion.cfg
             git commit -m "Version bump to v$(python setup.py --version)"
             git tag -a v$(python setup.py --version) -m "Version bump to v$(python setup.py --version)"
             git push origin master      # or the appropriate branch name
@@ -152,14 +153,18 @@ workflows:
           name: Run tests
           requires:
             - Build package
-      - bump-version:
-          name: Bump version
+      - hold:
+          name: Bump version and publish to PyPI
           requires:
             - Run tests
           filters:
             branches:
               only:
                 - master
+      - bump-version:
+          name: Bump version
+          requires:
+            - Bump version and publish to PyPI
       - publish:
           name: Publish to PyPI
           requires:
