@@ -1,0 +1,9 @@
+# testing
+pytest==8.4.1
+coverage==7.9.1
+
+# data i/o
+pandas==2.3.0
+
+# model training
+scikit-learn==1.5.2

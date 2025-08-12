@@ -1,0 +1,203 @@
+version: 2.1
+
+executors:
+  my-executor:
+    docker:
+      - image: cimg/python:3.9
+        environment:
+          CIRCLECI_DOCKER_LAYERS: true
+
+orbs:
+  python: circleci/python@2.1.1
+
+jobs:
+  build:
+    executor: my-executor
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-venv-{{ checksum "requirements.txt" }}
+      - run:
+          name: Create and activate virtual environment
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt   # core requirements
+      - save_cache:
+          paths:
+            - venv/
+          key: v1-venv-{{ checksum "requirements.txt" }}
+      - run:
+          name: Build the package
+          command: |
+            . venv/bin/activate
+            python setup.py sdist bdist_wheel # build package
+      - persist_to_workspace:
+          root: .
+          paths:
+            - venv
+            - dist
+            - sofenn.egg-info
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf venv  # Clean up after build
+
+  test:
+    executor: my-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install the package from .whl
+          command: pip install --no-cache-dir dist/*.whl
+      - run:
+          name: Install test requirements
+          command: |
+            . venv/bin/activate
+            pip install -r build-requirements.txt
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            coverage run -m pytest --junitxml=test_results
+      - store_test_results:
+          path: test_results
+      - run:
+          name: Coverage report
+          command: |
+            . venv/bin/activate
+            coverage report
+      - run:
+          name: Coverage HTML
+          command: |
+            . venv/bin/activate
+            coverage html
+      - store_artifacts:
+          path: coverage_report
+          expire_in: 1 week  # Set expiration for artifacts
+  hold:
+    type: approval  # This job will require manual approval
+    steps:
+      - run:
+          name: Manual Approval
+          command: echo "Waiting for manual approval to proceed with publishing."
+  bump-version:
+    executor: my-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Configure Git
+          command: |
+            git config --global user.email "andrewre23@gmail.com"
+            git config --global user.name "Andrew Edmonds"
+            git remote set-url origin git@github.com:andrewre23/sofenn.git  # Use SSH URL
+      - run:
+          name: Bump version
+          command: |
+            . venv/bin/activate
+            pip install bump2version
+            bump2version $VERSION_BUMP_TYPE --verbose  # major/minor/patch
+      - run:
+          name: Commit, tag, and push changes
+          command: |
+            VERSION=$(python setup.py --version)
+            git add setup.py .bumpversion.cfg
+            git commit -m "Version bump to v$VERSION [skip ci]"
+            git tag -a "release/v$VERSION" -m "Version bump to v$VERSION"
+            git push origin master      # or the appropriate branch name
+            git push origin --tags      # Push the new tag to the remote repository
+
+  publish:
+    executor: my-executor
+    steps:
+      - checkout
+      - run:
+          name: Install Twine
+          command: |
+            python -m pip install --upgrade pip
+            pip install setuptools wheel twine
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf venv dist sofenn.egg-info
+      - run:
+          name: Build the Package
+          command: python setup.py sdist bdist_wheel
+      - run:
+          name: Publish to PyPI
+          command: twine upload dist/* -u __token__ -p $PYPI_TOKEN
+
+workflows:
+  version: 2
+
+  # general case
+  build_test:
+    jobs:
+      - build:
+          name: Build package
+          filters:
+            branches:
+              ignore: master
+      - test:
+          name: Run tests
+          requires:
+            - Build package
+          filters:
+            branches:
+              ignore: master
+
+  # Workflow for master branch
+  build_test_and_bump:
+    jobs:
+      - build:
+          name: Build package
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+      - test:
+          name: Run tests
+          requires:
+            - Build package
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+      - hold:
+          name: Approve version bump
+          type: approval
+          requires:
+            - Run tests
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+      - bump-version:
+          name: Bump version
+          requires:
+            - Approve version bump
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+
+  # Workflow triggered by version tags
+  publish_on_tag:
+    jobs:
+      - publish:
+          name: Publish to PyPI
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+              - /^release\/v\d+\.\d+\.\d+$/  # matches tags like release/v1.2.3

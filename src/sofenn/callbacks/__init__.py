@@ -1,0 +1,1 @@
+from sofenn.callbacks.FuzzyWeightsInitializer import FuzzyWeightsInitializer
