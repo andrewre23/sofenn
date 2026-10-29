@@ -36,6 +36,7 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+.pytest_cache/
 htmlcov/
 .tox/
 .coverage
@@ -45,7 +46,6 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
-.pytest_cache/
 
 # Translations
 *.mo
@@ -81,14 +81,27 @@ celerybeat-schedule
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.venv
-env/
+# Virtual environments (including version-suffixed names such as venv39/)
+# A directory pattern without a leading slash matches at any depth.
+.venv/
+.venv*/
 venv/
+venv*/
+env/
+env[0-9]*/
 ENV/
+virtualenv/
+virtualenv*/
 env.bak/
 venv.bak/
+.conda/
+
+# Local environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
 
 # Spyder project settings
 .spyderproject
@@ -100,5 +113,28 @@ venv.bak/
 # mkdocs documentation
 /site
 
-# mypy
+# IDE/editor-specific local files
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Type checking, linting and tooling caches
 .mypy_cache/
+.ruff_cache/
+.pyright/
+.pyre/
+.dmypy.json
+dmypy.json
+
+# Local build and test output
+test_results/
+test-results/
+junit.xml
+coverage_report/
+
+# Operating system files
+.DS_Store
+Thumbs.db
