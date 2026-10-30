@@ -5,6 +5,9 @@ branch = True
 [report]
 include = */src/sofenn/*
 omit = */src/*/**/__init__.py
+fail_under = 80
+precision = 2
+show_missing = True
 
 # Regexes for lines to exclude from consideration
 exclude_lines =

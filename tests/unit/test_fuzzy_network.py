@@ -1,6 +1,7 @@
 import copy
 import pickle
 import tempfile
+from pathlib import Path
 
 import keras
 import numpy
@@ -79,7 +80,7 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model.fit(X_train, y_train, epochs=epochs)
 
         with tempfile.TemporaryDirectory() as temp_directory:
-            trained_model.save(temp_directory + 'model.keras')
+            trained_model.save(Path(temp_directory) / 'model.keras')
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_functional_properties(self, problem_type):
@@ -114,40 +115,14 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model = FuzzyNetwork(name='ClassificationModelFitTest', **_init_params('classification'))
         trained_model.compile(**_compile_params('classification'))
         trained_model.fit(X_train, y_train, epochs=epochs)
-        #trained_model.save(DATA_DIR / 'models/iris_classification.keras')
-        loaded_model = _load_saved_model('classification', deep=False)
 
-        # deep trained model
-        #trained_model.fit(X_train, y_train, epochs=250)
-        #trained_model.save(DATA_DIR / 'models/iris_classification-deep.keras')
-        #loaded_model = _load_saved_model('classification', deep=True)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            model_path = Path(temp_dir) / 'classification.keras'
+            trained_model.save(model_path)
+            loaded_model = keras.saving.load_model(model_path, custom_objects={'FuzzyNetwork': FuzzyNetwork})
 
-        self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
+        self.assertAllClose(trained_model.predict(X_test), loaded_model.predict(X_test))
 
-    # # def test_fit_logistic_regression(self):
-    # #     epochs = 10
-    # #     samples = 25
-    # #     features = 4
-    # #     #X_train = numpy.linspace(0, 100, 25)
-    # #     X_train = numpy.random.random((samples, features))
-    # #     noise = numpy.random.normal(0,.5, len(X_train))
-    # #     y_train = numpy.dot(X_train, [3, 1, 2, 1]) + noise
-    # #
-    # #     trained_model = FuzzyNetwork(
-    # #         name='LogisticRegressionModelFitTest',
-    # #         input_shape=X_train.shape,
-    # #         problem_type='logistic_regression',
-    # #         neurons=3
-    # #     )
-    # #     trained_model.compile(
-    # #         loss=BinaryCrossentropy(from_logits=False),
-    # #     )
-    # #     trained_model.fit(X_train, y_train, epochs=epochs)
-    # #     #trained_model.save(DATA_DIR / 'models/regression.keras')
-    # #
-    # #     #loaded_model = keras.saving.load_model(DATA_DIR / 'models/regression.keras')
-    # #     #self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
-    #
     def test_fit_regression(self):
         X_train, X_test, y_train, y_test = _get_training_data('regression')
 
@@ -155,7 +130,7 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model.compile(**_compile_params('regression'))
         trained_model.fit(X_train, y_train, epochs=1)
 
-        trained_model = FuzzyNetwork(name='RegressionModelFitTest', **_init_params('regression')) #input_shape=shape))
+        trained_model = FuzzyNetwork(name='RegressionModelFitTest', **_init_params('regression'))
         trained_model.compile(
             **_compile_params(
                 'regression',
@@ -164,15 +139,27 @@ class FuzzyNetworkTest(testing.TestCase):
             )
         )
         trained_model.fit(X_train, y_train, epochs=25)
-        #trained_model.save(DATA_DIR / f'models/regression.keras')
-        loaded_model = _load_saved_model('regression', deep=False)
 
-        # deep trained model
-        #trained_model.fit(X_train, y_train, epochs=250)
-        #trained_model.save(DATA_DIR / f'models/regression-deep.keras')
-        #loaded_model = _load_saved_model('regression', deep=True)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            model_path = Path(temp_dir) / 'regression.keras'
+            trained_model.save(model_path)
+            loaded_model = keras.saving.load_model(model_path, custom_objects={'FuzzyNetwork': FuzzyNetwork})
 
-        self.assertTrue(numpy.allclose(trained_model.predict(X_test), loaded_model.predict(X_test)))
+        self.assertAllClose(trained_model.predict(X_test), loaded_model.predict(X_test))
+
+    @parameterized.named_parameters(PROBLEM_TYPES)
+    def test_saved_model_fixture_compatibility(self, problem_type):
+        """Verify historical pre-trained model fixtures load cleanly and infer correctly."""
+        defaults = PROBLEM_DEFAULTS[problem_type]
+        _, X_test, _, _ = _get_training_data(problem_type)
+        expected_shape = (len(X_test), defaults['num_classes'])
+
+        for deep in [False, True]:
+            model = _load_saved_model(problem_type, deep=deep)
+            self.assertIsInstance(model, FuzzyNetwork)
+            preds = model.predict(X_test)
+            self.assertEqual(preds.shape, expected_shape)
+            self.assertFalse(numpy.isnan(preds).any())
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_fit_callbacks(self, problem_type):

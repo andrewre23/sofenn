@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+      - 'feature/**'
+  pull_request:
+    branches:
+      - develop
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Package Validation
+    uses: ./.github/workflows/python-validation.yml
+    with:
+      fast-feedback: ${{ github.event_name == 'push' && github.ref_name != 'develop' && github.ref_name != 'master' }}
+      pr-base-ref: ${{ github.base_ref || '' }}
