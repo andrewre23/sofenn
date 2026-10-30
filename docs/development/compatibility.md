@@ -19,7 +19,7 @@ This document establishes the Python, Keras, TensorFlow, and platform compatibil
 | `demo-requirements.txt` | Removed (SFNN-33) | Demo dependencies consolidated into `pyproject.toml` `[project.optional-dependencies.demo]`. |
 | `pytest.ini` | `pythonpath = . src`<br>`markers = requires_trainable_backend` | Marker `requires_trainable_backend` registered but not actively applied in existing test files. |
 | `tests/conftest.py` | Uses `tf.compat.v1.set_random_seed(seed_value)` | Uses legacy TensorFlow 1.x compatibility API for seeding instead of modern Keras 3 / TensorFlow 2.x seeding (`tf.random.set_seed` or `keras.utils.set_random_seed`). |
-| `.circleci/config.yml` | Docker executor: `cimg/python:3.9` | Single environment (Linux only, Python 3.9 only). CI pipeline migration to GitHub Actions belongs to SFNN-12. |
+| `.circleci/config.yml` | Removed (SFNN-12) | Superseded by GitHub Actions modular workflows (`.github/workflows/ci.yml` and `.github/workflows/python-validation.yml`). |
 
 ### 2.2 Platform-Specific Findings & Upstream Verification
 
@@ -195,14 +195,17 @@ SFNN-33 has completed the declarative packaging consolidation into `pyproject.to
   - `[project.optional-dependencies]` defining `test`, `build` (backward-compatibility alias), `demo`, and `dev` extras.
 - **Packaging Regression Tests**: Added `tests/unit/test_packaging.py` validating metadata, dependency tables, platform markers, and package discovery.
 
-### 7.2 Actions Requiring SFNN-12 (CI Pipeline & Matrix Validation)
+### 7.2 Implementations Completed under SFNN-12 (CI Pipeline & Matrix Validation)
 
-The following items cannot be declared resolved until SFNN-12 executes automated matrix testing:
+SFNN-12 implemented the GitHub Actions CI pipeline and decommissioned legacy CircleCI:
 
-- **OS Matrix Verification**: Proving compatibility across `ubuntu-latest`, `windows-latest`, and `macos-latest`.
-- **Python Matrix Verification**: Validating test suites across Python `3.10`, `3.11`, and `3.12`.
-- **Dependency Range Validation**: Testing whether lower bounds (`keras 3.0.0`, `tensorflow 2.16.0`) or unified TensorFlow versions run tests without regressions across all platforms.
-- **CircleCI Decommissioning**: Retiring `.circleci/config.yml` after GitHub Actions achieves complete workflow parity.
+- **Modular Reusable Workflow**: Created `.github/workflows/python-validation.yml` defining parallel `unit-tests`, `integration-tests`, `coverage`, and `package-build` jobs.
+- **Entry-Point CI Trigger Workflow**: Created `.github/workflows/ci.yml` triggering on pushes to `develop`, `master`, `feature/**`, and pull requests targeting `develop` or `master`, with in-progress run cancellation.
+- **Multi-Platform Matrix**: Established validation across Ubuntu (`3.9`, `3.11`, `3.12`), Windows (`3.9`, `3.11`), and macOS (`3.11`), respecting platform-specific TensorFlow markers.
+- **Distribution & Metadata Validation**: Added package build validation (`build`, `twine check --strict`, `check-wheel-contents`, and packaging regression tests).
+- **Branch-Aware Coverage Collection**: Configured `.coveragerc` execution and artifact upload.
+- **CircleCI Decommissioning**: Removed `.circleci/config.yml`.
+- **CI Documentation**: Authored `docs/development/ci.md`.
 
 ### 7.3 Version Isolation and Release Automation Considerations (SFNN-34)
 

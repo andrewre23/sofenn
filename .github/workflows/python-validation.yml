@@ -1,0 +1,156 @@
+name: Python Package Validation
+
+on:
+  workflow_call:
+
+jobs:
+  unit-tests:
+    name: Unit Tests (${{ matrix.os }} - Py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.9', '3.11', '3.12']
+        include:
+          - os: windows-latest
+            python-version: '3.9'
+          - os: windows-latest
+            python-version: '3.11'
+          - os: macos-latest
+            python-version: '3.11'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install package with test dependencies
+        run: pip install -e ".[test]"
+
+      - name: Run unit tests
+        run: pytest tests/unit -v
+
+  integration-tests:
+    name: Integration Tests (${{ matrix.os }} - Py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.9', '3.11', '3.12']
+        include:
+          - os: windows-latest
+            python-version: '3.9'
+          - os: windows-latest
+            python-version: '3.11'
+          - os: macos-latest
+            python-version: '3.11'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install package with test dependencies
+        run: pip install -e ".[test]"
+
+      - name: Run integration tests
+        run: pytest tests/integration -v
+
+  coverage:
+    name: Coverage Collection (Ubuntu - Py3.11)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install package with test dependencies
+        run: pip install -e ".[test]"
+
+      - name: Run test suite with branch coverage
+        run: |
+          coverage run -m pytest
+          coverage report -m
+          coverage html -d coverage_report
+          coverage xml -o coverage.xml
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage_report/
+            coverage.xml
+            .coverage
+
+  package-build:
+    name: Package Build & Metadata Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Upgrade pip and install build tooling
+        run: python -m pip install --upgrade pip build twine check-wheel-contents
+
+      - name: Install package with test dependencies
+        run: pip install -e ".[test]"
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Validate distribution metadata with Twine
+        run: twine check --strict dist/*
+
+      - name: Verify wheel contents
+        run: check-wheel-contents dist/
+
+      - name: Run packaging regression tests
+        run: pytest tests/unit/test_packaging.py -v
+
+      - name: Verify wheel installation and distribution metadata
+        run: |
+          python -m pip install --force-reinstall --no-deps dist/*.whl
+          python -c "import sofenn; import importlib.metadata as m; print('Successfully loaded sofenn', m.version('sofenn'))"
+
+      - name: Upload distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-packages
+          path: dist/
