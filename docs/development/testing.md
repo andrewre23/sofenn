@@ -96,13 +96,20 @@ To eliminate cross-test state leakage and shared mutable state:
 
 ### 5.1 Serialization Round-Trip Verification
 
-Model persistence tests (`test_fit_classification`, `test_fit_regression`, `test_saving_model` in `tests/unit/test_fuzzy_network.py`) verify serialization round-trips:
+Complete model persistence round-trip tests (`test_fit_classification`, `test_fit_regression` in `tests/unit/test_fuzzy_network.py`) verify full end-to-end serialization fidelity:
 1. Train a model instance in memory.
-2. Save the model to a temporary directory (`tempfile.TemporaryDirectory()`).
+2. Save the model to a temporary directory (`tempfile.TemporaryDirectory()`) using `Path(temp_dir) / 'filename.keras'`.
 3. Reload the saved model with `keras.saving.load_model(..., custom_objects={'FuzzyNetwork': FuzzyNetwork})`.
 4. Assert numerical identity between the in-memory trained model and the reloaded model predictions using `self.assertAllClose(trained_model.predict(X_test), loaded_model.predict(X_test))`.
 
-### 5.2 Historical Model Fixture Compatibility
+### 5.2 Model Save-Only Verification
+
+Targeted save-only tests (`test_saving_model` in `tests/unit/test_fuzzy_network.py`) isolate and verify the `.save()` operation independently across parameterized problem types (classification and regression):
+1. Fit a compiled model instance on training data.
+2. Save the model artifact to an isolated temporary directory path (`Path(temp_directory) / 'model.keras'`).
+3. Confirm clean serialization completion without exceptions, decoupling the write phase from subsequent deserialization checks.
+
+### 5.3 Historical Model Fixture Compatibility
 
 Historical pre-trained `.keras` fixtures stored in `tests/data/models/` (`iris_classification.keras`, `regression.keras`, and their `-deep` counterparts) serve as static baselines:
 - **Decoupled Verification**: Historical fixtures are verified via `test_saved_model_fixture_compatibility` and used as input to `FuzzySelfOrganizer` unit tests (`tests/unit/test_self_organizer.py`).

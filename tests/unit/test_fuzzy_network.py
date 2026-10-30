@@ -80,7 +80,7 @@ class FuzzyNetworkTest(testing.TestCase):
         trained_model.fit(X_train, y_train, epochs=epochs)
 
         with tempfile.TemporaryDirectory() as temp_directory:
-            trained_model.save(temp_directory + 'model.keras')
+            trained_model.save(Path(temp_directory) / 'model.keras')
 
     @parameterized.named_parameters(PROBLEM_TYPES)
     def test_functional_properties(self, problem_type):
