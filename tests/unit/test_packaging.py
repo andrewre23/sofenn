@@ -89,6 +89,7 @@ class PackagingRegressionTest(unittest.TestCase):
         test_deps = optional_deps["test"]
         self.assertIn("pytest==8.4.1", test_deps)
         self.assertIn("coverage==7.9.1", test_deps)
+        self.assertIn("diff-cover==10.0.0", test_deps)
         self.assertIn("pandas==2.3.0", test_deps)
         self.assertIn("scikit-learn==1.5.2", test_deps)
         self.assertTrue(

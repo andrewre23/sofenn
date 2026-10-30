@@ -42,7 +42,8 @@ The workflow defines five parallelizable jobs:
 4. **`coverage`**:
    - Executes the full test suite with branch measurement enabled (`coverage run -m pytest`).
    - Generates interactive HTML (`coverage_report/`) and XML (`coverage.xml`) reports.
-   - Enforces the 95% branch/statement coverage quality gate via `.coveragerc` and `coverage report -m`.
+   - Enforces the 80% overall branch/statement coverage quality gate via `.coveragerc` and `coverage report -m`.
+   - On pull requests targeting `develop` or `master`, enforces an 80% changed-line coverage quality gate via `diff-cover coverage.xml --compare-branch origin/<base_ref> --fail-under 80`.
    - Uploads `coverage-report` as an artifact containing `coverage_report/`, `coverage.xml`, and `.coverage`.
    - Executes on the primary development environment (`ubuntu-latest`, Python 3.11).
    - Skipped during fast feedback (`if: ${{ !inputs.fast-feedback }}`).
@@ -175,6 +176,9 @@ coverage run -m pytest
 coverage html -d coverage_report
 coverage xml -o coverage.xml
 coverage report -m
+
+# Run diff coverage locally against develop (or target PR base branch)
+diff-cover coverage.xml --compare-branch origin/develop --fail-under 80
 ```
 
 ### 6.4 Package Build & Validation

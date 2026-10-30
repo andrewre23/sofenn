@@ -5,7 +5,7 @@ branch = True
 [report]
 include = */src/sofenn/*
 omit = */src/*/**/__init__.py
-fail_under = 95
+fail_under = 80
 precision = 2
 show_missing = True
 

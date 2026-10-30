@@ -8,6 +8,11 @@ on:
         type: boolean
         default: false
         required: false
+      pr-base-ref:
+        description: 'Base branch ref for diff coverage comparison on pull requests'
+        type: string
+        default: ''
+        required: false
 
 env:
   PYTHONHASHSEED: '0'
@@ -119,6 +124,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -139,6 +146,12 @@ jobs:
           coverage html -d coverage_report
           coverage xml -o coverage.xml
           coverage report -m
+
+      - name: Enforce changed-line coverage on pull requests
+        if: ${{ inputs.pr-base-ref != '' }}
+        run: |
+          git fetch origin ${{ inputs.pr-base-ref }}
+          diff-cover coverage.xml --compare-branch origin/${{ inputs.pr-base-ref }} --fail-under 80
 
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4

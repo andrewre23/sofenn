@@ -21,3 +21,4 @@ jobs:
     uses: ./.github/workflows/python-validation.yml
     with:
       fast-feedback: ${{ github.event_name == 'push' && github.ref_name != 'develop' && github.ref_name != 'master' }}
+      pr-base-ref: ${{ github.base_ref || '' }}

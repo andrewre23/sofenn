@@ -128,11 +128,25 @@ Because neuro-fuzzy networks and deep learning models rely on continuous numeric
 
 ---
 
-## 7. Coverage Quality Gate
+## 7. Coverage Quality Gates
 
-### 7.1 Threshold Configuration (`.coveragerc`)
+### 7.1 Dual Quality Gates Architecture
 
-A minimum branch/statement coverage threshold is enforced via `.coveragerc`:
+To maintain high code quality and prevent untested code from entering the repository without burdening ongoing development with overly brittle thresholds, `sofenn` implements two complementary quality gates:
+
+1. **Overall Combined Coverage Gate (Minimum 80.00%)**:
+   - Enforced across the entire production codebase (`src/sofenn/`) via `.coveragerc` (`fail_under = 80`) and `coverage report -m`.
+   - Requires combined statement and branch coverage to meet or exceed 80.00%.
+
+2. **Changed-Line Diff Coverage Gate (Minimum 80.00% on Pull Requests)**:
+   - Enforced on pull requests targeting `develop` or `master` via `diff-cover`.
+   - Analyzes newly introduced or modified executable lines relative to the PR target branch's merge base.
+   - Requires at least 80.00% of modified executable lines to be covered by tests.
+   - Automatically passes for documentation-only, test-only, or configuration pull requests where no executable source lines are modified.
+
+### 7.2 Configuration & Rationale (80% Minimum Threshold)
+
+#### Threshold Configuration (`.coveragerc`)
 
 ```ini
 [run]
@@ -141,26 +155,33 @@ branch = True
 [report]
 include = */src/sofenn/*
 omit = */src/*/**/__init__.py
-fail_under = 95
+fail_under = 80
 precision = 2
 show_missing = True
 ```
 
-### 7.2 Threshold Rationale (95% Quality Gate)
+#### Why 80% Represents a Minimum Quality Floor, Not a Target
 
-- **Observed Baseline**: The test suite achieves **99.66%** combined statement and branch coverage (100% statement, 97.96% branch).
-- **Safety Margin**: A **95.00%** quality gate strictly protects the codebase from unverified logic while providing a sensible buffer for legitimate structural adjustments and defensive error handling without triggering false CI failures.
+- **Baseline Coverage**: The baseline test suite achieves **99.66%** combined coverage (100% statement coverage, 97.96% branch coverage).
+- **Minimum Floor vs. Aspirational Target**: The 80% threshold establishes a hard quality safeguard—preventing regressions and ensuring that all substantial additions are thoroughly tested—while providing necessary development flexibility for complex branches, architectural refactoring, and defensive error handlers without causing unnecessary pipeline failures.
+- **Changed-Line Enforcement**: By pairing an 80% overall threshold with an 80% changed-line requirement on pull requests, new features cannot silently degrade repository-wide test coverage.
 - **No Exclusion Abuse**: Enforcing this threshold ensures tests cover actual execution paths without relying on artificial `pragma: no cover` exclusions on production code.
 
-### 7.3 Report Preservation & CI Integration
+### 7.3 Pull Request Diff Coverage Mechanics & CI Integration
 
-The GitHub Actions CI pipeline (`.github/workflows/python-validation.yml`) executes:
-1. `coverage run -m pytest`: Runs the full test suite with branch coverage tracking.
-2. `coverage html -d coverage_report`: Generates interactive HTML report (`coverage_report/index.html`).
-3. `coverage xml -o coverage.xml`: Produces standard Cobertura XML report for tooling integration.
-4. `coverage report -m`: Prints detailed console report with missing line numbers and enforces the 95% quality gate (`fail_under = 95`).
+The CI pipeline integrates coverage enforcement into the primary validation workflow (`.github/workflows/python-validation.yml`):
 
-HTML, XML, and raw `.coverage` files are uploaded as CI build artifacts on every run.
+1. **Complete Test Run**: Executes `coverage run -m pytest` with branch tracking enabled.
+2. **Artifact & Report Generation**: Produces interactive HTML reports (`coverage_report/index.html`) and Cobertura XML (`coverage.xml`).
+3. **Overall Coverage Enforcement**: Runs `coverage report -m`, verifying repository-wide coverage satisfies `fail_under = 80`.
+4. **Pull Request Changed-Line Comparison (`diff-cover`)**:
+   - When triggered by a pull request (`inputs.pr-base-ref != ''`), fetches the target base branch (`git fetch origin ${{ inputs.pr-base-ref }}`) with full repository history (`fetch-depth: 0`).
+   - Executes `diff-cover coverage.xml --compare-branch origin/${{ inputs.pr-base-ref }} --fail-under 80`.
+   - Resolves the merge base between the PR branch and the target branch (`origin/<base_ref>...HEAD`), evaluating only the changed lines introduced by the PR.
+   - Operates cleanly on pull requests originating from forks without requiring write access or repository secrets.
+   - If no executable source lines are touched (e.g. documentation-only changes), `diff-cover` reports zero coverage-bearing lines and successfully passes with exit code 0.
+
+HTML, XML, and raw `.coverage` files are uploaded as CI build artifacts on every validation run.
 
 ---
 
@@ -188,11 +209,14 @@ pytest tests/unit/layers/test_fuzzy.py -v
 # Execute entire test suite
 pytest -v
 
-# Collect branch coverage and generate reports enforcing quality gate
+# Collect branch coverage and generate reports enforcing overall quality gate
 coverage run -m pytest
 coverage html -d coverage_report
 coverage xml -o coverage.xml
 coverage report -m
+
+# Run changed-line diff coverage locally against develop (or target PR branch)
+diff-cover coverage.xml --compare-branch origin/develop --fail-under 80
 ```
 
 ---

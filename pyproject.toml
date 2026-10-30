@@ -41,6 +41,7 @@ Repository = "https://github.com/andrewre23/sofenn"
 test = [
     "pytest==8.4.1",
     "coverage==7.9.1",
+    "diff-cover==10.0.0",
     "pandas==2.3.0",
     "scikit-learn==1.5.2",
     "tomli>=1.1.0; python_version < '3.11'",
@@ -48,6 +49,7 @@ test = [
 build = [
     "pytest==8.4.1",
     "coverage==7.9.1",
+    "diff-cover==10.0.0",
     "pandas==2.3.0",
     "scikit-learn==1.5.2",
     "tomli>=1.1.0; python_version < '3.11'",
@@ -61,6 +63,7 @@ demo = [
 dev = [
     "pytest==8.4.1",
     "coverage==7.9.1",
+    "diff-cover==10.0.0",
     "pandas==2.3.0",
     "scikit-learn==1.5.2",
     "matplotlib==3.9.4",

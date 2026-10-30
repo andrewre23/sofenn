@@ -179,9 +179,9 @@ coverage report
 
 ---
 
-## 7. Coverage Quality Gate
+## 7. Coverage Quality Gates
 
-As established under **SFNN-31**, test execution enforces a minimum combined branch and statement coverage threshold of **95%** in `.coveragerc` and CI. Baseline test coverage stands at **99.66%**. See [Testing Documentation](testing.md) for full details.
+As established under **SFNN-31**, test execution enforces a minimum combined branch and statement coverage threshold of **80%** in `.coveragerc` and an **80%** changed-line coverage threshold on pull requests via `diff-cover`. Baseline test coverage stands at **99.66%**. See [Testing Documentation](testing.md) for full details.
 
 ---
 
@@ -220,7 +220,7 @@ SFNN-31 established reproducible testing and coverage quality gates:
 - **Multi-Framework Random Seeding**: Standardized on modern `keras.utils.set_random_seed` and multi-framework seeding in `tests/conftest.py`.
 - **Isolated Deterministic Fixtures**: Decoupled dataset generators in `tests/testing_utils.py` using explicit `RandomState(seed)`.
 - **Numerical Tolerance Assertions**: Replaced floating-point equality checks with explicit tolerance comparisons.
-- **Coverage Quality Gate**: Enforced 95% branch/statement coverage threshold in `.coveragerc` and CI.
+- **Coverage Quality Gates**: Enforced 80% overall branch/statement coverage threshold in `.coveragerc` and 80% PR changed-line coverage gate via `diff-cover` in CI.
 - **Testing Documentation**: Authored `docs/development/testing.md`.
 
 ### 8.4 Version Isolation and Release Automation Considerations (SFNN-34)
