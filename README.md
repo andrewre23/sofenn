@@ -21,6 +21,18 @@ You can install the package using pip:
 pip install sofenn
 ```
 
+For development and running tests:
+
+```bash
+pip install -e ".[test]"
+```
+
+For running demo notebooks:
+
+```bash
+pip install -e ".[demo]"
+```
+
 ## Usage
 [Demo notebooks](https://github.com/andrewre23/sofenn/tree/master/demos) available on Github.
 

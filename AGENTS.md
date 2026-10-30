@@ -56,9 +56,8 @@ The theoretical foundation of `sofenn` is defined in:
 
 ## 5. Dependency Management & Single Source of Truth
 
-- **Single Source of Truth**: All package configuration and dependency definitions must be centralized to avoid drift across configuration files.
-- **Current State**: Dependencies are defined across `setup.py`, `requirements.txt`, `build-requirements.txt`, and `demo-requirements.txt`.
-- **Target State**: Modernization tickets will consolidate all package metadata, core dependencies, and optional test/build extras into `pyproject.toml` (PEP 517/518/621).
+- **Single Source of Truth**: All package configuration and dependency definitions are centralized in `pyproject.toml` (PEP 517/518/621) to avoid drift across configuration files.
+- **Current State**: Package metadata, core dependencies, and optional test/demo/build extras are consolidated in `pyproject.toml`. Legacy `setup.py` and loose requirement files have been removed.
 
 ---
 

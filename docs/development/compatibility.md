@@ -10,21 +10,22 @@ This document establishes the Python, Keras, TensorFlow, and platform compatibil
 
 ### 2.1 Configuration Files Audit
 
-| File | Declared Configuration | Notes / Discrepancies |
+| File | Declared Configuration | Notes / Status |
 | :--- | :--- | :--- |
-| `setup.py` | `python_requires='>=3.9'`<br>Classifiers: `Programming Language :: Python :: 3.9`<br>`install_requires`: read from `requirements.txt`<br>`extras_require['build']`: read from `build-requirements.txt` | Missing classifiers for Python 3.10, 3.11, 3.12. Relies on dynamic file reading at build time instead of declarative static metadata. |
-| `requirements.txt` | `keras==3.10.0`<br>`tensorflow==2.19.0; sys_platform == 'win32' or sys_platform == 'linux'`<br>`tensorflow==2.16.2; sys_platform == 'darwin'` | Exact pins (`==`) restrict downstream flexibility and multi-Python version matrix testing. TensorFlow version disparity between macOS (`2.16.2`) and Linux/Windows (`2.19.0`). |
-| `build-requirements.txt` | `pytest==8.4.1`<br>`coverage==7.9.1`<br>`pandas==2.3.0`<br>`scikit-learn==1.5.2` | Exact pins (`==`). `pandas 2.3.0` and `scikit-learn 1.5.2` specify wheels that require Python `>=3.9` or `>=3.10`. |
-| `demo-requirements.txt` | `-r requirements.txt`<br>`-r build-requirements.txt`<br>`matplotlib==3.9.4`<br>`jupyter==1.1.1` | Pinned demo/notebook dependencies. |
+| `pyproject.toml` | `requires-python = ">=3.9"`<br>Classifiers: Python 3, Python 3.9, MIT License, etc.<br>`dependencies`: `keras==3.10.0`, `tensorflow==2.19.0` (win32/linux), `tensorflow==2.16.2` (darwin)<br>`optional-dependencies`: `test`, `build`, `demo`, `dev` | Centralized single source of truth for packaging metadata and dependencies following PEP 517/518/621 (SFNN-33). Package discovery configured for `src/sofenn`. |
+| `setup.py` | Removed (SFNN-33) | Superseded by declarative `pyproject.toml`. |
+| `requirements.txt` | Removed (SFNN-33) | Core runtime dependencies consolidated into `pyproject.toml` `dependencies`. |
+| `build-requirements.txt` | Removed (SFNN-33) | Test and build dependencies consolidated into `pyproject.toml` `[project.optional-dependencies.test]` and `build`. |
+| `demo-requirements.txt` | Removed (SFNN-33) | Demo dependencies consolidated into `pyproject.toml` `[project.optional-dependencies.demo]`. |
 | `pytest.ini` | `pythonpath = . src`<br>`markers = requires_trainable_backend` | Marker `requires_trainable_backend` registered but not actively applied in existing test files. |
 | `tests/conftest.py` | Uses `tf.compat.v1.set_random_seed(seed_value)` | Uses legacy TensorFlow 1.x compatibility API for seeding instead of modern Keras 3 / TensorFlow 2.x seeding (`tf.random.set_seed` or `keras.utils.set_random_seed`). |
-| `.circleci/config.yml` | Docker executor: `cimg/python:3.9` | Single environment (Linux only, Python 3.9 only). No matrix testing across OS or Python versions. |
+| `.circleci/config.yml` | Docker executor: `cimg/python:3.9` | Single environment (Linux only, Python 3.9 only). CI pipeline migration to GitHub Actions belongs to SFNN-12. |
 
 ### 2.2 Platform-Specific Findings & Upstream Verification
 
 - **Windows (`win32`)**: Native TensorFlow wheels (`tensorflow==2.19.0`) run on CPU under Windows x86_64. GPU support on native Windows was discontinued after TensorFlow 2.10, but CPU inference and training are fully functional for `sofenn` test suites.
 - **Linux (`linux`)**: TensorFlow 2.19.0 provides standard x86_64 and aarch64 wheels.
-- **macOS (`darwin`)**: Pinned to TensorFlow 2.16.2 in `requirements.txt`, while Linux/Windows use 2.19.0. TensorFlow 2.19.0 publishes wheels for macOS (Apple Silicon `arm64` and Intel `x86_64`), suggesting that platform version harmonization is viable pending CI matrix validation.
+- **macOS (`darwin`)**: Pinned to TensorFlow 2.16.2 in `pyproject.toml` (migrated from legacy `requirements.txt`), while Linux/Windows use 2.19.0. TensorFlow 2.19.0 publishes wheels for macOS (Apple Silicon `arm64` and Intel `x86_64`), suggesting that platform version harmonization is viable pending CI matrix validation.
 - **Python 3.13 Wheel Availability Verification**: Verified against authoritative PyPI package distribution metadata (`https://pypi.org/pypi/tensorflow/json` for release `2.19.0`). TensorFlow 2.19.0 publishes binary wheels exclusively for `cp39`, `cp310`, `cp311`, and `cp312`. No `cp313` distribution files exist on PyPI for TensorFlow 2.19.0. Consequently, Python 3.13 support is confirmed to be blocked upstream by TensorFlow binary distribution availability.
 
 ---
@@ -76,7 +77,7 @@ TOTAL                                               482      0     98      2    
 To maintain technical accuracy, statement coverage is distinguished from combined statement/branch coverage:
 - **Statement Coverage**: **100%** (482 executed / 482 total statements, 0 missed).
 - **Branch Coverage**: **97.96%** (96 fully covered / 98 branch opportunities; 2 partial branch transitions in `SelfOrganizer.py` [line condition] and `OutputLayer.py` [activation check]).
-- **Combined Statement and Branch Coverage: 99.66% (578/580 coverage opportunities), displayed as 99% by Coverage.py.
+- **Combined Statement and Branch Coverage**: **99.66%** (578/580 coverage opportunities), displayed as 99% by Coverage.py.
 
 ---
 
@@ -101,8 +102,8 @@ To prevent conflating locally tested baselines with proposed targets or unverifi
 | Python Version | Lifecycle Status | Tradeoffs & Evaluation | Modernization Recommendation |
 | :--- | :--- | :--- | :--- |
 | **Python 3.9** | **EOL (Oct 2025)** | Legacy baseline. Fully functional in local test runs, but unsupported upstream. | Maintain as legacy transitional compatibility during initial migration; deprecate in subsequent cleanup. |
-| **Python 3.10** | **Security EOL Oct 2026** | **Transitional Minimum Candidate**:<br>- *Pros*: Broadest adoption across existing user environments and scientific stacks; full wheel coverage across all dependencies.<br>- *Cons*: Approaching upstream EOL within ~12 months; limits adoption of newer Python syntax and CPython optimizations. | **Recommended transitional minimum** for `pyproject.toml` (`requires-python = ">=3.10"`) to avoid breaking existing users prematurely. |
-| **Python 3.11** | **Active (EOL Oct 2027)** | **Longer-Term Minimum / Primary Dev Target**:<br>- *Pros*: Substantial runtime performance gains (CPython 3.11 specializing adaptive interpreter); mature, stable support in all ML libraries; longer support window.<br>- *Cons*: Drops support for Python 3.10 users earlier than strictly necessary. | **Recommended primary development version** and target long-term minimum once Python 3.10 approaches retirement. |
+| **Python 3.10** | **EOL (Oct 2026)** | **Transitional Minimum Candidate**:<br>- *Pros*: Broad adoption across existing user environments and scientific stacks; full wheel coverage across all dependencies.<br>- *Cons*: Reached upstream EOL (October 2026); limits adoption of newer Python syntax and CPython optimizations. | Maintain transitional support in CI matrix; evaluate deprecation alongside Python 3.9 in future modernization milestones. |
+| **Python 3.11** | **Active (EOL Oct 2027)** | **Longer-Term Minimum / Primary Dev Target**:<br>- *Pros*: Substantial runtime performance gains (CPython 3.11 specializing adaptive interpreter); mature, stable support in all ML libraries; active upstream support window.<br>- *Cons*: Transitional support for Python 3.9 and 3.10 must be maintained until deprecation milestones. | **Recommended primary development version** and future minimum once legacy Python versions (3.9/3.10) are formally deprecated. |
 | **Python 3.12** | **Active (EOL Oct 2028)** | Supported by modern Keras 3 and TensorFlow 2.16+. | **Recommended active matrix target** for CI and user installations. |
 | **Python 3.13** | **Active (EOL Oct 2029)** | Lacks upstream TensorFlow 2.19 wheels (verified on PyPI). | **Blocked upstream / Unsupported** until TensorFlow publishes compatible binary wheels. |
 
@@ -121,18 +122,17 @@ To prevent conflating locally tested baselines with proposed targets or unverifi
 
 #### Windows (PowerShell)
 ```powershell
-# Create virtual environment with target Python (e.g., 3.10, 3.11, or 3.12)
+# Create virtual environment with target Python (e.g., 3.9, 3.10, 3.11, or 3.12)
 python -m venv venv
 
 # Activate virtual environment
 .\venv\Scripts\Activate.ps1
 
-# Install core and test dependencies
-pip install -r requirements.txt
-pip install -r build-requirements.txt
+# Install package in editable mode with development/test extras
+pip install -e ".[test]"
 
-# Install package in editable mode
-pip install -e .
+# Optionally install demo dependencies
+pip install -e ".[demo]"
 ```
 
 #### Linux / macOS (Bash / Zsh)
@@ -143,12 +143,11 @@ python3 -m venv venv
 # Activate virtual environment
 source venv/bin/activate
 
-# Install core and test dependencies
-pip install -r requirements.txt
-pip install -r build-requirements.txt
+# Install package in editable mode with development/test extras
+pip install -e ".[test]"
 
-# Install package in editable mode
-pip install -e .
+# Optionally install demo dependencies
+pip install -e ".[demo]"
 ```
 
 ### 5.2 Test Execution Commands
@@ -175,7 +174,7 @@ coverage report
 1. **Unverified Multi-OS / Multi-Python Combinations**: All non-Windows-3.9 combinations remain unverified until automated CI is established in SFNN-12.
 2. **Upstream Python 3.13 Blocker**: Verified absence of `tensorflow==2.19.0` wheels for `cp313` on PyPI prevents supporting Python 3.13 in initial modernization.
 3. **Random Seeding Modernization**: `tests/conftest.py` uses deprecated `tf.compat.v1.set_random_seed(seed_value)`. This will be modernized under deterministic testing tasks.
-4. **Platform-Specific Requirement Declarations**: `requirements.txt` currently splits TensorFlow versions (`2.19.0` vs. `2.16.2`). Unifying these under candidate bounds requires multi-platform CI verification.
+4. **Platform-Specific Requirement Declarations**: `pyproject.toml` currently splits TensorFlow versions (`2.19.0` vs. `2.16.2` via platform environment markers). Unifying these under candidate bounds requires multi-platform CI verification.
 5. **Pytest Custom Markers**: The `requires_trainable_backend` marker in `pytest.ini` is unused across existing tests and will be standardized or cleaned up in subsequent test infrastructure tasks.
 
 ---
@@ -184,16 +183,17 @@ coverage report
 
 To ensure a structured, non-breaking modernization process, responsibilities are partitioned between **SFNN-33** (packaging) and **SFNN-12** (CI matrix validation):
 
-### 7.1 Immediate Implementations for SFNN-33 (Packaging Modernization)
+### 7.1 Implementations Completed under SFNN-33 (Packaging Modernization)
 
-SFNN-33 can implement the following declarative changes immediately based on this baseline:
+SFNN-33 has completed the declarative packaging consolidation into `pyproject.toml`:
 
-- **Consolidate Packaging Metadata (PEP 517 / 518 / 621)**: Migrate from `setup.py` / `requirements.txt` / `build-requirements.txt` to a centralized `pyproject.toml`.
-- **Set Python Version Specification**: Declare `requires-python = ">=3.10"` (or `">=3.9, <3.13"` if transitional Python 3.9 support is preserved in packaging).
-- **Add Trove Classifiers**: Add `Programming Language :: Python :: 3.10`, `3.11`, and `3.12`.
-- **Specify Initial Candidate Dependency Tables**:
-  - `dependencies = ["keras>=3.10.0", "tensorflow>=2.16.2; sys_platform == 'darwin'", "tensorflow>=2.19.0; sys_platform != 'darwin'"]` (or candidate range `tensorflow>=2.16.0,<2.20.0` flagged for CI validation).
-  - `[project.optional-dependencies]` defining `test` (`pytest>=8.0.0`, `coverage>=7.0.0`, `pandas>=2.0.0`, `scikit-learn>=1.5.0`) and `demo` (`matplotlib>=3.8.0`, `jupyter>=1.0.0`).
+- **Consolidated Packaging Metadata (PEP 517 / 518 / 621)**: Migrated all package metadata and dependencies from legacy `setup.py`, `requirements.txt`, `build-requirements.txt`, and `demo-requirements.txt` into an authoritative `pyproject.toml`.
+- **Set Python Version Specification**: Declared `requires-python = ">=3.9"` to preserve backward compatibility during initial modernization.
+- **Trove Classifiers**: Maintained standard Python 3 and Python 3.9 classifiers alongside research/development metadata.
+- **Dependency Tables & Extras**:
+  - `dependencies = ["keras==3.10.0", "tensorflow==2.19.0; sys_platform == 'win32' or sys_platform == 'linux'", "tensorflow==2.16.2; sys_platform == 'darwin'"]`
+  - `[project.optional-dependencies]` defining `test`, `build` (backward-compatibility alias), `demo`, and `dev` extras.
+- **Packaging Regression Tests**: Added `tests/unit/test_packaging.py` validating metadata, dependency tables, platform markers, and package discovery.
 
 ### 7.2 Actions Requiring SFNN-12 (CI Pipeline & Matrix Validation)
 
@@ -203,3 +203,7 @@ The following items cannot be declared resolved until SFNN-12 executes automated
 - **Python Matrix Verification**: Validating test suites across Python `3.10`, `3.11`, and `3.12`.
 - **Dependency Range Validation**: Testing whether lower bounds (`keras 3.0.0`, `tensorflow 2.16.0`) or unified TensorFlow versions run tests without regressions across all platforms.
 - **CircleCI Decommissioning**: Retiring `.circleci/config.yml` after GitHub Actions achieves complete workflow parity.
+
+### 7.3 Version Isolation and Release Automation Considerations (SFNN-34)
+
+Packaging regression tests in `tests/unit/test_packaging.py` verify that `pyproject.toml` adheres to Semantic Versioning and that runtime and optional dependency specifications do not couple with the package version. However, static packaging tests cannot independently prove that future version-bump tooling leaves dependencies untouched at execution time. SFNN-34 must implement before/after verification (e.g., automated diff assertion of dependency tables across version bumps) within release automation workflows to ensure only the version declaration is updated.

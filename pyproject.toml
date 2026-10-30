@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sofenn"
+version = "0.1.6"
+description = "Keras model of a Self-Organizing Fuzzy Network"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Andrew Edmonds", email = "andrewre23@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "keras==3.10.0",
+    "tensorflow==2.19.0; sys_platform == 'win32' or sys_platform == 'linux'",
+    "tensorflow==2.16.2; sys_platform == 'darwin'",
+]
+
+[project.urls]
+Homepage = "https://github.com/andrewre23/sofenn"
+Repository = "https://github.com/andrewre23/sofenn"
+
+[project.optional-dependencies]
+# Note: PEP 621 flat tables do not support internal table inheritance without recursive
+# self-referential extras (e.g. `sofenn[test]`). To ensure deterministic installation across
+# build frontends and avoid recursive resolution quirks, dependencies are explicitly listed
+# in each extra. Regression tests verify that shared dependencies and alias extras remain synchronized.
+test = [
+    "pytest==8.4.1",
+    "coverage==7.9.1",
+    "pandas==2.3.0",
+    "scikit-learn==1.5.2",
+    "tomli>=1.1.0; python_version < '3.11'",
+]
+build = [
+    "pytest==8.4.1",
+    "coverage==7.9.1",
+    "pandas==2.3.0",
+    "scikit-learn==1.5.2",
+    "tomli>=1.1.0; python_version < '3.11'",
+]
+demo = [
+    "matplotlib==3.9.4",
+    "jupyter==1.1.1",
+    "pandas==2.3.0",
+    "scikit-learn==1.5.2",
+]
+dev = [
+    "pytest==8.4.1",
+    "coverage==7.9.1",
+    "pandas==2.3.0",
+    "scikit-learn==1.5.2",
+    "matplotlib==3.9.4",
+    "jupyter==1.1.1",
+    "tomli>=1.1.0; python_version < '3.11'",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
