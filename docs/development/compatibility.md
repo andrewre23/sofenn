@@ -173,17 +173,23 @@ coverage report
 
 1. **Unverified Multi-OS / Multi-Python Combinations**: All non-Windows-3.9 combinations remain unverified until automated CI is established in SFNN-12.
 2. **Upstream Python 3.13 Blocker**: Verified absence of `tensorflow==2.19.0` wheels for `cp313` on PyPI prevents supporting Python 3.13 in initial modernization.
-3. **Random Seeding Modernization**: `tests/conftest.py` uses deprecated `tf.compat.v1.set_random_seed(seed_value)`. This will be modernized under deterministic testing tasks.
+3. **Random Seeding Modernization**: Modernized under SFNN-31 using `keras.utils.set_random_seed` and multi-framework environment seeding.
 4. **Platform-Specific Requirement Declarations**: `pyproject.toml` currently splits TensorFlow versions (`2.19.0` vs. `2.16.2` via platform environment markers). Unifying these under candidate bounds requires multi-platform CI verification.
 5. **Pytest Custom Markers**: The `requires_trainable_backend` marker in `pytest.ini` is unused across existing tests and will be standardized or cleaned up in subsequent test infrastructure tasks.
 
 ---
 
-## 7. Roadmap Implications & Division of Responsibilities
+## 7. Coverage Quality Gate
 
-To ensure a structured, non-breaking modernization process, responsibilities are partitioned between **SFNN-33** (packaging) and **SFNN-12** (CI matrix validation):
+As established under **SFNN-31**, test execution enforces a minimum combined branch and statement coverage threshold of **95%** in `.coveragerc` and CI. Baseline test coverage stands at **99.66%**. See [Testing Documentation](testing.md) for full details.
 
-### 7.1 Implementations Completed under SFNN-33 (Packaging Modernization)
+---
+
+## 8. Roadmap Implications & Division of Responsibilities
+
+To ensure a structured, non-breaking modernization process, responsibilities are partitioned between **SFNN-33** (packaging), **SFNN-12** (CI matrix validation), and **SFNN-31** (deterministic testing and coverage quality gates):
+
+### 8.1 Implementations Completed under SFNN-33 (Packaging Modernization)
 
 SFNN-33 has completed the declarative packaging consolidation into `pyproject.toml`:
 
@@ -195,7 +201,7 @@ SFNN-33 has completed the declarative packaging consolidation into `pyproject.to
   - `[project.optional-dependencies]` defining `test`, `build` (backward-compatibility alias), `demo`, and `dev` extras.
 - **Packaging Regression Tests**: Added `tests/unit/test_packaging.py` validating metadata, dependency tables, platform markers, and package discovery.
 
-### 7.2 Implementations Completed under SFNN-12 (CI Pipeline & Matrix Validation)
+### 8.2 Implementations Completed under SFNN-12 (CI Pipeline & Matrix Validation)
 
 SFNN-12 implemented the GitHub Actions CI pipeline and decommissioned legacy CircleCI:
 
@@ -207,6 +213,16 @@ SFNN-12 implemented the GitHub Actions CI pipeline and decommissioned legacy Cir
 - **CircleCI Decommissioning**: Removed `.circleci/config.yml`.
 - **CI Documentation**: Authored `docs/development/ci.md`.
 
-### 7.3 Version Isolation and Release Automation Considerations (SFNN-34)
+### 8.3 Implementations Completed under SFNN-31 (Deterministic Testing & Coverage Quality Gate)
+
+SFNN-31 established reproducible testing and coverage quality gates:
+
+- **Multi-Framework Random Seeding**: Standardized on modern `keras.utils.set_random_seed` and multi-framework seeding in `tests/conftest.py`.
+- **Isolated Deterministic Fixtures**: Decoupled dataset generators in `tests/testing_utils.py` using explicit `RandomState(seed)`.
+- **Numerical Tolerance Assertions**: Replaced floating-point equality checks with explicit tolerance comparisons.
+- **Coverage Quality Gate**: Enforced 95% branch/statement coverage threshold in `.coveragerc` and CI.
+- **Testing Documentation**: Authored `docs/development/testing.md`.
+
+### 8.4 Version Isolation and Release Automation Considerations (SFNN-34)
 
 Packaging regression tests in `tests/unit/test_packaging.py` verify that `pyproject.toml` adheres to Semantic Versioning and that runtime and optional dependency specifications do not couple with the package version. However, static packaging tests cannot independently prove that future version-bump tooling leaves dependencies untouched at execution time. SFNN-34 must implement before/after verification (e.g., automated diff assertion of dependency tables across version bumps) within release automation workflows to ensure only the version declaration is updated.

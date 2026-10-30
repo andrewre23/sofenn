@@ -257,4 +257,7 @@ class CustomLossTest(testing.TestCase):
         y_pred = numpy.random.random(3)
 
         loss_fn = CustomLoss(reduction="sum")
-        self.assertTrue(loss_fn(y_true, y_pred) == CustomLoss.from_config(loss_fn.get_config())(y_true, y_pred))
+        self.assertAllClose(
+            loss_fn(y_true, y_pred),
+            CustomLoss.from_config(loss_fn.get_config())(y_true, y_pred),
+        )

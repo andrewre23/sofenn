@@ -3,6 +3,10 @@ name: Python Package Validation
 on:
   workflow_call:
 
+env:
+  PYTHONHASHSEED: '0'
+  TF_ENABLE_ONEDNN_OPTS: '0'
+
 jobs:
   unit-tests:
     name: Unit Tests (${{ matrix.os }} - Py${{ matrix.python-version }})
@@ -99,9 +103,9 @@ jobs:
       - name: Run test suite with branch coverage
         run: |
           coverage run -m pytest
-          coverage report -m
           coverage html -d coverage_report
           coverage xml -o coverage.xml
+          coverage report -m
 
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4

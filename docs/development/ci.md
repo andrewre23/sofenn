@@ -31,7 +31,8 @@ The reusable workflow is invoked via `workflow_call` and contains four isolated,
    - Utilizes pip dependency caching keyed on `pyproject.toml`.
 3. **`coverage`**:
    - Executes the full test suite with branch measurement enabled (`coverage run -m pytest`).
-   - Generates console, HTML, and XML coverage reports adhering to `.coveragerc`.
+   - Generates interactive HTML (`coverage_report/`) and XML (`coverage.xml`) reports.
+   - Enforces the 95% branch/statement coverage quality gate via `.coveragerc` and `coverage report -m`.
    - Uploads `coverage-report` as an artifact containing `coverage_report/`, `coverage.xml`, and `.coverage`.
    - Executes on the primary development environment (`ubuntu-latest`, Python 3.11).
 4. **`package-build`**:
@@ -120,11 +121,11 @@ pytest -v
 
 ### 5.3 Coverage Collection
 ```bash
-# Run test suite with branch coverage and generate reports
+# Run test suite with branch coverage and generate reports enforcing quality gate
 coverage run -m pytest
-coverage report -m
 coverage html -d coverage_report
 coverage xml -o coverage.xml
+coverage report -m
 ```
 
 ### 5.4 Package Build & Validation
