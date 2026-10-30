@@ -31,7 +31,7 @@ The workflow defines five parallelizable jobs:
    - Utilizes pip dependency caching keyed on `pyproject.toml`.
 2. **`unit-tests`**:
    - Executes the targeted unit test suite (`pytest tests/unit -v`).
-   - In full validation (`fast-feedback: false`), runs across the multi-platform Python matrix (Ubuntu, Windows, macOS across Python 3.9, 3.11, 3.12).
+   - In full validation (`fast-feedback: false`), runs across the multi-platform Python matrix (Ubuntu 3.11/3.12, Windows 3.11/3.12, macOS 3.11).
    - Skipped during fast feedback (`if: ${{ !inputs.fast-feedback }}`).
    - Utilizes pip dependency caching keyed on `pyproject.toml`.
 3. **`integration-tests`**:
@@ -78,11 +78,11 @@ jobs:
 | Trigger Event | Target Branch | Mode (`fast-feedback`) | Executed Jobs | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
 | **`push`** | `feature/**` | `true` (Fast Feedback) | `Fast Unit Tests (Ubuntu - Py3.11)` | Rapid feedback during active development; minimal runner consumption |
-| **`pull_request`** | `develop` or `master` | `false` (Full Validation) | All 6 `unit-tests`, all 6 `integration-tests`, `coverage`, `package-build` | Comprehensive pre-merge quality gate across OS and Python matrix |
-| **`push`** | `develop` or `master` | `false` (Full Validation) | All 6 `unit-tests`, all 6 `integration-tests`, `coverage`, `package-build` | Post-merge verification on protected release and integration branches |
+| **`pull_request`** | `develop` or `master` | `false` (Full Validation) | All 5 `unit-tests`, all 5 `integration-tests`, `coverage`, `package-build` | Comprehensive pre-merge quality gate across OS and Python matrix |
+| **`push`** | `develop` or `master` | `false` (Full Validation) | All 5 `unit-tests`, all 5 `integration-tests`, `coverage`, `package-build` | Post-merge verification on protected release and integration branches |
 
 ### 3.2 Redundancy Prevention & Concurrency
-- **PR Update Optimization**: When pushing new commits to an open PR branch (`feature/**`), the `push` event triggers fast unit tests (1 job), while the `pull_request` event triggers full validation (14 parallel jobs). This avoids running duplicate full 14-job suites across both event triggers.
+- **PR Update Optimization**: When pushing new commits to an open PR branch (`feature/**`), the `push` event triggers fast unit tests (1 job), while the `pull_request` event triggers full validation (12 parallel jobs). This avoids running duplicate full 12-job suites across both event triggers.
 - **In-Progress Cancellation**: Concurrency groups ensure outdated in-flight builds are automatically cancelled when new commits are pushed:
 
 ```yaml
@@ -103,10 +103,9 @@ When configuring GitHub branch protection rules for protected branches (`develop
    - Because `pull_request` events targeting `develop` and `master` always execute with `fast-feedback: false`, all matrix jobs and quality gates run on every PR.
    - Recommended required status checks in GitHub Branch Protection rules:
      - `Package Validation / Unit Tests (ubuntu-latest - Py3.11)`
-     - `Package Validation / Unit Tests (ubuntu-latest - Py3.9)`
      - `Package Validation / Unit Tests (ubuntu-latest - Py3.12)`
-     - `Package Validation / Unit Tests (windows-latest - Py3.9)`
      - `Package Validation / Unit Tests (windows-latest - Py3.11)`
+     - `Package Validation / Unit Tests (windows-latest - Py3.12)`
      - `Package Validation / Unit Tests (macos-latest - Py3.11)`
      - `Package Validation / Integration Tests (ubuntu-latest - Py3.11)`
      - `Package Validation / Coverage Collection (Ubuntu - Py3.11)`
@@ -125,16 +124,15 @@ The CI matrix balances coverage across operating systems and Python versions wit
 
 | Platform | Python Version | Role / Status |
 | :--- | :--- | :--- |
-| **Ubuntu (`ubuntu-latest`)** | `3.9` | Legacy baseline runtime |
 | **Ubuntu (`ubuntu-latest`)** | `3.11` | Primary development target (fast-feedback host, coverage & build host) |
 | **Ubuntu (`ubuntu-latest`)** | `3.12` | Modernization target |
-| **Windows (`windows-latest`)** | `3.9` | Legacy Windows baseline (locally verified) |
 | **Windows (`windows-latest`)** | `3.11` | Modern Windows target |
+| **Windows (`windows-latest`)** | `3.12` | Modern Windows target |
 | **macOS (`macos-latest`)** | `3.11` | Modern macOS target (validating `tensorflow==2.16.2` darwin marker) |
 
 ### 5.2 Platform-Specific Dependencies
-- **Linux / Windows**: Installs `tensorflow==2.19.0` and `keras==3.10.0`.
-- **macOS (`darwin`)**: Installs `tensorflow==2.16.2` and `keras==3.10.0` per environment markers declared in `pyproject.toml`.
+- **Linux / Windows**: Installs `tensorflow==2.19.0` and `keras==3.15.1`.
+- **macOS (`darwin`)**: Installs `tensorflow==2.16.2` and `keras==3.15.1` per environment markers declared in `pyproject.toml`.
 
 ### 5.3 Known Limitations & Unvalidated Configurations
 1. **Python 3.13**: Blocked upstream due to the absence of official TensorFlow 2.19.0 binary wheels (`cp313`) on PyPI. Python 3.13 is excluded from the CI matrix until upstream TensorFlow provides wheels.

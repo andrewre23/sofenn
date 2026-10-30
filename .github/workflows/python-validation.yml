@@ -50,13 +50,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ['3.9', '3.11', '3.12']
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.11', '3.12']
         include:
-          - os: windows-latest
-            python-version: '3.9'
-          - os: windows-latest
-            python-version: '3.11'
           - os: macos-latest
             python-version: '3.11'
 
@@ -87,13 +83,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ['3.9', '3.11', '3.12']
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.11', '3.12']
         include:
-          - os: windows-latest
-            python-version: '3.9'
-          - os: windows-latest
-            python-version: '3.11'
           - os: macos-latest
             python-version: '3.11'
 

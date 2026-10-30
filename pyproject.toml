@@ -7,7 +7,7 @@ name = "sofenn"
 version = "0.1.6"
 description = "Keras model of a Self-Organizing Fuzzy Network"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
     { name = "Andrew Edmonds", email = "andrewre23@gmail.com" },
@@ -19,12 +19,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "keras==3.10.0",
+    "keras==3.15.1",
     "tensorflow==2.19.0; sys_platform == 'win32' or sys_platform == 'linux'",
     "tensorflow==2.16.2; sys_platform == 'darwin'",
 ]
@@ -44,7 +45,6 @@ test = [
     "diff-cover==10.0.0",
     "pandas==2.3.0",
     "scikit-learn==1.5.2",
-    "tomli>=1.1.0; python_version < '3.11'",
 ]
 build = [
     "pytest==8.4.1",
@@ -52,7 +52,6 @@ build = [
     "diff-cover==10.0.0",
     "pandas==2.3.0",
     "scikit-learn==1.5.2",
-    "tomli>=1.1.0; python_version < '3.11'",
 ]
 demo = [
     "matplotlib==3.9.4",
@@ -68,7 +67,6 @@ dev = [
     "scikit-learn==1.5.2",
     "matplotlib==3.9.4",
     "jupyter==1.1.1",
-    "tomli>=1.1.0; python_version < '3.11'",
 ]
 
 [tool.setuptools.packages.find]

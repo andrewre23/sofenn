@@ -2,10 +2,11 @@ import pickle
 
 import numpy
 import pytest
+from keras import backend
+from keras import config
+from keras import dtype_policies
 from keras import losses as losses_module
 from keras import ops as k
-from keras.src import backend
-from keras.src import dtype_policies
 from keras.src import testing
 
 from sofenn.losses import CustomLoss
@@ -13,12 +14,12 @@ from sofenn.losses import CustomLoss
 
 class CustomLossTest(testing.TestCase):
     def setUp(self):
-        self._global_dtype_policy = dtype_policies.dtype_policy.dtype_policy()
+        self._global_dtype_policy = config.dtype_policy()
         self._floatx = backend.floatx()
         return super().setUp()
 
     def tearDown(self):
-        dtype_policies.dtype_policy.set_dtype_policy(self._global_dtype_policy)
+        config.set_dtype_policy(self._global_dtype_policy)
         backend.set_floatx(self._floatx)
         return super().tearDown()
 
@@ -242,7 +243,7 @@ class CustomLossTest(testing.TestCase):
         y_pred = numpy.array([0.1, 0.2, 0.3, 0.4], dtype="float32")
 
         # Defaults to `keras.config.floatx()` not global `dtype_policy`
-        dtype_policies.dtype_policy.set_dtype_policy("mixed_float16")
+        config.set_dtype_policy("mixed_float16")
         loss_fn = CustomLoss()
         loss = loss_fn(y_true, y_pred)
         self.assertDType(loss, "float32")

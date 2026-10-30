@@ -3,12 +3,8 @@ import importlib.metadata
 import pathlib
 import re
 import sys
+import tomllib
 import unittest
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 from setuptools import find_packages
 
@@ -42,8 +38,15 @@ class PackagingRegressionTest(unittest.TestCase):
 
         self.assertEqual(project.get("description"), "Keras model of a Self-Organizing Fuzzy Network")
         self.assertEqual(project.get("readme"), "README.md")
-        self.assertEqual(project.get("requires-python"), ">=3.9")
+        self.assertEqual(project.get("requires-python"), ">=3.11")
         self.assertEqual(project.get("license"), {"text": "MIT"})
+
+        classifiers = project.get("classifiers", [])
+        self.assertIn("Programming Language :: Python :: 3", classifiers)
+        self.assertIn("Programming Language :: Python :: 3.11", classifiers)
+        self.assertIn("Programming Language :: Python :: 3.12", classifiers)
+        self.assertNotIn("Programming Language :: Python :: 3.9", classifiers)
+        self.assertNotIn("Programming Language :: Python :: 3.10", classifiers)
 
         authors = project.get("authors", [])
         self.assertEqual(len(authors), 1)
@@ -57,7 +60,7 @@ class PackagingRegressionTest(unittest.TestCase):
     def test_runtime_dependencies_and_platform_markers(self):
         dependencies = self.pyproject_data.get("project", {}).get("dependencies", [])
         expected_dependencies = [
-            "keras==3.10.0",
+            "keras==3.15.1",
             "tensorflow==2.19.0; sys_platform == 'win32' or sys_platform == 'linux'",
             "tensorflow==2.16.2; sys_platform == 'darwin'",
         ]
@@ -85,16 +88,16 @@ class PackagingRegressionTest(unittest.TestCase):
             "Legacy 'build' extra must remain an exact alias of 'test'",
         )
 
-        # 'test' extra must contain required testing tools and conditional Python 3.9/3.10 tomli
+        # 'test' extra must contain required testing tools
         test_deps = optional_deps["test"]
         self.assertIn("pytest==8.4.1", test_deps)
         self.assertIn("coverage==7.9.1", test_deps)
         self.assertIn("diff-cover==10.0.0", test_deps)
         self.assertIn("pandas==2.3.0", test_deps)
         self.assertIn("scikit-learn==1.5.2", test_deps)
-        self.assertTrue(
-            any("tomli" in dep and "python_version" in dep for dep in test_deps),
-            "Expected conditional 'tomli' dependency for python_version < '3.11' in 'test' extra",
+        self.assertFalse(
+            any("tomli" in dep for dep in test_deps),
+            "Unexpected 'tomli' dependency found in 'test' extra; Python >= 3.11 includes standard library tomllib",
         )
 
         # 'demo' extra must contain demonstration packages
@@ -198,10 +201,7 @@ class PackagingRegressionTest(unittest.TestCase):
             pyproject_text,
             flags=re.MULTILINE,
         )
-        if sys.version_info >= (3, 11):
-            simulated_data = tomllib.loads(simulated_text)
-        else:
-            simulated_data = tomllib.loads(simulated_text)
+        simulated_data = tomllib.loads(simulated_text)
 
         self.assertEqual(simulated_data["project"]["version"], simulated_version)
         self.assertEqual(
