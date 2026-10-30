@@ -40,14 +40,14 @@ Repository = "https://github.com/andrewre23/sofenn"
 # build frontends and avoid recursive resolution quirks, dependencies are explicitly listed
 # in each extra. Regression tests verify that shared dependencies and alias extras remain synchronized.
 test = [
-    "pytest==8.4.1",
+    "pytest==9.0.3",
     "coverage==7.9.1",
     "diff-cover==10.0.0",
     "pandas==2.3.0",
     "scikit-learn==1.5.2",
 ]
 build = [
-    "pytest==8.4.1",
+    "pytest==9.0.3",
     "coverage==7.9.1",
     "diff-cover==10.0.0",
     "pandas==2.3.0",
@@ -60,7 +60,7 @@ demo = [
     "scikit-learn==1.5.2",
 ]
 dev = [
-    "pytest==8.4.1",
+    "pytest==9.0.3",
     "coverage==7.9.1",
     "diff-cover==10.0.0",
     "pandas==2.3.0",
